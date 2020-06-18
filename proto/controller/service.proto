@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package aws.controller;
+option go_package = "github.com/CyberAgent/mimosa-aws/proto/controller";
+
+import "google/protobuf/empty.proto";
+import "controller/entity.proto";
+
+service AWSService {
+  // AWS
+  rpc ListAWS(ListAWSRequest) returns (ListAWSResponse);
+  rpc PutAWS(PutAWSRequest) returns (PutAWSResponse);
+  rpc DeleteAWS(DeleteAWSRequest) returns (google.protobuf.Empty);
+
+  // AWS Role
+  rpc ListAWSRole(ListAWSRoleRequest) returns (ListAWSRoleResponse);
+  rpc PutAWSRole(PutAWSRoleRequest) returns (PutAWSRoleResponse);
+
+  // AWS DataSource
+  rpc ListDataSource(ListDataSourceRequest) returns (ListDataSourceResponse);
+  rpc AttachDataSource(AttachDataSourceRequest)
+      returns (AttachDataSourceResponse);
+  rpc DetachDataSource(DetachDataSourceRequest) returns (google.protobuf.Empty);
+
+  // Scan
+  rpc InvokeScan(InvokeScanRequest) returns (google.protobuf.Empty);
+}
+
+message ListAWSRequest {
+  uint32 user_id = 1;
+  uint32 project_id = 2;
+  uint32 aws_id = 3;
+  string aws_account_id = 4;
+}
+
+message ListAWSResponse { repeated AWS aws = 1; }
+
+message PutAWSRequest {
+  uint32 user_id = 1;
+  AWSForUpsert aws = 2;
+}
+
+message PutAWSResponse { AWS aws = 1; }
+
+message DeleteAWSRequest {
+  uint32 user_id = 1;
+  uint32 aws_id = 2;
+}
+
+message ListAWSRoleRequest {
+  uint32 user_id = 1;
+  uint32 aws_role_id = 2;
+  string name = 3;
+  bool activated = 4;
+}
+
+message ListAWSRoleResponse { repeated AWSRole aws_role = 1; }
+
+message PutAWSRoleRequest {
+  uint32 user_id = 1;
+  AWSRoleForUpsert aws_role = 2;
+}
+
+message PutAWSRoleResponse { AWSRole aws_role = 1; }
+
+message ListDataSourceRequest {
+  uint32 user_id = 1;
+  uint32 aws_id = 2;
+  string data_source = 3;
+  uint32 project_id = 4;
+}
+
+message ListDataSourceResponse { repeated DataSource data_source = 1; }
+
+message AttachDataSourceRequest {
+  uint32 user_id = 1;
+  DataSourceForAttach attach_data_source = 2;
+}
+
+message AttachDataSourceResponse { DataSource data_source = 1; }
+
+message DetachDataSourceRequest {
+  uint32 user_id = 1;
+  uint32 aws_id = 2;
+  uint32 aws_data_source_id = 3;
+}
+
+message InvokeScanRequest {
+  uint32 user_id = 1;
+  uint32 aws_id = 2;
+  uint32 aws_data_source_id = 3;
+}

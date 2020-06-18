@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package aws.controller;
+option go_package = "github.com/CyberAgent/mimosa-aws/proto/controller";
+
+/**
+ * Entity
+ **/
+
+// AWS
+message AWS {
+  uint32 aws_id = 1;
+  string name = 2;
+  uint32 project_id = 3;
+  string aws_account_id = 4; // 12桁のAWSアカウントID
+  int64 created_at = 5;
+  int64 updated_at = 6;
+}
+
+// AWSForUpsert
+// (Unique keys: aws_account_id)
+message AWSForUpsert {
+  string name = 1;
+  uint32 project_id = 2;
+  string aws_account_id = 3; // 12桁のAWSアカウントID
+}
+
+// AWSRole
+message AWSRole {
+  uint32 aws_role_id = 1;
+  string name = 2;
+  string assume_role_arn = 3;
+  string external_id = 4; // AssumeRole時に指定するキー。
+  bool activated = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+// AWSRoleForUpsert
+// (Unique keys: assume_role_arn, external_id)
+message AWSRoleForUpsert {
+  string name = 1;
+  string assume_role_arn = 2;
+  string external_id = 3;
+  bool activated = 4;
+}
+
+// DataSource(data_sourceと紐づくaws_idのリレーション状態)
+message DataSource {
+  uint32 aws_data_source_id = 1; // aws_data_source.aws_data_source_id
+  string data_source = 2;        // aws_data_source.data_source
+  float max_score = 3;           // aws_data_source.max_score
+
+  uint32 aws_id = 4;          // aws_rel_data_source.aws_id
+  uint32 project_id = 5;      // aws_rel_data_source.project_id
+  uint32 aws_role_id = 6;     // aws_rel_data_source.aws_role_id
+  string assume_role_arn = 7; // aws_role.assume_role_arn
+  string external_id = 8;     // aws_role.external_id
+}
+
+// DataSourceForAttach
+message DataSourceForAttach {
+  uint32 aws_id = 1;
+  uint32 aws_data_source_id = 2;
+  uint32 aws_role_id = 3;
+  uint32 project_id = 4;
+}
