@@ -12,10 +12,6 @@ service AWSService {
   rpc PutAWS(PutAWSRequest) returns (PutAWSResponse);
   rpc DeleteAWS(DeleteAWSRequest) returns (google.protobuf.Empty);
 
-  // AWS Role
-  rpc ListAWSRole(ListAWSRoleRequest) returns (ListAWSRoleResponse);
-  rpc PutAWSRole(PutAWSRoleRequest) returns (PutAWSRoleResponse);
-
   // AWS DataSource
   rpc ListDataSource(ListDataSourceRequest) returns (ListDataSourceResponse);
   rpc AttachDataSource(AttachDataSourceRequest)
@@ -45,23 +41,8 @@ message PutAWSResponse { AWS aws = 1; }
 message DeleteAWSRequest {
   uint32 user_id = 1;
   uint32 aws_id = 2;
+  uint32 project_id = 3;
 }
-
-message ListAWSRoleRequest {
-  uint32 user_id = 1;
-  uint32 aws_role_id = 2;
-  string name = 3;
-  bool activated = 4;
-}
-
-message ListAWSRoleResponse { repeated AWSRole aws_role = 1; }
-
-message PutAWSRoleRequest {
-  uint32 user_id = 1;
-  AWSRoleForUpsert aws_role = 2;
-}
-
-message PutAWSRoleResponse { AWSRole aws_role = 1; }
 
 message ListDataSourceRequest {
   uint32 user_id = 1;
@@ -83,10 +64,12 @@ message DetachDataSourceRequest {
   uint32 user_id = 1;
   uint32 aws_id = 2;
   uint32 aws_data_source_id = 3;
+  uint32 project_id = 4;
 }
 
 message InvokeScanRequest {
   uint32 user_id = 1;
   uint32 aws_id = 2;
   uint32 aws_data_source_id = 3;
+  uint32 project_id = 4;
 }

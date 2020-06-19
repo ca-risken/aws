@@ -6,8 +6,6 @@
 - [controller/entity.proto](#controller/entity.proto)
     - [AWS](#aws.controller.AWS)
     - [AWSForUpsert](#aws.controller.AWSForUpsert)
-    - [AWSRole](#aws.controller.AWSRole)
-    - [AWSRoleForUpsert](#aws.controller.AWSRoleForUpsert)
     - [DataSource](#aws.controller.DataSource)
     - [DataSourceForAttach](#aws.controller.DataSourceForAttach)
   
@@ -19,14 +17,10 @@
     - [InvokeScanRequest](#aws.controller.InvokeScanRequest)
     - [ListAWSRequest](#aws.controller.ListAWSRequest)
     - [ListAWSResponse](#aws.controller.ListAWSResponse)
-    - [ListAWSRoleRequest](#aws.controller.ListAWSRoleRequest)
-    - [ListAWSRoleResponse](#aws.controller.ListAWSRoleResponse)
     - [ListDataSourceRequest](#aws.controller.ListDataSourceRequest)
     - [ListDataSourceResponse](#aws.controller.ListDataSourceResponse)
     - [PutAWSRequest](#aws.controller.PutAWSRequest)
     - [PutAWSResponse](#aws.controller.PutAWSResponse)
-    - [PutAWSRoleRequest](#aws.controller.PutAWSRoleRequest)
-    - [PutAWSRoleResponse](#aws.controller.PutAWSRoleResponse)
   
     - [AWSService](#aws.controller.AWSService)
   
@@ -79,46 +73,6 @@ AWSForUpsert
 
 
 
-<a name="aws.controller.AWSRole"></a>
-
-### AWSRole
-AWSRole
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| aws_role_id | [uint32](#uint32) |  |  |
-| name | [string](#string) |  |  |
-| assume_role_arn | [string](#string) |  |  |
-| external_id | [string](#string) |  | AssumeRole時に指定するキー。 |
-| activated | [bool](#bool) |  |  |
-| created_at | [int64](#int64) |  |  |
-| updated_at | [int64](#int64) |  |  |
-
-
-
-
-
-
-<a name="aws.controller.AWSRoleForUpsert"></a>
-
-### AWSRoleForUpsert
-AWSRoleForUpsert
-(Unique keys: assume_role_arn, external_id)
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  |  |
-| assume_role_arn | [string](#string) |  |  |
-| external_id | [string](#string) |  |  |
-| activated | [bool](#bool) |  |  |
-
-
-
-
-
-
 <a name="aws.controller.DataSource"></a>
 
 ### DataSource
@@ -133,8 +87,8 @@ DataSource(data_sourceと紐づくaws_idのリレーション状態)
 | aws_id | [uint32](#uint32) |  | aws_rel_data_source.aws_id |
 | project_id | [uint32](#uint32) |  | aws_rel_data_source.project_id |
 | aws_role_id | [uint32](#uint32) |  | aws_rel_data_source.aws_role_id |
-| assume_role_arn | [string](#string) |  | aws_role.assume_role_arn |
-| external_id | [string](#string) |  | aws_role.external_id |
+| assume_role_arn | [string](#string) |  | aws_rel_data_source.assume_role_arn |
+| external_id | [string](#string) |  | aws_rel_data_source.external_id |
 
 
 
@@ -151,8 +105,9 @@ DataSourceForAttach
 | ----- | ---- | ----- | ----------- |
 | aws_id | [uint32](#uint32) |  |  |
 | aws_data_source_id | [uint32](#uint32) |  |  |
-| aws_role_id | [uint32](#uint32) |  |  |
 | project_id | [uint32](#uint32) |  |  |
+| assume_role_arn | [string](#string) |  |  |
+| external_id | [string](#string) |  |  |
 
 
 
@@ -216,6 +171,7 @@ DataSourceForAttach
 | ----- | ---- | ----- | ----------- |
 | user_id | [uint32](#uint32) |  |  |
 | aws_id | [uint32](#uint32) |  |  |
+| project_id | [uint32](#uint32) |  |  |
 
 
 
@@ -233,6 +189,7 @@ DataSourceForAttach
 | user_id | [uint32](#uint32) |  |  |
 | aws_id | [uint32](#uint32) |  |  |
 | aws_data_source_id | [uint32](#uint32) |  |  |
+| project_id | [uint32](#uint32) |  |  |
 
 
 
@@ -250,6 +207,7 @@ DataSourceForAttach
 | user_id | [uint32](#uint32) |  |  |
 | aws_id | [uint32](#uint32) |  |  |
 | aws_data_source_id | [uint32](#uint32) |  |  |
+| project_id | [uint32](#uint32) |  |  |
 
 
 
@@ -283,39 +241,6 @@ DataSourceForAttach
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | aws | [AWS](#aws.controller.AWS) | repeated |  |
-
-
-
-
-
-
-<a name="aws.controller.ListAWSRoleRequest"></a>
-
-### ListAWSRoleRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| user_id | [uint32](#uint32) |  |  |
-| aws_role_id | [uint32](#uint32) |  |  |
-| name | [string](#string) |  |  |
-| activated | [bool](#bool) |  |  |
-
-
-
-
-
-
-<a name="aws.controller.ListAWSRoleResponse"></a>
-
-### ListAWSRoleResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| aws_role | [AWSRole](#aws.controller.AWSRole) | repeated |  |
 
 
 
@@ -385,37 +310,6 @@ DataSourceForAttach
 
 
 
-
-<a name="aws.controller.PutAWSRoleRequest"></a>
-
-### PutAWSRoleRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| user_id | [uint32](#uint32) |  |  |
-| aws_role | [AWSRoleForUpsert](#aws.controller.AWSRoleForUpsert) |  |  |
-
-
-
-
-
-
-<a name="aws.controller.PutAWSRoleResponse"></a>
-
-### PutAWSRoleResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| aws_role | [AWSRole](#aws.controller.AWSRole) |  |  |
-
-
-
-
-
  
 
  
@@ -433,8 +327,6 @@ DataSourceForAttach
 | ListAWS | [ListAWSRequest](#aws.controller.ListAWSRequest) | [ListAWSResponse](#aws.controller.ListAWSResponse) | AWS |
 | PutAWS | [PutAWSRequest](#aws.controller.PutAWSRequest) | [PutAWSResponse](#aws.controller.PutAWSResponse) |  |
 | DeleteAWS | [DeleteAWSRequest](#aws.controller.DeleteAWSRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) |  |
-| ListAWSRole | [ListAWSRoleRequest](#aws.controller.ListAWSRoleRequest) | [ListAWSRoleResponse](#aws.controller.ListAWSRoleResponse) | AWS Role |
-| PutAWSRole | [PutAWSRoleRequest](#aws.controller.PutAWSRoleRequest) | [PutAWSRoleResponse](#aws.controller.PutAWSRoleResponse) |  |
 | ListDataSource | [ListDataSourceRequest](#aws.controller.ListDataSourceRequest) | [ListDataSourceResponse](#aws.controller.ListDataSourceResponse) | AWS DataSource |
 | AttachDataSource | [AttachDataSourceRequest](#aws.controller.AttachDataSourceRequest) | [AttachDataSourceResponse](#aws.controller.AttachDataSourceResponse) |  |
 | DetachDataSource | [DetachDataSourceRequest](#aws.controller.DetachDataSourceRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) |  |
