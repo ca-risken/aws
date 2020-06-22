@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"errors"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
@@ -15,46 +17,62 @@ func (l *ListAWSRequest) Validate() error {
 
 // Validate PutAWSRequest
 func (p *PutAWSRequest) Validate() error {
+	if p.Aws == nil {
+		return errors.New("Required Aws")
+	}
+	if err := validation.ValidateStruct(p,
+		validation.Field(&p.ProjectId, validation.Required, validation.In(p.Aws.ProjectId)),
+	); err != nil {
+		return err
+	}
 	return p.Aws.Validate()
 }
 
 // Validate DeleteAWSRequest
 func (d *DeleteAWSRequest) Validate() error {
 	return validation.ValidateStruct(d,
-		validation.Field(&d.AwsId, validation.Required),
 		validation.Field(&d.ProjectId, validation.Required),
+		validation.Field(&d.AwsId, validation.Required),
 	)
 }
 
 // Validate ListDataSourceRequest
 func (l *ListDataSourceRequest) Validate() error {
 	return validation.ValidateStruct(l,
+		validation.Field(&l.ProjectId, validation.Required),
 		validation.Field(&l.DataSource, validation.Length(0, 64)),
 		validation.Field(&l.AwsId, validation.Required),
-		validation.Field(&l.ProjectId, validation.Required),
 	)
 }
 
 // Validate AttachDataSourceRequest
 func (a *AttachDataSourceRequest) Validate() error {
+	if a.AttachDataSource == nil {
+		return errors.New("Required AttachDataSource")
+	}
+	if err := validation.ValidateStruct(a,
+		validation.Field(&a.ProjectId, validation.Required, validation.In(a.AttachDataSource.ProjectId)),
+	); err != nil {
+		return err
+	}
 	return a.AttachDataSource.Validate()
 }
 
 // Validate DetachDataSourceRequest
 func (d *DetachDataSourceRequest) Validate() error {
 	return validation.ValidateStruct(d,
+		validation.Field(&d.ProjectId, validation.Required),
 		validation.Field(&d.AwsId, validation.Required),
 		validation.Field(&d.AwsDataSourceId, validation.Required),
-		validation.Field(&d.ProjectId, validation.Required),
 	)
 }
 
 // Validate InvokeScanRequest
 func (i *InvokeScanRequest) Validate() error {
 	return validation.ValidateStruct(i,
+		validation.Field(&i.ProjectId, validation.Required),
 		validation.Field(&i.AwsId, validation.Required),
 		validation.Field(&i.AwsDataSourceId, validation.Required),
-		validation.Field(&i.ProjectId, validation.Required),
 	)
 }
 

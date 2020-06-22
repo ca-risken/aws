@@ -23,53 +23,48 @@ service AWSService {
 }
 
 message ListAWSRequest {
-  uint32 user_id = 1;
-  uint32 project_id = 2;
-  uint32 aws_id = 3;
-  string aws_account_id = 4;
+  uint32 project_id = 1;
+  uint32 aws_id = 2;
+  string aws_account_id = 3;
 }
 
 message ListAWSResponse { repeated AWS aws = 1; }
 
 message PutAWSRequest {
-  uint32 user_id = 1;
+  uint32 project_id = 1;
   AWSForUpsert aws = 2;
 }
 
 message PutAWSResponse { AWS aws = 1; }
 
 message DeleteAWSRequest {
-  uint32 user_id = 1;
+  uint32 project_id = 1;
   uint32 aws_id = 2;
-  uint32 project_id = 3;
 }
 
 message ListDataSourceRequest {
-  uint32 user_id = 1;
+  uint32 project_id = 1;
   uint32 aws_id = 2;
   string data_source = 3;
-  uint32 project_id = 4;
 }
 
 message ListDataSourceResponse { repeated DataSource data_source = 1; }
 
 message AttachDataSourceRequest {
-  uint32 user_id = 1;
+  uint32 project_id = 1;
   DataSourceForAttach attach_data_source = 2;
 }
 
 message AttachDataSourceResponse { DataSource data_source = 1; }
 
 message DetachDataSourceRequest {
-  uint32 user_id = 1;
+  uint32 project_id = 1;
   uint32 aws_id = 2;
   uint32 aws_data_source_id = 3;
-  uint32 project_id = 4;
 }
 
 message InvokeScanRequest {
-  uint32 user_id = 1;
+  uint32 project_id = 1;
   uint32 aws_id = 2;
   uint32 aws_data_source_id = 3;
-  uint32 project_id = 4;
 }

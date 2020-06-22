@@ -178,7 +178,7 @@ func (x *AWSForUpsert) GetAwsAccountId() string {
 	return ""
 }
 
-// DataSource(data_sourceと紐づくaws_idのリレーション状態)
+// DataSource(data_sourceと紐づくaws_rel_data_sourceの状態)
 type DataSource struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -292,7 +292,7 @@ type DataSourceForAttach struct {
 	AwsDataSourceId uint32 `protobuf:"varint,2,opt,name=aws_data_source_id,json=awsDataSourceId,proto3" json:"aws_data_source_id,omitempty"`
 	ProjectId       uint32 `protobuf:"varint,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	AssumeRoleArn   string `protobuf:"bytes,4,opt,name=assume_role_arn,json=assumeRoleArn,proto3" json:"assume_role_arn,omitempty"`
-	ExternalId      string `protobuf:"bytes,5,opt,name=external_id,json=externalId,proto3" json:"external_id,omitempty"`
+	ExternalId      string `protobuf:"bytes,5,opt,name=external_id,json=externalId,proto3" json:"external_id,omitempty"` // assume_role時に指定する外部ID
 }
 
 func (x *DataSourceForAttach) Reset() {

@@ -76,7 +76,7 @@ AWSForUpsert
 <a name="aws.controller.DataSource"></a>
 
 ### DataSource
-DataSource(data_sourceと紐づくaws_idのリレーション状態)
+DataSource(data_sourceと紐づくaws_rel_data_sourceの状態)
 
 
 | Field | Type | Label | Description |
@@ -107,7 +107,7 @@ DataSourceForAttach
 | aws_data_source_id | [uint32](#uint32) |  |  |
 | project_id | [uint32](#uint32) |  |  |
 | assume_role_arn | [string](#string) |  |  |
-| external_id | [string](#string) |  |  |
+| external_id | [string](#string) |  | assume_role時に指定する外部ID |
 
 
 
@@ -138,7 +138,7 @@ DataSourceForAttach
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| user_id | [uint32](#uint32) |  |  |
+| project_id | [uint32](#uint32) |  |  |
 | attach_data_source | [DataSourceForAttach](#aws.controller.DataSourceForAttach) |  |  |
 
 
@@ -169,9 +169,8 @@ DataSourceForAttach
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| user_id | [uint32](#uint32) |  |  |
-| aws_id | [uint32](#uint32) |  |  |
 | project_id | [uint32](#uint32) |  |  |
+| aws_id | [uint32](#uint32) |  |  |
 
 
 
@@ -186,10 +185,9 @@ DataSourceForAttach
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| user_id | [uint32](#uint32) |  |  |
+| project_id | [uint32](#uint32) |  |  |
 | aws_id | [uint32](#uint32) |  |  |
 | aws_data_source_id | [uint32](#uint32) |  |  |
-| project_id | [uint32](#uint32) |  |  |
 
 
 
@@ -204,10 +202,9 @@ DataSourceForAttach
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| user_id | [uint32](#uint32) |  |  |
+| project_id | [uint32](#uint32) |  |  |
 | aws_id | [uint32](#uint32) |  |  |
 | aws_data_source_id | [uint32](#uint32) |  |  |
-| project_id | [uint32](#uint32) |  |  |
 
 
 
@@ -222,7 +219,6 @@ DataSourceForAttach
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| user_id | [uint32](#uint32) |  |  |
 | project_id | [uint32](#uint32) |  |  |
 | aws_id | [uint32](#uint32) |  |  |
 | aws_account_id | [string](#string) |  |  |
@@ -255,10 +251,9 @@ DataSourceForAttach
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| user_id | [uint32](#uint32) |  |  |
+| project_id | [uint32](#uint32) |  |  |
 | aws_id | [uint32](#uint32) |  |  |
 | data_source | [string](#string) |  |  |
-| project_id | [uint32](#uint32) |  |  |
 
 
 
@@ -288,7 +283,7 @@ DataSourceForAttach
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| user_id | [uint32](#uint32) |  |  |
+| project_id | [uint32](#uint32) |  |  |
 | aws | [AWSForUpsert](#aws.controller.AWSForUpsert) |  |  |
 
 

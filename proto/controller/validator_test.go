@@ -43,6 +43,45 @@ func TestValidate_ListAWSRequest(t *testing.T) {
 	}
 }
 
+func TestValidate_PutAWSRequest(t *testing.T) {
+	cases := []struct {
+		name    string
+		input   *PutAWSRequest
+		wantErr bool
+	}{
+		{
+			name:    "OK",
+			input:   &PutAWSRequest{ProjectId: 1, Aws: &AWSForUpsert{Name: "nm", ProjectId: 1, AwsAccountId: "123456789012"}},
+			wantErr: false,
+		},
+		{
+			name:    "NG Required(Aws)",
+			input:   &PutAWSRequest{ProjectId: 1},
+			wantErr: true,
+		},
+		{
+			name:    "NG Required(ProjectId)",
+			input:   &PutAWSRequest{Aws: &AWSForUpsert{Name: "nm", ProjectId: 1, AwsAccountId: "123456789012"}},
+			wantErr: true,
+		},
+		{
+			name:    "NG Not match(ProjectId)",
+			input:   &PutAWSRequest{ProjectId: 999, Aws: &AWSForUpsert{Name: "nm", ProjectId: 1, AwsAccountId: "123456789012"}},
+			wantErr: true,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := c.input.Validate()
+			if c.wantErr && err == nil {
+				t.Fatal("Unexpected no error")
+			} else if !c.wantErr && err != nil {
+				t.Fatalf("Unexpected error occured: wantErr=%t, err=%+v", c.wantErr, err)
+			}
+		})
+	}
+}
+
 func TestValidate_DeleteAWSRequest(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -55,13 +94,13 @@ func TestValidate_DeleteAWSRequest(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "NG Required(aws_id)",
-			input:   &DeleteAWSRequest{ProjectId: 111},
+			name:    "NG Required(project_id)",
+			input:   &DeleteAWSRequest{AwsId: 1001},
 			wantErr: true,
 		},
 		{
-			name:    "NG Required(project_id)",
-			input:   &DeleteAWSRequest{AwsId: 1001},
+			name:    "NG Required(aws_id)",
+			input:   &DeleteAWSRequest{ProjectId: 111},
 			wantErr: true,
 		},
 	}
@@ -89,6 +128,11 @@ func TestValidate_ListDataSourceRequest(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:    "NG Length(aws_id)",
+			input:   &ListDataSourceRequest{ProjectId: 111, DataSource: "ds"},
+			wantErr: true,
+		},
+		{
 			name:    "NG Length(data_source)",
 			input:   &ListDataSourceRequest{ProjectId: 111, AwsId: 1001, DataSource: "12345678901234567890123456789012345678901234567890123456789012345"},
 			wantErr: true,
@@ -98,9 +142,43 @@ func TestValidate_ListDataSourceRequest(t *testing.T) {
 			input:   &ListDataSourceRequest{AwsId: 1001, DataSource: "ds"},
 			wantErr: true,
 		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := c.input.Validate()
+			if c.wantErr && err == nil {
+				t.Fatal("Unexpected no error")
+			} else if !c.wantErr && err != nil {
+				t.Fatalf("Unexpected error occured: wantErr=%t, err=%+v", c.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestValidate_AttachDataSourceRequest(t *testing.T) {
+	cases := []struct {
+		name    string
+		input   *AttachDataSourceRequest
+		wantErr bool
+	}{
 		{
-			name:    "NG Length(project_id)",
-			input:   &ListDataSourceRequest{ProjectId: 111, DataSource: "ds"},
+			name:    "OK",
+			input:   &AttachDataSourceRequest{ProjectId: 1, AttachDataSource: &DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "assume-role", ExternalId: ""}},
+			wantErr: false,
+		},
+		{
+			name:    "NG Required(attach_data_source)",
+			input:   &AttachDataSourceRequest{ProjectId: 1},
+			wantErr: true,
+		},
+		{
+			name:    "NG Required(ProjectID)",
+			input:   &AttachDataSourceRequest{AttachDataSource: &DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "assume-role", ExternalId: ""}},
+			wantErr: true,
+		},
+		{
+			name:    "NG Invalid ProjectID",
+			input:   &AttachDataSourceRequest{ProjectId: 999, AttachDataSource: &DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "assume-role", ExternalId: ""}},
 			wantErr: true,
 		},
 	}
@@ -128,13 +206,18 @@ func TestValidate_DetachDataSourceRequest(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:    "NG Required(project_id)",
+			input:   &DetachDataSourceRequest{AwsId: 1001, AwsDataSourceId: 1001},
+			wantErr: true,
+		},
+		{
 			name:    "NG Required(aws_id)",
 			input:   &DetachDataSourceRequest{ProjectId: 111, AwsDataSourceId: 1001},
 			wantErr: true,
 		},
 		{
-			name:    "NG Required(project_id)",
-			input:   &DetachDataSourceRequest{AwsId: 1001, AwsDataSourceId: 1001},
+			name:    "NG Required(aws_data_source_id)",
+			input:   &DetachDataSourceRequest{ProjectId: 111, AwsId: 1001},
 			wantErr: true,
 		},
 	}
