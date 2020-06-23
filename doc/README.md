@@ -3,39 +3,39 @@
 
 ## Table of Contents
 
-- [controller/entity.proto](#controller/entity.proto)
-    - [AWS](#aws.controller.AWS)
-    - [AWSForUpsert](#aws.controller.AWSForUpsert)
-    - [DataSource](#aws.controller.DataSource)
-    - [DataSourceForAttach](#aws.controller.DataSourceForAttach)
+- [aws/entity.proto](#aws/entity.proto)
+    - [AWS](#aws.aws.AWS)
+    - [AWSForUpsert](#aws.aws.AWSForUpsert)
+    - [DataSource](#aws.aws.DataSource)
+    - [DataSourceForAttach](#aws.aws.DataSourceForAttach)
   
-- [controller/service.proto](#controller/service.proto)
-    - [AttachDataSourceRequest](#aws.controller.AttachDataSourceRequest)
-    - [AttachDataSourceResponse](#aws.controller.AttachDataSourceResponse)
-    - [DeleteAWSRequest](#aws.controller.DeleteAWSRequest)
-    - [DetachDataSourceRequest](#aws.controller.DetachDataSourceRequest)
-    - [InvokeScanRequest](#aws.controller.InvokeScanRequest)
-    - [ListAWSRequest](#aws.controller.ListAWSRequest)
-    - [ListAWSResponse](#aws.controller.ListAWSResponse)
-    - [ListDataSourceRequest](#aws.controller.ListDataSourceRequest)
-    - [ListDataSourceResponse](#aws.controller.ListDataSourceResponse)
-    - [PutAWSRequest](#aws.controller.PutAWSRequest)
-    - [PutAWSResponse](#aws.controller.PutAWSResponse)
+- [aws/service.proto](#aws/service.proto)
+    - [AttachDataSourceRequest](#aws.aws.AttachDataSourceRequest)
+    - [AttachDataSourceResponse](#aws.aws.AttachDataSourceResponse)
+    - [DeleteAWSRequest](#aws.aws.DeleteAWSRequest)
+    - [DetachDataSourceRequest](#aws.aws.DetachDataSourceRequest)
+    - [InvokeScanRequest](#aws.aws.InvokeScanRequest)
+    - [ListAWSRequest](#aws.aws.ListAWSRequest)
+    - [ListAWSResponse](#aws.aws.ListAWSResponse)
+    - [ListDataSourceRequest](#aws.aws.ListDataSourceRequest)
+    - [ListDataSourceResponse](#aws.aws.ListDataSourceResponse)
+    - [PutAWSRequest](#aws.aws.PutAWSRequest)
+    - [PutAWSResponse](#aws.aws.PutAWSResponse)
   
-    - [AWSService](#aws.controller.AWSService)
+    - [AWSService](#aws.aws.AWSService)
   
 - [Scalar Value Types](#scalar-value-types)
 
 
 
-<a name="controller/entity.proto"></a>
+<a name="aws/entity.proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## controller/entity.proto
+## aws/entity.proto
 
 
 
-<a name="aws.controller.AWS"></a>
+<a name="aws.aws.AWS"></a>
 
 ### AWS
 AWS
@@ -55,7 +55,7 @@ AWS
 
 
 
-<a name="aws.controller.AWSForUpsert"></a>
+<a name="aws.aws.AWSForUpsert"></a>
 
 ### AWSForUpsert
 AWSForUpsert
@@ -73,7 +73,7 @@ AWSForUpsert
 
 
 
-<a name="aws.controller.DataSource"></a>
+<a name="aws.aws.DataSource"></a>
 
 ### DataSource
 DataSource(data_sourceと紐づくaws_rel_data_sourceの状態)
@@ -95,7 +95,7 @@ DataSource(data_sourceと紐づくaws_rel_data_sourceの状態)
 
 
 
-<a name="aws.controller.DataSourceForAttach"></a>
+<a name="aws.aws.DataSourceForAttach"></a>
 
 ### DataSourceForAttach
 DataSourceForAttach
@@ -123,14 +123,14 @@ DataSourceForAttach
 
 
 
-<a name="controller/service.proto"></a>
+<a name="aws/service.proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## controller/service.proto
+## aws/service.proto
 
 
 
-<a name="aws.controller.AttachDataSourceRequest"></a>
+<a name="aws.aws.AttachDataSourceRequest"></a>
 
 ### AttachDataSourceRequest
 
@@ -139,14 +139,14 @@ DataSourceForAttach
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | project_id | [uint32](#uint32) |  |  |
-| attach_data_source | [DataSourceForAttach](#aws.controller.DataSourceForAttach) |  |  |
+| attach_data_source | [DataSourceForAttach](#aws.aws.DataSourceForAttach) |  |  |
 
 
 
 
 
 
-<a name="aws.controller.AttachDataSourceResponse"></a>
+<a name="aws.aws.AttachDataSourceResponse"></a>
 
 ### AttachDataSourceResponse
 
@@ -154,14 +154,14 @@ DataSourceForAttach
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| data_source | [DataSource](#aws.controller.DataSource) |  |  |
+| data_source | [DataSource](#aws.aws.DataSource) |  |  |
 
 
 
 
 
 
-<a name="aws.controller.DeleteAWSRequest"></a>
+<a name="aws.aws.DeleteAWSRequest"></a>
 
 ### DeleteAWSRequest
 
@@ -177,7 +177,7 @@ DataSourceForAttach
 
 
 
-<a name="aws.controller.DetachDataSourceRequest"></a>
+<a name="aws.aws.DetachDataSourceRequest"></a>
 
 ### DetachDataSourceRequest
 
@@ -194,7 +194,7 @@ DataSourceForAttach
 
 
 
-<a name="aws.controller.InvokeScanRequest"></a>
+<a name="aws.aws.InvokeScanRequest"></a>
 
 ### InvokeScanRequest
 
@@ -211,7 +211,7 @@ DataSourceForAttach
 
 
 
-<a name="aws.controller.ListAWSRequest"></a>
+<a name="aws.aws.ListAWSRequest"></a>
 
 ### ListAWSRequest
 
@@ -228,7 +228,7 @@ DataSourceForAttach
 
 
 
-<a name="aws.controller.ListAWSResponse"></a>
+<a name="aws.aws.ListAWSResponse"></a>
 
 ### ListAWSResponse
 
@@ -236,14 +236,14 @@ DataSourceForAttach
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| aws | [AWS](#aws.controller.AWS) | repeated |  |
+| aws | [AWS](#aws.aws.AWS) | repeated |  |
 
 
 
 
 
 
-<a name="aws.controller.ListDataSourceRequest"></a>
+<a name="aws.aws.ListDataSourceRequest"></a>
 
 ### ListDataSourceRequest
 
@@ -260,7 +260,7 @@ DataSourceForAttach
 
 
 
-<a name="aws.controller.ListDataSourceResponse"></a>
+<a name="aws.aws.ListDataSourceResponse"></a>
 
 ### ListDataSourceResponse
 
@@ -268,14 +268,14 @@ DataSourceForAttach
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| data_source | [DataSource](#aws.controller.DataSource) | repeated |  |
+| data_source | [DataSource](#aws.aws.DataSource) | repeated |  |
 
 
 
 
 
 
-<a name="aws.controller.PutAWSRequest"></a>
+<a name="aws.aws.PutAWSRequest"></a>
 
 ### PutAWSRequest
 
@@ -284,14 +284,14 @@ DataSourceForAttach
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | project_id | [uint32](#uint32) |  |  |
-| aws | [AWSForUpsert](#aws.controller.AWSForUpsert) |  |  |
+| aws | [AWSForUpsert](#aws.aws.AWSForUpsert) |  |  |
 
 
 
 
 
 
-<a name="aws.controller.PutAWSResponse"></a>
+<a name="aws.aws.PutAWSResponse"></a>
 
 ### PutAWSResponse
 
@@ -299,7 +299,7 @@ DataSourceForAttach
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| aws | [AWS](#aws.controller.AWS) |  |  |
+| aws | [AWS](#aws.aws.AWS) |  |  |
 
 
 
@@ -312,20 +312,20 @@ DataSourceForAttach
  
 
 
-<a name="aws.controller.AWSService"></a>
+<a name="aws.aws.AWSService"></a>
 
 ### AWSService
 
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| ListAWS | [ListAWSRequest](#aws.controller.ListAWSRequest) | [ListAWSResponse](#aws.controller.ListAWSResponse) | AWS |
-| PutAWS | [PutAWSRequest](#aws.controller.PutAWSRequest) | [PutAWSResponse](#aws.controller.PutAWSResponse) |  |
-| DeleteAWS | [DeleteAWSRequest](#aws.controller.DeleteAWSRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) |  |
-| ListDataSource | [ListDataSourceRequest](#aws.controller.ListDataSourceRequest) | [ListDataSourceResponse](#aws.controller.ListDataSourceResponse) | AWS DataSource |
-| AttachDataSource | [AttachDataSourceRequest](#aws.controller.AttachDataSourceRequest) | [AttachDataSourceResponse](#aws.controller.AttachDataSourceResponse) |  |
-| DetachDataSource | [DetachDataSourceRequest](#aws.controller.DetachDataSourceRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) |  |
-| InvokeScan | [InvokeScanRequest](#aws.controller.InvokeScanRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) | Scan |
+| ListAWS | [ListAWSRequest](#aws.aws.ListAWSRequest) | [ListAWSResponse](#aws.aws.ListAWSResponse) | AWS |
+| PutAWS | [PutAWSRequest](#aws.aws.PutAWSRequest) | [PutAWSResponse](#aws.aws.PutAWSResponse) |  |
+| DeleteAWS | [DeleteAWSRequest](#aws.aws.DeleteAWSRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) |  |
+| ListDataSource | [ListDataSourceRequest](#aws.aws.ListDataSourceRequest) | [ListDataSourceResponse](#aws.aws.ListDataSourceResponse) | AWS DataSource |
+| AttachDataSource | [AttachDataSourceRequest](#aws.aws.AttachDataSourceRequest) | [AttachDataSourceResponse](#aws.aws.AttachDataSourceResponse) |  |
+| DetachDataSource | [DetachDataSourceRequest](#aws.aws.DetachDataSourceRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) |  |
+| InvokeScan | [InvokeScanRequest](#aws.aws.InvokeScanRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) | Scan |
 
  
 

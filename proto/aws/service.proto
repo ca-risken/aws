@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package aws.controller;
-option go_package = "github.com/CyberAgent/mimosa-aws/proto/controller";
+package aws.aws;
+option go_package = "github.com/CyberAgent/mimosa-aws/proto/aws";
 
 import "google/protobuf/empty.proto";
-import "controller/entity.proto";
+import "aws/entity.proto";
 
 service AWSService {
   // AWS
