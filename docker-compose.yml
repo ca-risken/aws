@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  aws:
+    networks:
+      - aws
+      - local-shared
+    build:
+      context: src/aws
+      args:
+        - GITHUB_USER=${GITHUB_USER}
+        - GITHUB_TOKEN=${GITHUB_TOKEN}
+    environment:
+      - PORT=9001
+      - DB_MASTER_HOST=${DB_MASTER_HOST}
+      - DB_MASTER_USER=${DB_MASTER_USER}
+      - DB_MASTER_PASSWORD=${DB_MASTER_PASSWORD}
+      - DB_SLAVE_HOST=${DB_SLAVE_HOST}
+      - DB_SLAVE_USER=${DB_SLAVE_USER}
+      - DB_SLAVE_PASSWORD=${DB_SLAVE_PASSWORD}
+      - DB_PORT=3306
+      - DB_SCHEMA=mimosa
+      - DB_LOG_MODE=${DB_LOG_MODE}
+    ports:
+      - "9001:9001" # 本来docker-compose外にexposeする必要はない（Debug用）
+
+networks:
+  aws:
+    driver: bridge
+    attachable: true
+  local-shared:
+    external: true
+    

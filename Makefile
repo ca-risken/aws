@@ -33,3 +33,30 @@ build: fmt
 		--error_format=gcc \
 		--go_out=plugins=grpc,paths=source_relative:proto \
 		proto/**/*.proto;
+
+go-test: build
+	cd proto/aws && go test ./...
+	cd src/aws   && go test ./...
+
+go-mod-update:
+	cd src/aws \
+		&& go get -u \
+			github.com/CyberAgent/mimosa-aws/pkg/model \
+			github.com/CyberAgent/mimosa-aws/proto/aws
+
+go-mod-tidy: build
+	cd proto/aws && go mod tidy
+	cd src/aws   && go mod tidy
+
+# @see https://github.com/CyberAgent/mimosa-common/tree/master/local
+network:
+	@if [ -z "`docker network ls | grep local-shared`" ]; then docker network create local-shared; fi
+
+run: go-test network
+	. env.sh && docker-compose up -d --build
+
+log:
+	. env.sh && docker-compose logs -f
+
+stop:
+	. env.sh && docker-compose down
