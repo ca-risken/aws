@@ -126,6 +126,45 @@ func TestPutAWS(t *testing.T) {
 	}
 }
 
+func TestDeleteAWS(t *testing.T) {
+	var ctx context.Context
+	mockDB := mockAWSRepository{}
+	svc := newAWSService(&mockDB)
+	cases := []struct {
+		name     string
+		input    *aws.DeleteAWSRequest
+		wantErr  bool
+		mockResp error
+	}{
+		{
+			name:    "OK",
+			input:   &aws.DeleteAWSRequest{ProjectId: 1, AwsId: 1},
+			wantErr: false,
+		},
+		{
+			name:     "NG Invalid parameter(aws_id)",
+			input:    &aws.DeleteAWSRequest{ProjectId: 1},
+			wantErr:  true,
+			mockResp: gorm.ErrInvalidSQL,
+		},
+		{
+			name:     "NG DB error",
+			input:    &aws.DeleteAWSRequest{ProjectId: 1, AwsId: 1},
+			wantErr:  true,
+			mockResp: gorm.ErrInvalidSQL,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			mockDB.On("DeleteAWS").Return(c.mockResp).Once()
+			_, err := svc.DeleteAWS(ctx, c.input)
+			if err != nil && !c.wantErr {
+				t.Fatalf("unexpected error: %+v", err)
+			}
+		})
+	}
+}
+
 func TestConvertFinding(t *testing.T) {
 	now := time.Now()
 	cases := []struct {
@@ -172,4 +211,8 @@ func (m *mockAWSRepository) GetAWSByAccountID(uint32, string) (*model.AWS, error
 func (m *mockAWSRepository) UpsertAWS(*model.AWS) (*model.AWS, error) {
 	args := m.Called()
 	return args.Get(0).(*model.AWS), args.Error(1)
+}
+func (m *mockAWSRepository) DeleteAWS(uint32, uint32) error {
+	args := m.Called()
+	return args.Error(0)
 }

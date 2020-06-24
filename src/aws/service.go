@@ -71,7 +71,10 @@ func (a *awsService) DeleteAWS(ctx context.Context, req *aws.DeleteAWSRequest) (
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	return nil, nil
+	if err := a.repository.DeleteAWS(req.ProjectId, req.AwsId); err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func (a *awsService) ListDataSource(ctx context.Context, req *aws.ListDataSourceRequest) (*aws.ListDataSourceResponse, error) {
@@ -92,14 +95,14 @@ func (a *awsService) DetachDataSource(ctx context.Context, req *aws.DetachDataSo
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	return nil, nil
+	return &empty.Empty{}, nil
 }
 
 func (a *awsService) InvokeScan(ctx context.Context, req *aws.InvokeScanRequest) (*empty.Empty, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	return nil, nil
+	return &empty.Empty{}, nil
 }
 
 func convertAWS(data *model.AWS) *aws.AWS {

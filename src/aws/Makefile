@@ -25,5 +25,12 @@ list-aws:
 put-aws:
 	grpcurl \
 		-plaintext \
-		-d '{"project_id":1001, "aws":{"name":"account-a", "project_id":1001, "aws_account_id":"123456789012"}}' \
+		-d '{"project_id":1001, "aws":{"name":"account-01", "project_id":1001, "aws_account_id":"123456789001"}}' \
 		localhost:9001 aws.aws.AWSService.PutAWS
+
+.PHONY: delete-aws
+delete-aws:
+	grpcurl \
+		-plaintext \
+		-d '{"project_id":1001, "aws_id":1002}' \
+		localhost:9001 aws.aws.AWSService.DeleteAWS

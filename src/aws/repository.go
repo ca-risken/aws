@@ -14,6 +14,7 @@ type awsRepoInterface interface {
 	ListAWS(uint32, uint32, string) (*[]model.AWS, error)
 	GetAWSByAccountID(uint32, string) (*model.AWS, error)
 	UpsertAWS(*model.AWS) (*model.AWS, error)
+	DeleteAWS(uint32, uint32) error
 }
 
 type awsRepository struct {
@@ -129,4 +130,13 @@ func (a *awsRepository) UpsertAWS(data *model.AWS) (*model.AWS, error) {
 		return nil, err
 	}
 	return updated, nil
+}
+
+const deleteAws = `delete from aws where project_id = ? and aws_id = ?`
+
+func (a *awsRepository) DeleteAWS(projectID, awsID uint32) error {
+	if err := a.MasterDB.Exec(deleteAws, projectID, awsID).Error; err != nil {
+		return err
+	}
+	return nil
 }
