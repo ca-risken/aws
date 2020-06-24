@@ -15,6 +15,7 @@ type awsRepoInterface interface {
 	GetAWSByAccountID(uint32, string) (*model.AWS, error)
 	UpsertAWS(*model.AWS) (*model.AWS, error)
 	DeleteAWS(uint32, uint32) error
+	ListDataSource(uint32, uint32, string) (*[]dataSource, error)
 }
 
 type awsRepository struct {
@@ -139,4 +140,54 @@ func (a *awsRepository) DeleteAWS(projectID, awsID uint32) error {
 		return err
 	}
 	return nil
+}
+
+type dataSource struct {
+	AWSDataSourceID uint32
+	DataSource      string
+	MaxScore        float32
+	AWSID           uint32 `gorm:"column:aws_id"`
+	ProjectID       uint32
+	AWSRoleID       uint32
+	AssumeRoleArn   string
+	ExternalID      string
+}
+
+func (a *awsRepository) ListDataSource(projectID, awsID uint32, ds string) (*[]dataSource, error) {
+	var params []interface{}
+	query := `
+select
+	ads.aws_data_source_id
+	, ads.data_source
+	, ads.max_score
+	, ards.aws_id
+	, ards.project_id
+	, ards.aws_role_id
+	, ards.assume_role_arn
+	, ards.exrternal_id
+from
+  aws_data_source ads
+  left outer join (
+    select * from aws_rel_data_source where project_id = ? `
+	params = append(params, projectID)
+
+	if !zero.IsZeroVal(awsID) {
+		query += " and aws_id = ?"
+		params = append(params, awsID)
+	}
+	if !zero.IsZeroVal(ds) {
+		query += " and dataSource = ?"
+		params = append(params, ds)
+	}
+	query += `
+  ) ards using(aws_data_source_id)
+order by
+  ads.aws_data_source_id
+`
+
+	data := []dataSource{}
+	if err := a.SlaveDB.Raw(query, params...).Scan(&data).Error; err != nil {
+		return nil, err
+	}
+	return &data, nil
 }

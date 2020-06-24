@@ -81,7 +81,27 @@ func (a *awsService) ListDataSource(ctx context.Context, req *aws.ListDataSource
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	return nil, nil
+	list, err := a.repository.ListDataSource(req.ProjectId, req.AwsId, req.DataSource)
+	if err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return &aws.ListDataSourceResponse{DataSource: []*aws.DataSource{}}, nil
+		}
+		return nil, err
+	}
+	ds := []*aws.DataSource{}
+	for _, d := range *list {
+		ds = append(ds, &aws.DataSource{
+			AwsDataSourceId: d.AWSDataSourceID,
+			DataSource:      d.DataSource,
+			MaxScore:        d.MaxScore,
+			AwsId:           d.AWSID,
+			ProjectId:       d.ProjectID,
+			AwsRoleId:       d.AWSRoleID,
+			AssumeRoleArn:   d.AssumeRoleArn,
+			ExternalId:      d.ExternalID,
+		})
+	}
+	return &aws.ListDataSourceResponse{DataSource: ds}, nil
 }
 
 func (a *awsService) AttachDataSource(ctx context.Context, req *aws.AttachDataSourceRequest) (*aws.AttachDataSourceResponse, error) {

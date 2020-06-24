@@ -33,7 +33,6 @@ message DataSource {
 
   uint32 aws_id = 4;          // aws_rel_data_source.aws_id
   uint32 project_id = 5;      // aws_rel_data_source.project_id
-  uint32 aws_role_id = 6;     // aws_rel_data_source.aws_role_id
   string assume_role_arn = 7; // aws_rel_data_source.assume_role_arn
   string external_id = 8;     // aws_rel_data_source.external_id
 }

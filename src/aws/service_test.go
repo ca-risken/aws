@@ -216,3 +216,7 @@ func (m *mockAWSRepository) DeleteAWS(uint32, uint32) error {
 	args := m.Called()
 	return args.Error(0)
 }
+func (m *mockAWSRepository) ListDataSource(uint32, uint32, string) (*[]dataSource, error) {
+	args := m.Called()
+	return args.Get(0).(*[]dataSource), args.Error(1)
+}

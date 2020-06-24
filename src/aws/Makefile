@@ -34,3 +34,10 @@ delete-aws:
 		-plaintext \
 		-d '{"project_id":1001, "aws_id":1002}' \
 		localhost:9001 aws.aws.AWSService.DeleteAWS
+
+.PHONY: list-data-source
+list-data-source:
+	grpcurl \
+		-plaintext \
+		-d '{"project_id":1001, "aws_id":1001}' \
+		localhost:9001 aws.aws.AWSService.ListDataSource

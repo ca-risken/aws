@@ -86,7 +86,6 @@ DataSource(data_sourceと紐づくaws_rel_data_sourceの状態)
 | max_score | [float](#float) |  | aws_data_source.max_score |
 | aws_id | [uint32](#uint32) |  | aws_rel_data_source.aws_id |
 | project_id | [uint32](#uint32) |  | aws_rel_data_source.project_id |
-| aws_role_id | [uint32](#uint32) |  | aws_rel_data_source.aws_role_id |
 | assume_role_arn | [string](#string) |  | aws_rel_data_source.assume_role_arn |
 | external_id | [string](#string) |  | aws_rel_data_source.external_id |
 
