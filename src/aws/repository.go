@@ -76,11 +76,11 @@ func initDB(isMaster bool) *gorm.DB {
 func (a *awsRepository) ListAWS(projectID, awsID uint32, awsAccountID string) (*[]model.AWS, error) {
 	query := `
 select
-	*
+  *
 from
-	aws
+  aws
 where
-	project_id = ?
+  project_id = ?
 `
 	var params []interface{}
 	params = append(params, projectID)
@@ -112,12 +112,12 @@ func (a *awsRepository) GetAWSByAccountID(projectID uint32, awsAccountID string)
 
 const insertUpsertAWS = `
 INSERT INTO aws
-	(aws_id, name, project_id, aws_account_id)
+  (aws_id, name, project_id, aws_account_id)
 VALUES
-	(?, ?, ?, ?)
+  (?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
-	name=VALUES(name),
-	project_id=VALUES(project_id)
+  name=VALUES(name),
+  project_id=VALUES(project_id)
 `
 
 func (a *awsRepository) UpsertAWS(data *model.AWS) (*model.AWS, error) {
@@ -148,7 +148,6 @@ type dataSource struct {
 	MaxScore        float32
 	AWSID           uint32 `gorm:"column:aws_id"`
 	ProjectID       uint32
-	AWSRoleID       uint32
 	AssumeRoleArn   string
 	ExternalID      string
 }
@@ -157,14 +156,13 @@ func (a *awsRepository) ListDataSource(projectID, awsID uint32, ds string) (*[]d
 	var params []interface{}
 	query := `
 select
-	ads.aws_data_source_id
-	, ads.data_source
-	, ads.max_score
-	, ards.aws_id
-	, ards.project_id
-	, ards.aws_role_id
-	, ards.assume_role_arn
-	, ards.exrternal_id
+  ads.aws_data_source_id
+  , ads.data_source
+  , ads.max_score
+  , ards.aws_id
+  , ards.project_id
+  , ards.assume_role_arn
+  , ards.external_id
 from
   aws_data_source ads
   left outer join (
@@ -184,7 +182,6 @@ from
 order by
   ads.aws_data_source_id
 `
-
 	data := []dataSource{}
 	if err := a.SlaveDB.Raw(query, params...).Scan(&data).Error; err != nil {
 		return nil, err

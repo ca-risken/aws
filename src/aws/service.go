@@ -96,7 +96,6 @@ func (a *awsService) ListDataSource(ctx context.Context, req *aws.ListDataSource
 			MaxScore:        d.MaxScore,
 			AwsId:           d.AWSID,
 			ProjectId:       d.ProjectID,
-			AwsRoleId:       d.AWSRoleID,
 			AssumeRoleArn:   d.AssumeRoleArn,
 			ExternalId:      d.ExternalID,
 		})

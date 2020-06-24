@@ -165,6 +165,64 @@ func TestDeleteAWS(t *testing.T) {
 	}
 }
 
+func TestListDataSource(t *testing.T) {
+	var ctx context.Context
+	mockDB := mockAWSRepository{}
+	svc := newAWSService(&mockDB)
+	cases := []struct {
+		name     string
+		input    *aws.ListDataSourceRequest
+		want     *aws.ListDataSourceResponse
+		wantErr  bool
+		mockResp *[]dataSource
+		mockErr  error
+	}{
+		{
+			name:  "OK",
+			input: &aws.ListDataSourceRequest{ProjectId: 1, AwsId: 1, DataSource: "aws:guard-duty"},
+			want: &aws.ListDataSourceResponse{DataSource: []*aws.DataSource{
+				{AwsDataSourceId: 1, DataSource: "ds-1", MaxScore: 1.0, AwsId: 1001, ProjectId: 1, AssumeRoleArn: "role", ExternalId: ""},
+				{AwsDataSourceId: 2, DataSource: "ds-2", MaxScore: 1.0},
+			}},
+			mockResp: &[]dataSource{
+				{AWSDataSourceID: 1, DataSource: "ds-1", MaxScore: 1.0, AWSID: 1001, ProjectID: 1, AssumeRoleArn: "role", ExternalID: ""},
+				{AWSDataSourceID: 2, DataSource: "ds-2", MaxScore: 1.0},
+			},
+		},
+		{
+			name:    "OK NotFound",
+			input:   &aws.ListDataSourceRequest{ProjectId: 1, AwsId: 1, DataSource: "aws:guard-duty"},
+			want:    &aws.ListDataSourceResponse{DataSource: []*aws.DataSource{}},
+			mockErr: gorm.ErrRecordNotFound,
+		},
+		{
+			name:    "NG Invalid parameter(project_id)",
+			input:   &aws.ListDataSourceRequest{AwsId: 1, DataSource: "aws:guard-duty"},
+			wantErr: true,
+		},
+		{
+			name:    "NG DB error(ListDataSource)",
+			input:   &aws.ListDataSourceRequest{ProjectId: 1, AwsId: 1, DataSource: "aws:guard-duty"},
+			wantErr: true,
+			mockErr: gorm.ErrInvalidSQL,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if c.mockResp != nil || c.mockErr != nil {
+				mockDB.On("ListDataSource").Return(c.mockResp, c.mockErr).Once()
+			}
+			got, err := svc.ListDataSource(ctx, c.input)
+			if err != nil && !c.wantErr {
+				t.Fatalf("unexpected error: %+v", err)
+			}
+			if !reflect.DeepEqual(c.want, got) {
+				t.Fatalf("Unexpected mapping: want=%+v, got=%+v", c.want, got)
+			}
+		})
+	}
+}
+
 func TestConvertFinding(t *testing.T) {
 	now := time.Now()
 	cases := []struct {
