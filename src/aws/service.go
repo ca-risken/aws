@@ -107,7 +107,19 @@ func (a *awsService) AttachDataSource(ctx context.Context, req *aws.AttachDataSo
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	return nil, nil
+	registerd, err := a.repository.UpsertAWSRelDataSource(req.AttachDataSource)
+	if err != nil {
+		return nil, err
+	}
+	return &aws.AttachDataSourceResponse{DataSource: &aws.AWSRelDataSource{
+		AwsId:           registerd.AWSID,
+		AwsDataSourceId: registerd.AWSDataSourceID,
+		ProjectId:       registerd.ProjectID,
+		AssumeRoleArn:   registerd.AssumeRoleArn,
+		ExternalId:      registerd.ExternalID,
+		CreatedAt:       registerd.CreatedAt.Unix(),
+		UpdatedAt:       registerd.UpdatedAt.Unix(),
+	}}, nil
 }
 
 func (a *awsService) DetachDataSource(ctx context.Context, req *aws.DetachDataSourceRequest) (*empty.Empty, error) {

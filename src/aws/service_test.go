@@ -223,6 +223,64 @@ func TestListDataSource(t *testing.T) {
 	}
 }
 
+func TestAttachDataSource(t *testing.T) {
+	now := time.Now()
+	var ctx context.Context
+	mockDB := mockAWSRepository{}
+	svc := newAWSService(&mockDB)
+	cases := []struct {
+		name     string
+		input    *aws.AttachDataSourceRequest
+		want     *aws.AttachDataSourceResponse
+		wantErr  bool
+		mockResp *model.AWSRelDataSource
+		mockErr  error
+	}{
+		{
+			name: "OK",
+			input: &aws.AttachDataSourceRequest{
+				ProjectId:        1,
+				AttachDataSource: &aws.DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "role", ExternalId: ""},
+			},
+			want: &aws.AttachDataSourceResponse{
+				DataSource: &aws.AWSRelDataSource{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "role", ExternalId: "", CreatedAt: now.Unix(), UpdatedAt: now.Unix()},
+			},
+			mockResp: &model.AWSRelDataSource{AWSID: 1, AWSDataSourceID: 1, ProjectID: 1, AssumeRoleArn: "role", ExternalID: "", CreatedAt: now, UpdatedAt: now},
+		},
+		{
+			name: "NG Invalid parameter(project_id)",
+			input: &aws.AttachDataSourceRequest{
+				ProjectId:        999,
+				AttachDataSource: &aws.DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "role", ExternalId: ""},
+			},
+			wantErr: true,
+		},
+		{
+			name: "NG DB error",
+			input: &aws.AttachDataSourceRequest{
+				ProjectId:        1,
+				AttachDataSource: &aws.DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "role", ExternalId: ""},
+			},
+			wantErr: true,
+			mockErr: gorm.ErrCantStartTransaction,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if c.mockResp != nil || c.mockErr != nil {
+				mockDB.On("UpsertAWSRelDataSource").Return(c.mockResp, c.mockErr).Once()
+			}
+			got, err := svc.AttachDataSource(ctx, c.input)
+			if err != nil && !c.wantErr {
+				t.Fatalf("unexpected error: %+v", err)
+			}
+			if !reflect.DeepEqual(c.want, got) {
+				t.Fatalf("Unexpected mapping: want=%+v, got=%+v", c.want, got)
+			}
+		})
+	}
+}
+
 func TestConvertFinding(t *testing.T) {
 	now := time.Now()
 	cases := []struct {
@@ -277,4 +335,8 @@ func (m *mockAWSRepository) DeleteAWS(uint32, uint32) error {
 func (m *mockAWSRepository) ListDataSource(uint32, uint32, string) (*[]dataSource, error) {
 	args := m.Called()
 	return args.Get(0).(*[]dataSource), args.Error(1)
+}
+func (m *mockAWSRepository) UpsertAWSRelDataSource(*aws.DataSourceForAttach) (*model.AWSRelDataSource, error) {
+	args := m.Called()
+	return args.Get(0).(*model.AWSRelDataSource), args.Error(1)
 }

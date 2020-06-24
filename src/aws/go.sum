@@ -1,14 +1,9 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/CyberAgent/mimosa-aws v0.0.0-20200623043658-aac3e8cd35c5 h1:wzktZ8Fo9G3ACue0+MSpmm9D3ucrmqkJxzcuessiVjc=
-github.com/CyberAgent/mimosa-aws/pkg/model v0.0.0-20200623043658-aac3e8cd35c5 h1:rpS4C1tLKtyiB8bZYp855ajRwenxsGKEPh9PXMWdrvE=
-github.com/CyberAgent/mimosa-aws/pkg/model v0.0.0-20200623043658-aac3e8cd35c5/go.mod h1:/5C9uRJlfubdxOFanmfzokGLRnsKw+ZBe6DPjbyhvaQ=
-github.com/CyberAgent/mimosa-aws/pkg/model v0.0.0-20200624075208-0d285a276f72 h1:GAG5Z36m/ir7CyhnkNc8nShBpBtucfFi8sz5X9/y3pQ=
-github.com/CyberAgent/mimosa-aws/pkg/model v0.0.0-20200624075208-0d285a276f72/go.mod h1:/5C9uRJlfubdxOFanmfzokGLRnsKw+ZBe6DPjbyhvaQ=
-github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20200623043658-aac3e8cd35c5 h1:6L/NihE77OxXu/vCphBZxzSQzQUXekSh1xn04f9ykfw=
-github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20200623043658-aac3e8cd35c5/go.mod h1:x1QQrb7ktNUqynjtQ3pUh2NEJKpR8SiTKhxJ01CB1i0=
-github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20200624075208-0d285a276f72 h1:5cGLXct1C1yMo8qQt0F85Os0bbWh8TalBeeLHLXfrZ4=
-github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20200624075208-0d285a276f72/go.mod h1:x1QQrb7ktNUqynjtQ3pUh2NEJKpR8SiTKhxJ01CB1i0=
+github.com/CyberAgent/mimosa-aws/pkg/model v0.0.0-20200624101757-091b1093ffd8 h1:caO21YOXI/7v+7TaxAS6D/W/DlrU0EU5xvwy74TAYYA=
+github.com/CyberAgent/mimosa-aws/pkg/model v0.0.0-20200624101757-091b1093ffd8/go.mod h1:/5C9uRJlfubdxOFanmfzokGLRnsKw+ZBe6DPjbyhvaQ=
+github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20200624101757-091b1093ffd8 h1:ickFUj/4yTb7SMRVq19R+w9FTLJNzcAJgpIVUdl/Te4=
+github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20200624101757-091b1093ffd8/go.mod h1:x1QQrb7ktNUqynjtQ3pUh2NEJKpR8SiTKhxJ01CB1i0=
 github.com/PuerkitoBio/goquery v1.5.1/go.mod h1:GsLWisAFVj4WgDibEWF4pvYnkVQBpKBKeU+7zCJoLcc=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
 github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496 h1:zV3ejI06GQ59hwDQAvmK1qxOQGB3WuVTRoY0okPTAv0=
@@ -53,6 +48,7 @@ github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMyw
 github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.4.0 h1:xsAVV57WRhGj6kEIi8ReJzQlHHqcBYCElAvkovg3B/4=
 github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
+github.com/google/go-cmp v0.5.0 h1:/QaMHBdZ26BB3SSst0Iwl10Epc+xhTquomWX0oZEB6w=
 github.com/google/go-cmp v0.5.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/jinzhu/gorm v1.9.14 h1:Kg3ShyTPcM6nzVo148fRrcMO6MNKuqtOUwnzqMgVniM=
 github.com/jinzhu/gorm v1.9.14/go.mod h1:G3LB3wezTOWM2ITLzPxEXgSkOXAntiLHS7UdBefADcs=

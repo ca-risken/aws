@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/model"
+	"github.com/CyberAgent/mimosa-aws/proto/aws"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"github.com/kelseyhightower/envconfig"
@@ -16,6 +17,7 @@ type awsRepoInterface interface {
 	UpsertAWS(*model.AWS) (*model.AWS, error)
 	DeleteAWS(uint32, uint32) error
 	ListDataSource(uint32, uint32, string) (*[]dataSource, error)
+	UpsertAWSRelDataSource(*aws.DataSourceForAttach) (*model.AWSRelDataSource, error)
 }
 
 type awsRepository struct {
@@ -184,6 +186,34 @@ order by
 `
 	data := []dataSource{}
 	if err := a.SlaveDB.Raw(query, params...).Scan(&data).Error; err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+const insertUpsertAWSRelDataSource = `
+INSERT INTO aws_rel_data_source
+  (aws_id, aws_data_source_id, project_id, assume_role_arn, external_id)
+VALUES
+  (?, ?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE
+  project_id=VALUES(project_id),
+  assume_role_arn=VALUES(assume_role_arn),
+  external_id=VALUES(external_id)
+`
+
+func (a *awsRepository) UpsertAWSRelDataSource(data *aws.DataSourceForAttach) (*model.AWSRelDataSource, error) {
+	if err := a.MasterDB.Exec(insertUpsertAWSRelDataSource, data.AwsId, data.AwsDataSourceId, data.ProjectId, data.AssumeRoleArn, data.ExternalId).Error; err != nil {
+		return nil, err
+	}
+	return a.GetAWSRelDataSourceByID(data.AwsId, data.AwsDataSourceId)
+}
+
+const selectGetAWSRelDataSourceByID = `select * from aws_rel_data_source where aws_id = ? and aws_data_source_id = ?`
+
+func (a *awsRepository) GetAWSRelDataSourceByID(awsID, awsDataSourceID uint32) (*model.AWSRelDataSource, error) {
+	data := model.AWSRelDataSource{}
+	if err := a.SlaveDB.Raw(selectGetAWSRelDataSourceByID, awsID, awsDataSourceID).First(&data).Error; err != nil {
 		return nil, err
 	}
 	return &data, nil

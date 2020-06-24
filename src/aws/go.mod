@@ -3,8 +3,8 @@ module github.com/CyberAgent/mimosa-aws/src/aws
 go 1.13
 
 require (
-	github.com/CyberAgent/mimosa-aws/pkg/model v0.0.0-20200624075208-0d285a276f72
-	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20200624075208-0d285a276f72
+	github.com/CyberAgent/mimosa-aws/pkg/model v0.0.0-20200624101757-091b1093ffd8
+	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20200624101757-091b1093ffd8
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.2
