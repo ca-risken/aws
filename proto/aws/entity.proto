@@ -17,6 +17,17 @@ message AWS {
   int64 updated_at = 6;
 }
 
+// AWSRelDataSource
+message AWSRelDataSource {
+  uint32 aws_id = 1;
+  uint32 aws_data_source_id = 2;
+  uint32 project_id = 3;
+  string assume_role_arn = 4;
+  string external_id = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
 // AWSForUpsert
 // (Unique keys: aws_account_id)
 message AWSForUpsert {

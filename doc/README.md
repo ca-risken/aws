@@ -6,6 +6,7 @@
 - [aws/entity.proto](#aws/entity.proto)
     - [AWS](#aws.aws.AWS)
     - [AWSForUpsert](#aws.aws.AWSForUpsert)
+    - [AWSRelDataSource](#aws.aws.AWSRelDataSource)
     - [DataSource](#aws.aws.DataSource)
     - [DataSourceForAttach](#aws.aws.DataSourceForAttach)
   
@@ -67,6 +68,27 @@ AWSForUpsert
 | name | [string](#string) |  |  |
 | project_id | [uint32](#uint32) |  |  |
 | aws_account_id | [string](#string) |  | 12桁のAWSアカウントID |
+
+
+
+
+
+
+<a name="aws.aws.AWSRelDataSource"></a>
+
+### AWSRelDataSource
+AWSRelDataSource
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| aws_id | [uint32](#uint32) |  |  |
+| aws_data_source_id | [uint32](#uint32) |  |  |
+| project_id | [uint32](#uint32) |  |  |
+| assume_role_arn | [string](#string) |  |  |
+| external_id | [string](#string) |  |  |
+| created_at | [int64](#int64) |  |  |
+| updated_at | [int64](#int64) |  |  |
 
 
 
@@ -153,7 +175,7 @@ DataSourceForAttach
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| data_source | [DataSource](#aws.aws.DataSource) |  |  |
+| data_source | [AWSRelDataSource](#aws.aws.AWSRelDataSource) |  |  |
 
 
 

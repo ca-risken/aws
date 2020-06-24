@@ -55,7 +55,7 @@ message AttachDataSourceRequest {
   DataSourceForAttach attach_data_source = 2;
 }
 
-message AttachDataSourceResponse { DataSource data_source = 1; }
+message AttachDataSourceResponse { AWSRelDataSource data_source = 1; }
 
 message DetachDataSourceRequest {
   uint32 project_id = 1;
