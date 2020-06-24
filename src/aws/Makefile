@@ -20,3 +20,10 @@ list-aws:
 		-plaintext \
 		-d '{"project_id":1001, "aws_id":1001, "aws_account_id":"123456789012"}' \
 		localhost:9001 aws.aws.AWSService.ListAWS
+
+.PHONY: put-aws
+put-aws:
+	grpcurl \
+		-plaintext \
+		-d '{"project_id":1001, "aws":{"name":"account-a", "project_id":1001, "aws_account_id":"123456789012"}}' \
+		localhost:9001 aws.aws.AWSService.PutAWS

@@ -12,6 +12,8 @@ import (
 
 type awsRepoInterface interface {
 	ListAWS(uint32, uint32, string) (*[]model.AWS, error)
+	GetAWSByAccountID(uint32, string) (*model.AWS, error)
+	UpsertAWS(*model.AWS) (*model.AWS, error)
 }
 
 type awsRepository struct {
@@ -94,4 +96,37 @@ where
 		return nil, err
 	}
 	return &data, nil
+}
+
+const selectGetAWSByAccountID = `select * from aws where project_id = ? and aws_account_id = ?`
+
+func (a *awsRepository) GetAWSByAccountID(projectID uint32, awsAccountID string) (*model.AWS, error) {
+	data := model.AWS{}
+	if err := a.SlaveDB.Raw(selectGetAWSByAccountID, projectID, awsAccountID).First(&data).Error; err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+const insertUpsertAWS = `
+INSERT INTO aws
+	(aws_id, name, project_id, aws_account_id)
+VALUES
+	(?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE
+	name=VALUES(name),
+	project_id=VALUES(project_id)
+`
+
+func (a *awsRepository) UpsertAWS(data *model.AWS) (*model.AWS, error) {
+	if err := a.MasterDB.Exec(insertUpsertAWS,
+		data.AWSID, data.Name, data.ProjectID, data.AWSAccountID).Error; err != nil {
+		return nil, err
+	}
+
+	updated, err := a.GetAWSByAccountID(data.ProjectID, data.AWSAccountID)
+	if err != nil {
+		return nil, err
+	}
+	return updated, nil
 }

@@ -59,6 +59,73 @@ func TestListAWS(t *testing.T) {
 	}
 }
 
+func TestPutAWS(t *testing.T) {
+	var ctx context.Context
+	now := time.Now()
+	mockDB := mockAWSRepository{}
+	svc := newAWSService(&mockDB)
+	cases := []struct {
+		name        string
+		input       *aws.PutAWSRequest
+		want        *aws.PutAWSResponse
+		wantErr     bool
+		mockGetResp *model.AWS
+		mockGetErr  error
+		mockUpdResp *model.AWS
+		mockUpdErr  error
+	}{
+		{
+			name:        "OK Update",
+			input:       &aws.PutAWSRequest{ProjectId: 1, Aws: &aws.AWSForUpsert{Name: "new name", ProjectId: 1, AwsAccountId: "123456789012"}},
+			want:        &aws.PutAWSResponse{Aws: &aws.AWS{AwsId: 1, Name: "new name", ProjectId: 1, AwsAccountId: "123456789012", CreatedAt: now.Unix(), UpdatedAt: now.Unix()}},
+			mockGetResp: &model.AWS{AWSID: 1, Name: "old name", ProjectID: 1, AWSAccountID: "123456789012", CreatedAt: now, UpdatedAt: now},
+			mockUpdResp: &model.AWS{AWSID: 1, Name: "new name", ProjectID: 1, AWSAccountID: "123456789012", CreatedAt: now, UpdatedAt: now},
+		},
+		{
+			name:        "OK Insert",
+			input:       &aws.PutAWSRequest{ProjectId: 1, Aws: &aws.AWSForUpsert{Name: "new name", ProjectId: 1, AwsAccountId: "123456789012"}},
+			want:        &aws.PutAWSResponse{Aws: &aws.AWS{AwsId: 1, Name: "new name", ProjectId: 1, AwsAccountId: "123456789012", CreatedAt: now.Unix(), UpdatedAt: now.Unix()}},
+			mockGetErr:  gorm.ErrRecordNotFound,
+			mockUpdResp: &model.AWS{AWSID: 1, Name: "new name", ProjectID: 1, AWSAccountID: "123456789012", CreatedAt: now, UpdatedAt: now},
+		},
+		{
+			name:    "NG Invalid parameter(required project_id)",
+			input:   &aws.PutAWSRequest{Aws: &aws.AWSForUpsert{Name: "new name", ProjectId: 1, AwsAccountId: "123456789012"}},
+			wantErr: true,
+		},
+		{
+			name:       "NG DB error(GetAWSByAccountID)",
+			input:      &aws.PutAWSRequest{Aws: &aws.AWSForUpsert{Name: "new name", ProjectId: 1, AwsAccountId: "123456789012"}},
+			mockGetErr: gorm.ErrInvalidSQL,
+			wantErr:    true,
+		},
+		{
+			name:        "NG DB error(UpsertAWS)",
+			input:       &aws.PutAWSRequest{Aws: &aws.AWSForUpsert{Name: "new name", ProjectId: 1, AwsAccountId: "123456789012"}},
+			mockGetResp: &model.AWS{AWSID: 1, Name: "old name", ProjectID: 1, AWSAccountID: "123456789012", CreatedAt: now, UpdatedAt: now},
+			mockUpdErr:  gorm.ErrCantStartTransaction,
+			wantErr:     true,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if c.mockGetResp != nil || c.mockGetErr != nil {
+				mockDB.On("GetAWSByAccountID").Return(c.mockGetResp, c.mockGetErr).Once()
+			}
+			if c.mockUpdResp != nil || c.mockUpdErr != nil {
+				mockDB.On("UpsertAWS").Return(c.mockUpdResp, c.mockUpdErr).Once()
+			}
+			got, err := svc.PutAWS(ctx, c.input)
+			if err != nil && !c.wantErr {
+				t.Fatalf("unexpected error: %+v", err)
+			}
+			if !reflect.DeepEqual(c.want, got) {
+				t.Fatalf("Unexpected mapping: want=%+v, got=%+v", c.want, got)
+			}
+		})
+	}
+}
+
 func TestConvertFinding(t *testing.T) {
 	now := time.Now()
 	cases := []struct {
@@ -97,4 +164,12 @@ type mockAWSRepository struct {
 func (m *mockAWSRepository) ListAWS(uint32, uint32, string) (*[]model.AWS, error) {
 	args := m.Called()
 	return args.Get(0).(*[]model.AWS), args.Error(1)
+}
+func (m *mockAWSRepository) GetAWSByAccountID(uint32, string) (*model.AWS, error) {
+	args := m.Called()
+	return args.Get(0).(*model.AWS), args.Error(1)
+}
+func (m *mockAWSRepository) UpsertAWS(*model.AWS) (*model.AWS, error) {
+	args := m.Called()
+	return args.Get(0).(*model.AWS), args.Error(1)
 }

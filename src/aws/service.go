@@ -41,7 +41,30 @@ func (a *awsService) PutAWS(ctx context.Context, req *aws.PutAWSRequest) (*aws.P
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	return nil, nil
+	savedData, err := a.repository.GetAWSByAccountID(req.ProjectId, req.Aws.AwsAccountId)
+	noRecord := gorm.IsRecordNotFoundError(err)
+	if err != nil && !noRecord {
+		return nil, err
+	}
+
+	// PKが登録済みの場合は取得した値をセット。未登録はゼロ値のママでAutoIncrementさせる（更新の都度、無駄にAutoIncrementさせないように）
+	var awsID uint32
+	if !noRecord {
+		awsID = savedData.AWSID
+	}
+	data := &model.AWS{
+		AWSID:        awsID,
+		Name:         req.Aws.Name,
+		ProjectID:    req.Aws.ProjectId,
+		AWSAccountID: req.Aws.AwsAccountId,
+	}
+
+	// aws upsert
+	registerdData, err := a.repository.UpsertAWS(data)
+	if err != nil {
+		return nil, err
+	}
+	return &aws.PutAWSResponse{Aws: convertAWS(registerdData)}, nil
 }
 
 func (a *awsService) DeleteAWS(ctx context.Context, req *aws.DeleteAWSRequest) (*empty.Empty, error) {
