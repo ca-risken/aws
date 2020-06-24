@@ -18,6 +18,7 @@ type awsRepoInterface interface {
 	DeleteAWS(uint32, uint32) error
 	ListDataSource(uint32, uint32, string) (*[]dataSource, error)
 	UpsertAWSRelDataSource(*aws.DataSourceForAttach) (*model.AWSRelDataSource, error)
+	DeleteAWSRelDataSource(uint32, uint32, uint32) error
 }
 
 type awsRepository struct {
@@ -217,4 +218,13 @@ func (a *awsRepository) GetAWSRelDataSourceByID(awsID, awsDataSourceID uint32) (
 		return nil, err
 	}
 	return &data, nil
+}
+
+const deleteAWSRelDataSource = `delete from aws_rel_data_source where project_id = ? and aws_id = ? and aws_data_source_id = ?`
+
+func (a *awsRepository) DeleteAWSRelDataSource(projectID, awsID, awsDataSourceID uint32) error {
+	if err := a.MasterDB.Exec(deleteAWSRelDataSource, projectID, awsID, awsDataSourceID).Error; err != nil {
+		return err
+	}
+	return nil
 }

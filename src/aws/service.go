@@ -126,6 +126,9 @@ func (a *awsService) DetachDataSource(ctx context.Context, req *aws.DetachDataSo
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
+	if err := a.repository.DeleteAWSRelDataSource(req.ProjectId, req.AwsId, req.AwsDataSourceId); err != nil {
+		return nil, err
+	}
 	return &empty.Empty{}, nil
 }
 

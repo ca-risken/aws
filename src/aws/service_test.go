@@ -281,6 +281,45 @@ func TestAttachDataSource(t *testing.T) {
 	}
 }
 
+func TestDetachDataSource(t *testing.T) {
+	var ctx context.Context
+	mockDB := mockAWSRepository{}
+	svc := newAWSService(&mockDB)
+	cases := []struct {
+		name     string
+		input    *aws.DetachDataSourceRequest
+		wantErr  bool
+		mockResp error
+	}{
+		{
+			name:    "OK",
+			input:   &aws.DetachDataSourceRequest{ProjectId: 1, AwsId: 1, AwsDataSourceId: 1},
+			wantErr: false,
+		},
+		{
+			name:     "NG Invalid parameter(aws_data_source_id)",
+			input:    &aws.DetachDataSourceRequest{ProjectId: 1, AwsId: 1},
+			wantErr:  true,
+			mockResp: gorm.ErrInvalidSQL,
+		},
+		{
+			name:     "NG DB error",
+			input:    &aws.DetachDataSourceRequest{ProjectId: 1, AwsId: 1, AwsDataSourceId: 1},
+			wantErr:  true,
+			mockResp: gorm.ErrInvalidSQL,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			mockDB.On("DeleteAWSRelDataSource").Return(c.mockResp).Once()
+			_, err := svc.DetachDataSource(ctx, c.input)
+			if err != nil && !c.wantErr {
+				t.Fatalf("unexpected error: %+v", err)
+			}
+		})
+	}
+}
+
 func TestConvertFinding(t *testing.T) {
 	now := time.Now()
 	cases := []struct {
@@ -339,4 +378,8 @@ func (m *mockAWSRepository) ListDataSource(uint32, uint32, string) (*[]dataSourc
 func (m *mockAWSRepository) UpsertAWSRelDataSource(*aws.DataSourceForAttach) (*model.AWSRelDataSource, error) {
 	args := m.Called()
 	return args.Get(0).(*model.AWSRelDataSource), args.Error(1)
+}
+func (m *mockAWSRepository) DeleteAWSRelDataSource(uint32, uint32, uint32) error {
+	args := m.Called()
+	return args.Error(0)
 }
