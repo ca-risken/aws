@@ -21,23 +21,13 @@ type AWSDataSource struct {
 	UpdatedAt       time.Time
 }
 
-// AWSRole entity
-type AWSRole struct {
-	AWSRoleID     uint32 `gorm:"column:aws_role_id"`
-	Name          string
-	AssumeRoleArn string
-	ExternalID    string
-	Activated     bool
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-}
-
 // AWSRelDataSource entity
 type AWSRelDataSource struct {
 	AWSID           uint32 `gorm:"column:aws_id"`
 	AWSDataSourceID uint32 `gorm:"column:aws_data_source_id"`
-	AWSRoleID       uint32 `gorm:"column:aws_role_id"`
 	ProjectID       uint32
+	AssumeRoleArn   string
+	ExternalID      string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
