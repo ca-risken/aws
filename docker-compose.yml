@@ -24,6 +24,27 @@ services:
     ports:
       - "9001:9001" # 本来docker-compose外にexposeする必要はない（Debug用）
 
+  guard-duty:
+    networks:
+      - aws
+      - local-shared
+    build:
+      context: src/guard-duty
+      args:
+        - GITHUB_USER=${GITHUB_USER}
+        - GITHUB_TOKEN=${GITHUB_TOKEN}
+    environment:
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      - SQS_ENDPOINT=${SQS_ENDPOINT}
+      - QUEUE_NAME=${QUEUE_NAME}
+      - QUEUE_URL=${QUEUE_URL}
+      - FINDING_SVC_ADDR=${FINDING_SVC_ADDR}
+    ports:
+      - "9002"
+
 networks:
   aws:
     driver: bridge

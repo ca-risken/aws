@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/guardduty"
+	"github.com/kelseyhightower/envconfig"
 )
 
 type guardDutyClient struct {
@@ -12,13 +13,22 @@ type guardDutyClient struct {
 	Svc  *guardduty.GuardDuty
 }
 
-func newGuardDutyClient() *guardDutyClient {
-	g := guardDutyClient{}
+type guardDutyConfig struct {
+	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"`
+}
 
-	if err := g.newAWSSession("ap-northeast-1", ""); err != nil {
-		panic(err)
+func newGuardDutyClient() guardDutyClient {
+	var conf guardDutyConfig
+	err := envconfig.Process("", &conf)
+	if err != nil {
+		appLogger.Fatal(err.Error())
 	}
-	return &g
+
+	g := guardDutyClient{}
+	if err := g.newAWSSession(conf.AWSRegion, ""); err != nil {
+		appLogger.Fatal(err)
+	}
+	return g
 }
 
 func (g *guardDutyClient) newAWSSession(region, assumeRole string) error {

@@ -15,3 +15,9 @@ export DB_SLAVE_HOST="db"
 export DB_SLAVE_USER="hoge"
 export DB_SLAVE_PASSWORD="moge"
 export DB_LOG_MODE="false"
+
+# AWS
+export AWS_REGION="ap-northeast-1"
+export SQS_ENDPOINT="http://sqs:9324"
+export QUEUE_NAME="aws-guardduty"
+export QUEUE_URL="http://sqs:9324/queue/aws-guardduty"
