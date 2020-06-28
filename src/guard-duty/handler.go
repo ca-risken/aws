@@ -4,17 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
+	"strings"
 
 	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/guardduty"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/kelseyhightower/envconfig"
-	"google.golang.org/grpc"
 )
 
 type sqsHandler struct {
-	guardduty     guardDutyClient
+	guardduty     guardDutyAPI
 	findingClient finding.FindingServiceClient
 }
 
@@ -36,7 +35,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	}
 
 	// Get guardduty
-	findings, err := s.getFindings(message)
+	findings, err := s.getGuardDuty(message)
 	if err != nil {
 		appLogger.Errorf("Faild to get findngs to AWS GuardDuty: AccountID=%+v, err=%+v", message.AccountID, err)
 		return err
@@ -62,7 +61,7 @@ func parseMessage(msg string) (*guardDutyMessage, error) {
 	return message, nil
 }
 
-func (s *sqsHandler) getFindings(message *guardDutyMessage) ([]*finding.FindingForUpsert, error) {
+func (s *sqsHandler) getGuardDuty(message *guardDutyMessage) ([]*finding.FindingForUpsert, error) {
 	putData := []*finding.FindingForUpsert{}
 	detecterIDs, err := s.guardduty.listDetectors()
 	if err != nil {
@@ -85,7 +84,7 @@ func (s *sqsHandler) getFindings(message *guardDutyMessage) ([]*finding.FindingF
 			return nil, err
 		}
 		for _, data := range findings {
-			json, err := json.Marshal(data)
+			buf, err := json.Marshal(data)
 			if err != nil {
 				appLogger.Errorf("Failed to json encoding error: err=%+v", err)
 				return nil, err
@@ -94,42 +93,15 @@ func (s *sqsHandler) getFindings(message *guardDutyMessage) ([]*finding.FindingF
 				Description:      *data.Title,
 				DataSource:       message.DataSource,
 				DataSourceId:     *data.Id,
-				ResourceName:     *data.Arn, // TODO: fix reousrce_name
+				ResourceName:     getResourceName(data),
 				ProjectId:        message.ProjectID,
 				OriginalScore:    float32(*data.Severity),
 				OriginalMaxScore: 10.0,
-				Data:             string(json),
+				Data:             string(buf),
 			})
 		}
 	}
 	return putData, nil
-}
-
-type findingConfig struct {
-	FindingSvcAddr string `required:"true" split_words:"true"`
-}
-
-func newFindingClient() finding.FindingServiceClient {
-	var conf findingConfig
-	err := envconfig.Process("", &conf)
-	if err != nil {
-		appLogger.Fatalf("Faild to load finding config error: err=%+v", err)
-	}
-
-	ctx := context.Background()
-	conn, err := getGRPCConn(ctx, conf.FindingSvcAddr)
-	if err != nil {
-		appLogger.Fatalf("Faild to get GRPC connection: err=%+v", err)
-	}
-	return finding.NewFindingServiceClient(conn)
-}
-
-func getGRPCConn(ctx context.Context, addr string) (*grpc.ClientConn, error) {
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure(), grpc.WithTimeout(time.Second*3))
-	if err != nil {
-		return nil, err
-	}
-	return conn, nil
 }
 
 func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.FindingForUpsert) error {
@@ -141,4 +113,80 @@ func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.Findin
 		appLogger.Infof("Success to PutFinding, response=%+v", resp)
 	}
 	return nil
+}
+
+const (
+	// Unknown
+	resourceUnknown = "UnknownResource"
+
+	// Resource Type
+	resourceTypeInstance  = "INSTANCE"
+	resourceTypeAccessKey = "ACCESSKEY"
+	resourceTypeS3Bucket  = "S3BUCKET"
+	resourceTypeUnknown   = "UnknownResourceType"
+
+	// EC2
+	ec2InstanceUnknown = "UnknownInstance"
+
+	// IAM
+	iamUserUnknown        = "UnknownUser"
+	userTypeRoot          = "ROOT"
+	userTypeIAMUser       = "IAMUSER"
+	userTypeAssumedRole   = "ASSUMEDROLE"
+	userTypeFederatedUser = "FEDERATEDUSER"
+	userTypeAWSService    = "AWSSERVICE"
+	userTypeAWSAccount    = "AWSACCOUNT"
+	userTypeUnknown       = "UnknownUserType"
+
+	// S3
+	s3BucketUnknown = "UnknownBucket"
+
+	// Resource Name template
+	ec2ResourceTemplate = "ec2/%s/%s" // ec2/{account-id}/{instance-id}
+	iamResourceTemplate = "iam/%s/%s" // iam/{account-id}/{user-name}
+	s3ResourceTemplate  = "s3/%s/%s"  // s3/{account-id}/{bucket-name}
+)
+
+func getResourceName(f *guardduty.Finding) string {
+	if f == nil || f.Resource == nil || f.Resource.ResourceType == nil {
+		return resourceUnknown
+	}
+
+	switch strings.ToUpper(*f.Resource.ResourceType) {
+	case resourceTypeInstance:
+		if f.Resource.InstanceDetails == nil || f.Resource.InstanceDetails.InstanceId == nil {
+			return ec2InstanceUnknown
+		}
+		return fmt.Sprintf(ec2ResourceTemplate, *f.AccountId, *f.Resource.InstanceDetails.InstanceId)
+	case resourceTypeAccessKey:
+		if f.Resource.AccessKeyDetails == nil || f.Resource.AccessKeyDetails.UserName == nil {
+			return iamUserUnknown
+		}
+		switch strings.ToUpper(*f.Resource.AccessKeyDetails.UserType) {
+		case userTypeRoot,
+			userTypeIAMUser,
+			userTypeAssumedRole,
+			userTypeFederatedUser,
+			userTypeAWSService,
+			userTypeAWSAccount:
+			return fmt.Sprintf(iamResourceTemplate, *f.AccountId, *f.Resource.AccessKeyDetails.UserName)
+		default:
+			return userTypeUnknown
+		}
+	case resourceTypeS3Bucket:
+		if len(f.Resource.S3BucketDetails) > 0 {
+			buckets := ""
+			for _, b := range f.Resource.S3BucketDetails {
+				if b.Name == nil {
+					continue
+				}
+				buckets += *b.Name + ","
+			}
+			buckets = strings.TrimRight(buckets, ",")
+			return fmt.Sprintf(s3ResourceTemplate, *f.AccountId, buckets)
+		}
+		return fmt.Sprintf(s3ResourceTemplate, *f.AccountId, s3BucketUnknown)
+	default:
+		return resourceTypeUnknown
+	}
 }

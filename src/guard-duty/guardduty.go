@@ -8,6 +8,12 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+type guardDutyAPI interface {
+	listDetectors() (*[]string, error)
+	listFindings(string, string) ([]*string, error)
+	getFindings(string, []*string) ([]*guardduty.Finding, error)
+}
+
 type guardDutyClient struct {
 	Sess *session.Session
 	Svc  *guardduty.GuardDuty
@@ -17,7 +23,7 @@ type guardDutyConfig struct {
 	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"`
 }
 
-func newGuardDutyClient() guardDutyClient {
+func newGuardDutyClient() *guardDutyClient {
 	var conf guardDutyConfig
 	err := envconfig.Process("", &conf)
 	if err != nil {
@@ -28,7 +34,7 @@ func newGuardDutyClient() guardDutyClient {
 	if err := g.newAWSSession(conf.AWSRegion, ""); err != nil {
 		appLogger.Fatal(err)
 	}
-	return g
+	return &g
 }
 
 func (g *guardDutyClient) newAWSSession(region, assumeRole string) error {
