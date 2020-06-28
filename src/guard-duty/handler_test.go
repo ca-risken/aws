@@ -45,33 +45,6 @@ func TestParseMessage(t *testing.T) {
 	}
 }
 
-// func TestGetGuardDuty(t *testing.T) {
-
-// 	cases := []struct {
-// 		name    string
-// 		input   *guardDutyMessage
-// 		want    []*finding.FindingForUpsert
-// 		wantErr bool
-// 	}{
-// 		{
-// 			name:  "OK",
-// 			input: `{"data_source":"aws:guard-duty", "project_id":1, "account_id":"123456789012", "assume_role_arn":"", "external_id":""}`,
-// 			want:  &guardDutyMessage{DataSource: "aws:guard-duty", ProjectID: 1, AccountID: "123456789012", AssumeRoleArn: "", ExternalID: ""},
-// 		},
-// 	}
-// 	for _, c := range cases {
-// 		t.Run(c.name, func(t *testing.T) {
-// 			got, err := parseMessage(c.input)
-// 			if err != nil && !c.wantErr {
-// 				t.Fatalf("Unexpected error occured, wantErr=%t, err=%+v", c.wantErr, err)
-// 			}
-// 			if !reflect.DeepEqual(c.want, got) {
-// 				t.Fatalf("Unexpaeted response, want=%+v, got=%+v", c.want, got)
-// 			}
-// 		})
-// 	}
-// }
-
 func TestGetResourceName(t *testing.T) {
 	cases := []struct {
 		name  string
