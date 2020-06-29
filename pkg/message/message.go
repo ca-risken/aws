@@ -5,8 +5,8 @@ import validation "github.com/go-ozzo/ozzo-validation"
 // GuardDutyType is the specific data_source label for guard-duty
 const GuardDutyType = "aws:guard-duty"
 
-// GuardDutyMessage is the message for SQS queue
-type GuardDutyMessage struct {
+// AWSQueueMessage is the message for SQS queue
+type AWSQueueMessage struct {
 	DataSource    string `json:"data_source"`
 	ProjectID     uint32 `json:"project_id"`
 	AccountID     string `json:"account_id"`
@@ -15,7 +15,7 @@ type GuardDutyMessage struct {
 }
 
 // Validate is the validation to GuardDutyMessage
-func (g *GuardDutyMessage) Validate() error {
+func (g *AWSQueueMessage) Validate() error {
 	return validation.ValidateStruct(g,
 		validation.Field(&g.DataSource, validation.Required, validation.In(GuardDutyType)),
 		validation.Field(&g.ProjectID, validation.Required),
