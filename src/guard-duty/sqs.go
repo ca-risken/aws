@@ -12,8 +12,8 @@ type sqsConfig struct {
 	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
 	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://localhost:9324"`
 
-	QueueName          string `split_words:"true" default:"aws-guardduty"`
-	QueueURL           string `split_words:"true" default:"http://localhost:9324/queue/aws-guardduty"`
+	GuardDutyQueueName string `split_words:"true" default:"aws-guardduty"`
+	GuardDutyQueueURL  string `split_words:"true" default:"http://localhost:9324/queue/aws-guardduty"`
 	MaxNumberOfMessage int64  `split_words:"true" default:"10"`
 	WaitTimeSecond     int64  `split_words:"true" default:"20"`
 }
@@ -31,8 +31,8 @@ func newSQSConsumer() *worker.Worker {
 	})
 	return &worker.Worker{
 		Config: &worker.Config{
-			QueueName:          conf.QueueName,
-			QueueURL:           conf.QueueURL,
+			QueueName:          conf.GuardDutyQueueName,
+			QueueURL:           conf.GuardDutyQueueURL,
 			MaxNumberOfMessage: conf.MaxNumberOfMessage,
 			WaitTimeSecond:     conf.WaitTimeSecond,
 		},
