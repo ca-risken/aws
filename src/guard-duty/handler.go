@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/guardduty"
@@ -50,18 +51,18 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	return nil
 }
 
-func parseMessage(msg string) (*guardDutyMessage, error) {
-	message := &guardDutyMessage{}
+func parseMessage(msg string) (*message.AWSQueueMessage, error) {
+	message := &message.AWSQueueMessage{}
 	if err := json.Unmarshal([]byte(msg), message); err != nil {
 		return nil, err
 	}
-	if err := message.validate(); err != nil {
+	if err := message.Validate(); err != nil {
 		return nil, err
 	}
 	return message, nil
 }
 
-func (s *sqsHandler) getGuardDuty(message *guardDutyMessage) ([]*finding.FindingForUpsert, error) {
+func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
 	putData := []*finding.FindingForUpsert{}
 	detecterIDs, err := s.guardduty.listDetectors()
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/guardduty"
 )
@@ -13,13 +14,13 @@ func TestParseMessage(t *testing.T) {
 	cases := []struct {
 		name    string
 		input   string
-		want    *guardDutyMessage
+		want    *message.AWSQueueMessage
 		wantErr bool
 	}{
 		{
 			name:  "OK",
 			input: `{"data_source":"aws:guard-duty", "project_id":1, "account_id":"123456789012", "assume_role_arn":"", "external_id":""}`,
-			want:  &guardDutyMessage{DataSource: "aws:guard-duty", ProjectID: 1, AccountID: "123456789012", AssumeRoleArn: "", ExternalID: ""},
+			want:  &message.AWSQueueMessage{DataSource: "aws:guard-duty", ProjectID: 1, AccountID: "123456789012", AssumeRoleArn: "", ExternalID: ""},
 		},
 		{
 			name:    "NG Json parse erroro",
