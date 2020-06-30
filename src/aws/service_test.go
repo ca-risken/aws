@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	"github.com/CyberAgent/mimosa-aws/pkg/model"
 	"github.com/CyberAgent/mimosa-aws/proto/aws"
 	"github.com/jinzhu/gorm"
@@ -16,7 +17,7 @@ func TestListAWS(t *testing.T) {
 	var ctx context.Context
 	now := time.Now()
 	mockDB := mockAWSRepository{}
-	svc := newAWSService(&mockDB)
+	svc := awsService{repository: &mockDB}
 	cases := []struct {
 		name         string
 		input        *aws.ListAWSRequest
@@ -63,7 +64,7 @@ func TestPutAWS(t *testing.T) {
 	var ctx context.Context
 	now := time.Now()
 	mockDB := mockAWSRepository{}
-	svc := newAWSService(&mockDB)
+	svc := awsService{repository: &mockDB}
 	cases := []struct {
 		name        string
 		input       *aws.PutAWSRequest
@@ -129,7 +130,7 @@ func TestPutAWS(t *testing.T) {
 func TestDeleteAWS(t *testing.T) {
 	var ctx context.Context
 	mockDB := mockAWSRepository{}
-	svc := newAWSService(&mockDB)
+	svc := awsService{repository: &mockDB}
 	cases := []struct {
 		name     string
 		input    *aws.DeleteAWSRequest
@@ -168,7 +169,7 @@ func TestDeleteAWS(t *testing.T) {
 func TestListDataSource(t *testing.T) {
 	var ctx context.Context
 	mockDB := mockAWSRepository{}
-	svc := newAWSService(&mockDB)
+	svc := awsService{repository: &mockDB}
 	cases := []struct {
 		name     string
 		input    *aws.ListDataSourceRequest
@@ -227,7 +228,7 @@ func TestAttachDataSource(t *testing.T) {
 	now := time.Now()
 	var ctx context.Context
 	mockDB := mockAWSRepository{}
-	svc := newAWSService(&mockDB)
+	svc := awsService{repository: &mockDB}
 	cases := []struct {
 		name     string
 		input    *aws.AttachDataSourceRequest
@@ -284,7 +285,7 @@ func TestAttachDataSource(t *testing.T) {
 func TestDetachDataSource(t *testing.T) {
 	var ctx context.Context
 	mockDB := mockAWSRepository{}
-	svc := newAWSService(&mockDB)
+	svc := awsService{repository: &mockDB}
 	cases := []struct {
 		name     string
 		input    *aws.DetachDataSourceRequest
@@ -382,4 +383,8 @@ func (m *mockAWSRepository) UpsertAWSRelDataSource(*aws.DataSourceForAttach) (*m
 func (m *mockAWSRepository) DeleteAWSRelDataSource(uint32, uint32, uint32) error {
 	args := m.Called()
 	return args.Error(0)
+}
+func (m *mockAWSRepository) GetAWSDataSourceForMessage(awsID, awsDataSourceID, projectID uint32) (*message.AWSQueueMessage, error) {
+	args := m.Called()
+	return args.Get(0).(*message.AWSQueueMessage), args.Error(1)
 }

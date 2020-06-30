@@ -11,11 +11,13 @@ import (
 
 type awsService struct {
 	repository awsRepoInterface
+	sqs        sqsAPI
 }
 
-func newAWSService(repo awsRepoInterface) aws.AWSServiceServer {
+func newAWSService() aws.AWSServiceServer {
 	return &awsService{
-		repository: repo,
+		repository: newAWSRepository(),
+		sqs:        newSQSClient(),
 	}
 }
 
@@ -136,6 +138,15 @@ func (a *awsService) InvokeScan(ctx context.Context, req *aws.InvokeScanRequest)
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
+	msg, err := a.repository.GetAWSDataSourceForMessage(req.AwsId, req.AwsDataSourceId, req.ProjectId)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := a.sqs.send(msg)
+	if err != nil {
+		return nil, err
+	}
+	appLogger.Infof("Invoke scanned, messageId: %v", resp.MessageId)
 	return &empty.Empty{}, nil
 }
 

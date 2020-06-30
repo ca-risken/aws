@@ -27,7 +27,7 @@ func main() {
 	}
 
 	server := grpc.NewServer()
-	awsServer := newAWSService(newAWSRepository()) // DI service & repository
+	awsServer := newAWSService()
 	aws.RegisterAWSServiceServer(server, awsServer)
 
 	reflection.Register(server) // enable reflection API

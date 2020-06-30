@@ -23,6 +23,12 @@ ENV PORT= \
     DB_PORT=3306 \
     DB_LOG_MODE=false \
     IAM_SVC_ADDR= \
+    AWS_REGION= \
+    AWS_ACCESS_KEY_ID= \
+    AWS_SECRET_ACCESS_KEY= \
+    AWS_SESSION_TOKEN= \
+    SQS_ENDPOINT= \
+    GUARD_DUTY_QUEUE_URL= \
     TZ=Asia/Tokyo
 WORKDIR /usr/local/aws
 CMD ["bin/aws"]

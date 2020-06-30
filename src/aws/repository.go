@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	"github.com/CyberAgent/mimosa-aws/pkg/model"
 	"github.com/CyberAgent/mimosa-aws/proto/aws"
 	_ "github.com/go-sql-driver/mysql"
@@ -19,6 +20,7 @@ type awsRepoInterface interface {
 	ListDataSource(uint32, uint32, string) (*[]dataSource, error)
 	UpsertAWSRelDataSource(*aws.DataSourceForAttach) (*model.AWSRelDataSource, error)
 	DeleteAWSRelDataSource(uint32, uint32, uint32) error
+	GetAWSDataSourceForMessage(uint32, uint32, uint32) (*message.AWSQueueMessage, error)
 }
 
 type awsRepository struct {
@@ -207,14 +209,14 @@ func (a *awsRepository) UpsertAWSRelDataSource(data *aws.DataSourceForAttach) (*
 	if err := a.MasterDB.Exec(insertUpsertAWSRelDataSource, data.AwsId, data.AwsDataSourceId, data.ProjectId, data.AssumeRoleArn, data.ExternalId).Error; err != nil {
 		return nil, err
 	}
-	return a.GetAWSRelDataSourceByID(data.AwsId, data.AwsDataSourceId)
+	return a.GetAWSRelDataSourceByID(data.AwsId, data.AwsDataSourceId, data.ProjectId)
 }
 
-const selectGetAWSRelDataSourceByID = `select * from aws_rel_data_source where aws_id = ? and aws_data_source_id = ?`
+const selectGetAWSRelDataSourceByID = `select * from aws_rel_data_source where aws_id = ? and aws_data_source_id = ? and project_id = ?`
 
-func (a *awsRepository) GetAWSRelDataSourceByID(awsID, awsDataSourceID uint32) (*model.AWSRelDataSource, error) {
+func (a *awsRepository) GetAWSRelDataSourceByID(awsID, awsDataSourceID, projectID uint32) (*model.AWSRelDataSource, error) {
 	data := model.AWSRelDataSource{}
-	if err := a.SlaveDB.Raw(selectGetAWSRelDataSourceByID, awsID, awsDataSourceID).First(&data).Error; err != nil {
+	if err := a.SlaveDB.Raw(selectGetAWSRelDataSourceByID, awsID, awsDataSourceID, projectID).First(&data).Error; err != nil {
 		return nil, err
 	}
 	return &data, nil
@@ -227,4 +229,29 @@ func (a *awsRepository) DeleteAWSRelDataSource(projectID, awsID, awsDataSourceID
 		return err
 	}
 	return nil
+}
+
+const selectAWSDataSourceForMessage = `
+select 
+  ads.data_source        as data_source
+  , ards.project_id      as project_id
+  , a.aws_account_id     as account_id
+  , ards.assume_role_arn as assume_role_arn
+  , ards.external_id     as external_id
+from
+  aws_rel_data_source ards
+  inner join aws a using(aws_id)
+  inner join aws_data_source ads using(aws_data_source_id)
+where
+  ards.aws_id = ?
+  and ards.aws_data_source_id = ?
+	and ards.project_id = ? 
+`
+
+func (a *awsRepository) GetAWSDataSourceForMessage(awsID, awsDataSourceID, projectID uint32) (*message.AWSQueueMessage, error) {
+	data := message.AWSQueueMessage{}
+	if err := a.SlaveDB.Raw(selectAWSDataSourceForMessage, awsID, awsDataSourceID, projectID).First(&data).Error; err != nil {
+		return nil, err
+	}
+	return &data, nil
 }
