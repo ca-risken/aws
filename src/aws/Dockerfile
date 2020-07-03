@@ -10,7 +10,9 @@ RUN echo "password $GITHUB_TOKEN" >> ~/.netrc
 RUN go install -v
 
 FROM alpine
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata \
+  && cd /tmp/ && wget -q https://github.com/okzk/env-injector/releases/download/v0.0.5/env-injector_0.0.5_linux_amd64.tar.gz \
+  && tar xvfz env-injector_0.0.5_linux_amd64.tar.gz && mv env-injector /usr/local/bin/ && rm /tmp/*
 COPY --from=builder /go/bin/aws /usr/local/aws/bin/
 ENV PORT= \
     DB_MASTER_HOST= \
@@ -31,4 +33,5 @@ ENV PORT= \
     GUARD_DUTY_QUEUE_URL= \
     TZ=Asia/Tokyo
 WORKDIR /usr/local/aws
+ENTRYPOINT ["/usr/local/bin/env-injector"]
 CMD ["bin/aws"]
