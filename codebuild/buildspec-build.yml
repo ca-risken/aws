@@ -1,0 +1,37 @@
+version: 0.2
+
+env:
+  variables:
+    IMAGE_AWS: "aws/aws"
+    IMAGE_GUARDDUTY: "core/iam"
+  parameter-store:
+    GITHUB_USER: "/build/GITHUB_USER"
+    GITHUB_TOKEN: "/build/GITHUB_TOKEN"
+
+phases:
+  install:
+    runtime-versions:
+      golang: 1.13
+    commands:
+      - echo "machine github.com" > ~/.netrc
+      - echo "login ${GITHUB_USER}" >> ~/.netrc
+      - echo "password ${GITHUB_TOKEN}" >> ~/.netrc
+  pre_build:
+    commands:
+      - echo Setting environment variables
+      - SRC=${CODEBUILD_SRC_DIR}/src
+      - BUILD_OPT="--no-cache --pull"
+      - TAG=v0.0.${CODEBUILD_BUILD_NUMBER}
+
+      - echo Testing the sources...
+      - cd ${SRC}/aws        && go test ./...
+      - cd ${SRC}/guard-duty && go test ./...
+
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login --no-include-email --region ${AWS_DEFAULT_REGION})
+  build:
+    commands:
+      - echo Build gateway started on `date`
+      - echo Pushing the Docker images...
+      - cd ${SRC}/aws        && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_AWS}:${TAG} .
+      - cd ${SRC}/guard-duty && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_GUARDDUTY}:${TAG} .
