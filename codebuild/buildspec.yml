@@ -1,0 +1,60 @@
+version: 0.2
+
+env:
+  variables:
+    IMAGE_AWS: "aws/aws"
+    IMAGE_GUARDDUTY: "core/iam"
+  parameter-store:
+    GITHUB_USER: "/build/GITHUB_USER"
+    GITHUB_TOKEN: "/build/GITHUB_TOKEN"
+
+phases:
+  install:
+    runtime-versions:
+      golang: 1.13
+    commands:
+      - echo "machine github.com" > ~/.netrc
+      - echo "login ${GITHUB_USER}" >> ~/.netrc
+      - echo "password ${GITHUB_TOKEN}" >> ~/.netrc
+  pre_build:
+    commands:
+      - echo Setting environment variables
+      - SRC=${CODEBUILD_SRC_DIR}/src
+      - BUILD_OPT="--no-cache --pull"
+      - TAG=v0.0.${CODEBUILD_BUILD_NUMBER}
+      - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+      - REGISTORY=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+
+      - echo Testing the sources...
+      - cd ${SRC}/aws        && go test ./...
+      - cd ${SRC}/guard-duty && go test ./...
+
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login --no-include-email --region ${AWS_DEFAULT_REGION})
+  build:
+    commands:
+      - echo Build gateway started on `date`
+      - echo Pushing the Docker images...
+      - cd ${SRC}/aws        && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_AWS}:${TAG} .
+      - cd ${SRC}/guard-duty && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_GUARDDUTY}:${TAG} .
+
+      - echo Tagging the images...
+      # tag the specific version
+      - docker tag ${IMAGE_AWS}:${TAG}       ${REGISTORY}/${IMAGE_AWS}:${TAG}
+      - docker tag ${IMAGE_GUARDDUTY}:${TAG} ${REGISTORY}/${IMAGE_GUARDDUTY}:${TAG}
+
+      # update latest version 
+      - docker tag ${IMAGE_AWS}:${TAG}       ${REGISTORY}/${IMAGE_AWS}:latest
+      - docker tag ${IMAGE_GUARDDUTY}:${TAG} ${REGISTORY}/${IMAGE_GUARDDUTY}:latest
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+
+      # specific version
+      - docker push ${REGISTORY}/${IMAGE_AWS}:${TAG}
+      - docker push ${REGISTORY}/${IMAGE_GUARDDUTY}:${TAG}
+
+      # latest version
+      - docker push ${REGISTORY}/${IMAGE_AWS}:latest
+      - docker push ${REGISTORY}/${IMAGE_GUARDDUTY}:latest
