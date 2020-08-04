@@ -23,18 +23,18 @@ type guardDutyConfig struct {
 	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"`
 }
 
-func newGuardDutyClient() *guardDutyClient {
+func newGuardDutyClient(assumeRole string) (*guardDutyClient, error) {
 	var conf guardDutyConfig
 	err := envconfig.Process("", &conf)
 	if err != nil {
-		appLogger.Fatal(err.Error())
+		return nil, err
 	}
 
 	g := guardDutyClient{}
-	if err := g.newAWSSession(conf.AWSRegion, ""); err != nil {
-		appLogger.Fatal(err)
+	if err := g.newAWSSession(conf.AWSRegion, assumeRole); err != nil {
+		return nil, err
 	}
-	return &g
+	return &g, nil
 }
 
 func (g *guardDutyClient) newAWSSession(region, assumeRole string) error {

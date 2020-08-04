@@ -19,10 +19,9 @@ type sqsHandler struct {
 }
 
 func newHandler() *sqsHandler {
-	h := &sqsHandler{}
-	h.guardduty = newGuardDutyClient()
-	h.findingClient = newFindingClient()
-	return h
+	return &sqsHandler{
+		findingClient: newFindingClient(),
+	}
 }
 
 func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
@@ -36,6 +35,10 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	}
 
 	// Get guardduty
+	s.guardduty, err = newGuardDutyClient(message.AssumeRoleArn)
+	if err != nil {
+		return err
+	}
 	findings, err := s.getGuardDuty(message)
 	if err != nil {
 		appLogger.Errorf("Faild to get findngs to AWS GuardDuty: AccountID=%+v, err=%+v", message.AccountID, err)
