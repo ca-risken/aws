@@ -3,7 +3,7 @@ version: 0.2
 env:
   variables:
     IMAGE_AWS: "aws/aws"
-    IMAGE_GUARDDUTY: "core/iam"
+    IMAGE_GUARDDUTY: "aws/guardduty"
   parameter-store:
     GITHUB_USER: "/build/GITHUB_USER"
     GITHUB_TOKEN: "/build/GITHUB_TOKEN"
