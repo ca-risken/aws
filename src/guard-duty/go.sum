@@ -1,18 +1,7 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/CyberAgent/mimosa-aws v0.0.0-20200629045810-cd27ca107b65 h1:D2ouDb9YwT2R8YkPDGad9ovAESFPXBzobQwvflTxaJc=
-github.com/CyberAgent/mimosa-aws v0.0.0-20200629050222-fabaa151b04e h1:3fdBrg+wM7KqY+5J9KWG7nqmH87Tb8KmowfeeLL0+lc=
-github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20200629045810-cd27ca107b65 h1:WAgZJu0YQeD98aDBuU2k+p/VcwZnVtKDaNqtDw7Ij2w=
-github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20200629045810-cd27ca107b65/go.mod h1:g8SJgvS+4ieQDBfvWy4stk+BCvJvczlr7wm2i4P2s7c=
-github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20200629050222-fabaa151b04e h1:DkI5DaG1shfyz+LKvnEbxAAHhQjiQv/jF3DrpdvWdTw=
-github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20200629050222-fabaa151b04e/go.mod h1:g8SJgvS+4ieQDBfvWy4stk+BCvJvczlr7wm2i4P2s7c=
 github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20200629065650-587ae958299a h1:nrzVNEEcObQ+7MUIMLWLGggVTvKLvdW7D8/lrhS0cDU=
 github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20200629065650-587ae958299a/go.mod h1:g8SJgvS+4ieQDBfvWy4stk+BCvJvczlr7wm2i4P2s7c=
-github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20200629050222-fabaa151b04e h1:M1RqrpUww3bbHIji1Gss8F8J9bqN6NMYow5QXFPu4Og=
-github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20200629050222-fabaa151b04e/go.mod h1:x1QQrb7ktNUqynjtQ3pUh2NEJKpR8SiTKhxJ01CB1i0=
-github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20200629065650-587ae958299a h1:6Xsh9sOnAe0VUlzX87VszNAgIC/B72fkPN/5GYwgMXQ=
-github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20200629065650-587ae958299a/go.mod h1:x1QQrb7ktNUqynjtQ3pUh2NEJKpR8SiTKhxJ01CB1i0=
-github.com/CyberAgent/mimosa-core v0.0.0-20200627174053-38e75ed881c3 h1:3h+rKHUWTHUbqx56c98BrQXxsajMMh/hvtkYeVzQWus=
 github.com/CyberAgent/mimosa-core/proto/finding v0.0.0-20200623023542-66ab3af089f9 h1:SwD/ynbKGUUaDruITkag8FkY7PVN2Y+7xkZUs4yD+ng=
 github.com/CyberAgent/mimosa-core/proto/finding v0.0.0-20200623023542-66ab3af089f9/go.mod h1:G0wI9XG7mhLG99b/iRRkefGrAXte0qg4eVJKfCVf8ls=
 github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496 h1:zV3ejI06GQ59hwDQAvmK1qxOQGB3WuVTRoY0okPTAv0=
@@ -56,6 +45,7 @@ github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMyw
 github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.4.0 h1:xsAVV57WRhGj6kEIi8ReJzQlHHqcBYCElAvkovg3B/4=
 github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
+github.com/google/go-cmp v0.5.0 h1:/QaMHBdZ26BB3SSst0Iwl10Epc+xhTquomWX0oZEB6w=
 github.com/google/go-cmp v0.5.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/h2ik/go-sqs-poller/v3 v3.0.2 h1:3mdzVVlIGQ2Cr7yBcGrUVLKmBXc0hkyCC8KAWki/U3k=
@@ -84,6 +74,8 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.5.1 h1:nOGnQDM7FYENwehXlg/kFVnos3rEvtKTjRvOWSzb6H4=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
+github.com/vikyd/zero v0.0.0-20190921142904-0f738d0bc858 h1:b6CjC51KJa0bGZfvkxfjSgEKLhK016I++4bxhhh+lVE=
+github.com/vikyd/zero v0.0.0-20190921142904-0f738d0bc858/go.mod h1:AuUZRM/kTNOOSu3nAzKoDmUERB8S8JlwTkL1snMDzEs=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
