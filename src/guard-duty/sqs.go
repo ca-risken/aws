@@ -6,11 +6,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/h2ik/go-sqs-poller/v3/worker"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/vikyd/zero"
 )
 
 type sqsConfig struct {
 	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
-	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://localhost:9324"`
+	SQSEndpoint string `envconfig:"sqs_endpoint"` // At local, set the endpoint url. e.g.)`http://localhost:9324`. But other environments do not set the value.
 
 	GuardDutyQueueName string `split_words:"true" default:"aws-guardduty"`
 	GuardDutyQueueURL  string `split_words:"true" default:"http://localhost:9324/queue/aws-guardduty"`
@@ -25,10 +26,17 @@ func newSQSConsumer() *worker.Worker {
 		appLogger.Fatal(err.Error())
 	}
 
-	sqsClient := sqs.New(session.New(), &aws.Config{
-		Region:   &conf.AWSRegion,
-		Endpoint: &conf.SQSEndpoint,
-	})
+	var sqsClient *sqs.SQS
+	if !zero.IsZeroVal(&conf.SQSEndpoint) {
+		sqsClient = sqs.New(session.New(), &aws.Config{
+			Region:   &conf.AWSRegion,
+			Endpoint: &conf.SQSEndpoint,
+		})
+	} else {
+		sqsClient = sqs.New(session.New(), &aws.Config{
+			Region: &conf.AWSRegion,
+		})
+	}
 	return &worker.Worker{
 		Config: &worker.Config{
 			QueueName:          conf.GuardDutyQueueName,
