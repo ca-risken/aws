@@ -21,3 +21,6 @@ export AWS_REGION="ap-northeast-1"
 export SQS_ENDPOINT="http://sqs:9324"
 export GUARD_DUTY_QUEUE_NAME="aws-guardduty"
 export GUARD_DUTY_QUEUE_URL="http://sqs:9324/queue/aws-guardduty"
+
+# gRPC server
+export FINDING_SVC_ADDR="finding:8001"
