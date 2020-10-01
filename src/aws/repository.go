@@ -121,8 +121,7 @@ INSERT INTO aws
 VALUES
   (?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
-  name=VALUES(name),
-  project_id=VALUES(project_id)
+  name=VALUES(name)
 `
 
 func (a *awsRepository) UpsertAWS(data *model.AWS) (*model.AWS, error) {
