@@ -23,7 +23,7 @@ type guardDutyConfig struct {
 	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"`
 }
 
-func newGuardDutyClient(assumeRole string) (*guardDutyClient, error) {
+func newGuardDutyClient(assumeRole, externalID string) (*guardDutyClient, error) {
 	var conf guardDutyConfig
 	err := envconfig.Process("", &conf)
 	if err != nil {
@@ -31,20 +31,29 @@ func newGuardDutyClient(assumeRole string) (*guardDutyClient, error) {
 	}
 
 	g := guardDutyClient{}
-	if err := g.newAWSSession(conf.AWSRegion, assumeRole); err != nil {
+	if err := g.newAWSSession(conf.AWSRegion, assumeRole, externalID); err != nil {
 		return nil, err
 	}
 	return &g, nil
 }
 
-func (g *guardDutyClient) newAWSSession(region, assumeRole string) error {
+func (g *guardDutyClient) newAWSSession(region, assumeRole, externalID string) error {
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(region)},
 	)
 	if err != nil {
 		return err
 	}
-	if assumeRole != "" {
+	if assumeRole != "" && externalID != "" {
+		sess = session.New(&aws.Config{
+			Region: sess.Config.Region,
+			Credentials: stscreds.NewCredentials(
+				sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
+					p.ExternalID = aws.String(externalID)
+				},
+			),
+		})
+	} else if assumeRole != "" && externalID == "" {
 		sess = session.New(&aws.Config{
 			Region:      sess.Config.Region,
 			Credentials: stscreds.NewCredentials(sess, assumeRole),

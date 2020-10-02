@@ -35,7 +35,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	}
 
 	// Get guardduty
-	s.guardduty, err = newGuardDutyClient(message.AssumeRoleArn)
+	s.guardduty, err = newGuardDutyClient(message.AssumeRoleArn, message.ExternalID)
 	if err != nil {
 		return err
 	}
