@@ -4,6 +4,11 @@ import (
 	"testing"
 )
 
+const (
+	string_length_65  = "12345678901234567890123456789012345678901234567890123456789012345"
+	string_length_256 = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789=123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789=12345678901234567890123456789012345678901234567890123456"
+)
+
 func TestValidate_ListAWSRequest(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -134,7 +139,7 @@ func TestValidate_ListDataSourceRequest(t *testing.T) {
 		},
 		{
 			name:    "NG Length(data_source)",
-			input:   &ListDataSourceRequest{ProjectId: 111, AwsId: 1001, DataSource: "12345678901234567890123456789012345678901234567890123456789012345"},
+			input:   &ListDataSourceRequest{ProjectId: 111, AwsId: 1001, DataSource: string_length_65},
 			wantErr: true,
 		},
 		{
@@ -285,7 +290,7 @@ func TestValidate_AWSForUpsert(t *testing.T) {
 		},
 		{
 			name:    "NG Length(name)",
-			input:   &AWSForUpsert{Name: "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789=123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789=1", ProjectId: 111, AwsAccountId: "123456789012"},
+			input:   &AWSForUpsert{Name: string_length_256, ProjectId: 111, AwsAccountId: "123456789012"},
 			wantErr: true,
 		},
 		{
@@ -329,37 +334,57 @@ func TestValidate_DataSourceForAttach(t *testing.T) {
 	}{
 		{
 			name:    "OK",
-			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: ""},
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: "", ScanAt: 0},
 			wantErr: false,
 		},
 		{
 			name:    "NG Required(aws_id)",
-			input:   &DataSourceForAttach{AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: ""},
+			input:   &DataSourceForAttach{AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: "", ScanAt: 0},
 			wantErr: true,
 		},
 		{
 			name:    "NG Required(aws_data_source_id)",
-			input:   &DataSourceForAttach{AwsId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: ""},
+			input:   &DataSourceForAttach{AwsId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: "", ScanAt: 0},
 			wantErr: true,
 		},
 		{
 			name:    "NG Required(project_id)",
-			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, AssumeRoleArn: "role", ExternalId: ""},
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: "", ScanAt: 0},
 			wantErr: true,
 		},
 		{
 			name:    "NG Required(assume_role_arn)",
-			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, ExternalId: ""},
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, ExternalId: "", Status: Status_OK, StatusDetail: "", ScanAt: 0},
 			wantErr: true,
 		},
 		{
 			name:    "NG Length(assume_role_arn)",
-			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789=123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789=12345678901234567890123456789012345678901234567890123456", ExternalId: ""},
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: string_length_256, ExternalId: "", Status: Status_OK, StatusDetail: "", ScanAt: 0},
 			wantErr: true,
 		},
 		{
 			name:    "NG Length(assume_role_arn)",
-			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789=123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789=12345678901234567890123456789012345678901234567890123456"},
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: string_length_256, Status: Status_OK, StatusDetail: "", ScanAt: 0},
+			wantErr: true,
+		},
+		{
+			name:    "NG Invalid(Status)",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_UNKOWN, StatusDetail: "", ScanAt: 0},
+			wantErr: true,
+		},
+		{
+			name:    "NG Length(Status Detail)",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: string_length_256, ScanAt: 0},
+			wantErr: true,
+		},
+		{
+			name:    "NG Range1(ScanAt)",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: string_length_256, ScanAt: -1},
+			wantErr: true,
+		},
+		{
+			name:    "NG Range2(ScanAt)",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: string_length_256, ScanAt: 253402268400},
 			wantErr: true,
 		},
 	}

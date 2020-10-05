@@ -28,6 +28,9 @@ type AWSRelDataSource struct {
 	ProjectID       uint32
 	AssumeRoleArn   string
 	ExternalID      string
+	Status          string
+	StatusDetail    string
+	ScanAt          time.Time
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }

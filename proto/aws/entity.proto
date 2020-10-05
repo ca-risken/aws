@@ -48,6 +48,14 @@ message DataSource {
   string external_id = 8;     // aws_rel_data_source.external_id
 }
 
+enum Status {
+  UNKOWN = 0;
+  OK = 1;
+  CONFIGURED = 2;
+  NOT_CONFIGURED = 3;
+  ERROR = 4;
+}
+
 // DataSourceForAttach
 message DataSourceForAttach {
   uint32 aws_id = 1;
@@ -55,4 +63,7 @@ message DataSourceForAttach {
   uint32 project_id = 3;
   string assume_role_arn = 4;
   string external_id = 5; // assume_role時に指定する外部ID
+  Status status = 6;
+  string status_detail = 7;
+  int64 scan_at = 8;
 }
