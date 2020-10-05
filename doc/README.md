@@ -10,6 +10,8 @@
     - [DataSource](#aws.aws.DataSource)
     - [DataSourceForAttach](#aws.aws.DataSourceForAttach)
   
+    - [Status](#aws.aws.Status)
+  
 - [aws/service.proto](#aws/service.proto)
     - [AttachDataSourceRequest](#aws.aws.AttachDataSourceRequest)
     - [AttachDataSourceResponse](#aws.aws.AttachDataSourceResponse)
@@ -87,6 +89,9 @@ AWSRelDataSource
 | project_id | [uint32](#uint32) |  |  |
 | assume_role_arn | [string](#string) |  |  |
 | external_id | [string](#string) |  |  |
+| status | [Status](#aws.aws.Status) |  |  |
+| status_detail | [string](#string) |  |  |
+| scan_at | [int64](#int64) |  |  |
 | created_at | [int64](#int64) |  |  |
 | updated_at | [int64](#int64) |  |  |
 
@@ -129,12 +134,30 @@ DataSourceForAttach
 | project_id | [uint32](#uint32) |  |  |
 | assume_role_arn | [string](#string) |  |  |
 | external_id | [string](#string) |  | assume_role時に指定する外部ID |
+| status | [Status](#aws.aws.Status) |  |  |
+| status_detail | [string](#string) |  |  |
+| scan_at | [int64](#int64) |  |  |
 
 
 
 
 
  
+
+
+<a name="aws.aws.Status"></a>
+
+### Status
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| UNKOWN | 0 |  |
+| OK | 1 |  |
+| CONFIGURED | 2 |  |
+| NOT_CONFIGURED | 3 |  |
+| ERROR | 4 |  |
+
 
  
 
