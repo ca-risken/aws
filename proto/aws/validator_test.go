@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	string_length_65  = "12345678901234567890123456789012345678901234567890123456789012345"
-	string_length_256 = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789=123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789=12345678901234567890123456789012345678901234567890123456"
+	stringLength65  = "12345678901234567890123456789012345678901234567890123456789012345"
+	stringLength256 = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789=123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789=12345678901234567890123456789012345678901234567890123456"
 )
 
 func TestValidate_ListAWSRequest(t *testing.T) {
@@ -139,7 +139,7 @@ func TestValidate_ListDataSourceRequest(t *testing.T) {
 		},
 		{
 			name:    "NG Length(data_source)",
-			input:   &ListDataSourceRequest{ProjectId: 111, AwsId: 1001, DataSource: string_length_65},
+			input:   &ListDataSourceRequest{ProjectId: 111, AwsId: 1001, DataSource: stringLength65},
 			wantErr: true,
 		},
 		{
@@ -290,7 +290,7 @@ func TestValidate_AWSForUpsert(t *testing.T) {
 		},
 		{
 			name:    "NG Length(name)",
-			input:   &AWSForUpsert{Name: string_length_256, ProjectId: 111, AwsAccountId: "123456789012"},
+			input:   &AWSForUpsert{Name: stringLength256, ProjectId: 111, AwsAccountId: "123456789012"},
 			wantErr: true,
 		},
 		{
@@ -359,12 +359,12 @@ func TestValidate_DataSourceForAttach(t *testing.T) {
 		},
 		{
 			name:    "NG Length(assume_role_arn)",
-			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: string_length_256, ExternalId: "", Status: Status_OK, StatusDetail: "", ScanAt: 0},
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: stringLength256, ExternalId: "", Status: Status_OK, StatusDetail: "", ScanAt: 0},
 			wantErr: true,
 		},
 		{
 			name:    "NG Length(assume_role_arn)",
-			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: string_length_256, Status: Status_OK, StatusDetail: "", ScanAt: 0},
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: stringLength256, Status: Status_OK, StatusDetail: "", ScanAt: 0},
 			wantErr: true,
 		},
 		{
@@ -374,17 +374,17 @@ func TestValidate_DataSourceForAttach(t *testing.T) {
 		},
 		{
 			name:    "NG Length(Status Detail)",
-			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: string_length_256, ScanAt: 0},
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: stringLength256, ScanAt: 0},
 			wantErr: true,
 		},
 		{
 			name:    "NG Range1(ScanAt)",
-			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: string_length_256, ScanAt: -1},
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: stringLength256, ScanAt: -1},
 			wantErr: true,
 		},
 		{
 			name:    "NG Range2(ScanAt)",
-			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: string_length_256, ScanAt: 253402268400},
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: stringLength256, ScanAt: 253402268400},
 			wantErr: true,
 		},
 	}

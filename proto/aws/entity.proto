@@ -24,8 +24,11 @@ message AWSRelDataSource {
   uint32 project_id = 3;
   string assume_role_arn = 4;
   string external_id = 5;
-  int64 created_at = 6;
-  int64 updated_at = 7;
+  Status status = 6;
+  string status_detail = 7;
+  int64 scan_at = 8;
+  int64 created_at = 9;
+  int64 updated_at = 10;
 }
 
 // AWSForUpsert
