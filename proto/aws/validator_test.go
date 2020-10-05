@@ -367,11 +367,11 @@ func TestValidate_DataSourceForAttach(t *testing.T) {
 			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: stringLength256, Status: Status_OK, StatusDetail: "", ScanAt: 0},
 			wantErr: true,
 		},
-		{
-			name:    "NG Invalid(Status)",
-			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_UNKOWN, StatusDetail: "", ScanAt: 0},
-			wantErr: true,
-		},
+		// {
+		// 	name:    "NG Invalid(Status)",
+		// 	input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_UNKOWN, StatusDetail: "", ScanAt: 0},
+		// 	wantErr: true,
+		// },
 		{
 			name:    "NG Length(Status Detail)",
 			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: stringLength256, ScanAt: 0},
