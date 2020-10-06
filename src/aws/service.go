@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"strings"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/model"
 	"github.com/CyberAgent/mimosa-aws/proto/aws"
@@ -79,6 +80,25 @@ func (a *awsService) DeleteAWS(ctx context.Context, req *aws.DeleteAWSRequest) (
 	return &empty.Empty{}, nil
 }
 
+func getStatus(s string) aws.Status {
+	statusKey := strings.ToUpper(s)
+	if _, ok := aws.Status_value[statusKey]; !ok {
+		return aws.Status_UNKNOWN
+	}
+	switch statusKey {
+	case aws.Status_OK.String():
+		return aws.Status_OK
+	case aws.Status_CONFIGURED.String():
+		return aws.Status_CONFIGURED
+	case aws.Status_NOT_CONFIGURED.String():
+		return aws.Status_NOT_CONFIGURED
+	case aws.Status_ERROR.String():
+		return aws.Status_ERROR
+	default:
+		return aws.Status_UNKNOWN
+	}
+}
+
 func (a *awsService) ListDataSource(ctx context.Context, req *aws.ListDataSourceRequest) (*aws.ListDataSourceResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
@@ -92,6 +112,10 @@ func (a *awsService) ListDataSource(ctx context.Context, req *aws.ListDataSource
 	}
 	ds := []*aws.DataSource{}
 	for _, d := range *list {
+		var scanAt int64
+		if !d.ScanAt.IsZero() {
+			scanAt = d.ScanAt.Unix()
+		}
 		ds = append(ds, &aws.DataSource{
 			AwsDataSourceId: d.AWSDataSourceID,
 			DataSource:      d.DataSource,
@@ -100,6 +124,9 @@ func (a *awsService) ListDataSource(ctx context.Context, req *aws.ListDataSource
 			ProjectId:       d.ProjectID,
 			AssumeRoleArn:   d.AssumeRoleArn,
 			ExternalId:      d.ExternalID,
+			Status:          getStatus(d.Status),
+			StatusDetail:    d.StatusDetail,
+			ScanAt:          scanAt,
 		})
 	}
 	return &aws.ListDataSourceResponse{DataSource: ds}, nil
@@ -113,12 +140,19 @@ func (a *awsService) AttachDataSource(ctx context.Context, req *aws.AttachDataSo
 	if err != nil {
 		return nil, err
 	}
+	var scanAt int64
+	if !registerd.ScanAt.IsZero() {
+		scanAt = registerd.ScanAt.Unix()
+	}
 	return &aws.AttachDataSourceResponse{DataSource: &aws.AWSRelDataSource{
 		AwsId:           registerd.AWSID,
 		AwsDataSourceId: registerd.AWSDataSourceID,
 		ProjectId:       registerd.ProjectID,
 		AssumeRoleArn:   registerd.AssumeRoleArn,
 		ExternalId:      registerd.ExternalID,
+		Status:          getStatus(registerd.Status),
+		StatusDetail:    registerd.StatusDetail,
+		ScanAt:          scanAt,
 		CreatedAt:       registerd.CreatedAt.Unix(),
 		UpdatedAt:       registerd.UpdatedAt.Unix(),
 	}}, nil

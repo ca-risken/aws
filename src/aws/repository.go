@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	"github.com/CyberAgent/mimosa-aws/pkg/model"
@@ -154,6 +155,9 @@ type dataSource struct {
 	ProjectID       uint32
 	AssumeRoleArn   string
 	ExternalID      string
+	Status          string
+	StatusDetail    string
+	ScanAt          time.Time
 }
 
 func (a *awsRepository) ListDataSource(projectID, awsID uint32, ds string) (*[]dataSource, error) {
@@ -167,6 +171,9 @@ select
   , ards.project_id
   , ards.assume_role_arn
   , ards.external_id
+  , ards.status
+  , ards.status_detail
+  , ards.scan_at
 from
   aws_data_source ads
   left outer join (
@@ -177,12 +184,15 @@ from
 		query += " and aws_id = ?"
 		params = append(params, awsID)
 	}
+	query += `
+	) ards using(aws_data_source_id)`
 	if !zero.IsZeroVal(ds) {
-		query += " and dataSource = ?"
+		query += `
+where
+  ads.data_source = ?`
 		params = append(params, ds)
 	}
 	query += `
-  ) ards using(aws_data_source_id)
 order by
   ads.aws_data_source_id
 `
@@ -195,17 +205,24 @@ order by
 
 const insertUpsertAWSRelDataSource = `
 INSERT INTO aws_rel_data_source
-  (aws_id, aws_data_source_id, project_id, assume_role_arn, external_id)
+  (aws_id, aws_data_source_id, project_id, assume_role_arn, external_id, status, status_detail, scan_at)
 VALUES
-  (?, ?, ?, ?, ?)
+  (?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
   project_id=VALUES(project_id),
   assume_role_arn=VALUES(assume_role_arn),
-  external_id=VALUES(external_id)
+  external_id=VALUES(external_id),
+  status=VALUES(status),
+  status_detail=VALUES(status_detail),
+  scan_at=VALUES(scan_at)
 `
 
 func (a *awsRepository) UpsertAWSRelDataSource(data *aws.DataSourceForAttach) (*model.AWSRelDataSource, error) {
-	if err := a.MasterDB.Exec(insertUpsertAWSRelDataSource, data.AwsId, data.AwsDataSourceId, data.ProjectId, data.AssumeRoleArn, data.ExternalId).Error; err != nil {
+	if err := a.MasterDB.Exec(insertUpsertAWSRelDataSource,
+		data.AwsId, data.AwsDataSourceId, data.ProjectId,
+		data.AssumeRoleArn, data.ExternalId,
+		data.Status.String(), data.StatusDetail, time.Unix(data.ScanAt, 0),
+	).Error; err != nil {
 		return nil, err
 	}
 	return a.GetAWSRelDataSourceByID(data.AwsId, data.AwsDataSourceId, data.ProjectId)

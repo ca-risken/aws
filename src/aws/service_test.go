@@ -241,12 +241,12 @@ func TestAttachDataSource(t *testing.T) {
 			name: "OK",
 			input: &aws.AttachDataSourceRequest{
 				ProjectId:        1,
-				AttachDataSource: &aws.DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "role", ExternalId: ""},
+				AttachDataSource: &aws.DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "role", ExternalId: "ex", Status: aws.Status_OK, StatusDetail: "detail", ScanAt: now.Unix()},
 			},
 			want: &aws.AttachDataSourceResponse{
-				DataSource: &aws.AWSRelDataSource{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "role", ExternalId: "", CreatedAt: now.Unix(), UpdatedAt: now.Unix()},
+				DataSource: &aws.AWSRelDataSource{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "role", ExternalId: "ex", Status: aws.Status_OK, StatusDetail: "detail", ScanAt: now.Unix(), CreatedAt: now.Unix(), UpdatedAt: now.Unix()},
 			},
-			mockResp: &model.AWSRelDataSource{AWSID: 1, AWSDataSourceID: 1, ProjectID: 1, AssumeRoleArn: "role", ExternalID: "", CreatedAt: now, UpdatedAt: now},
+			mockResp: &model.AWSRelDataSource{AWSID: 1, AWSDataSourceID: 1, ProjectID: 1, AssumeRoleArn: "role", ExternalID: "ex", Status: "OK", StatusDetail: "detail", ScanAt: now, CreatedAt: now, UpdatedAt: now},
 		},
 		{
 			name: "NG Invalid parameter(project_id)",

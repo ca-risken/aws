@@ -39,14 +39,14 @@ delete-aws:
 list-data-source:
 	grpcurl \
 		-plaintext \
-		-d '{"project_id":1001, "aws_id":1001, "data_source":"aws:guard-duty"}' \
+		-d '{"project_id":1001, "aws_id":1001}' \
 		localhost:9001 aws.aws.AWSService.ListDataSource
 
 .PHONY: attach-data-source
 attach-data-source:
 	grpcurl \
 		-plaintext \
-		-d '{"project_id":1001, "attach_data_source": {"aws_id":1001, "aws_data_source_id":1004, "project_id":1001, "assume_role_arn":"arn:aws:iam::123456789012:role/role-name", "external_id":"test"}}' \
+		-d '{"project_id":1001, "attach_data_source": {"aws_id":1001, "aws_data_source_id":1004, "project_id":1001, "assume_role_arn":"arn:aws:iam::123456789012:role/role-name", "external_id":"test", "status":"CONFIGURED"}}' \
 		localhost:9001 aws.aws.AWSService.AttachDataSource
 
 .PHONY: detach-data-source
