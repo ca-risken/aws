@@ -58,6 +58,9 @@ message DataSource {
   uint32 project_id = 5;      // aws_rel_data_source.project_id
   string assume_role_arn = 7; // aws_rel_data_source.assume_role_arn
   string external_id = 8;     // aws_rel_data_source.external_id
+  Status status = 9;          // aws_rel_data_source.status
+  string status_detail = 10;  // aws_rel_data_source.status_detail
+  int64 scan_at = 11;         // aws_rel_data_source.scan_at
 }
 
 // DataSourceForAttach
