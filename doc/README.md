@@ -115,6 +115,9 @@ DataSource(data_sourceと紐づくaws_rel_data_sourceの状態)
 | project_id | [uint32](#uint32) |  | aws_rel_data_source.project_id |
 | assume_role_arn | [string](#string) |  | aws_rel_data_source.assume_role_arn |
 | external_id | [string](#string) |  | aws_rel_data_source.external_id |
+| status | [Status](#aws.aws.Status) |  | aws_rel_data_source.status |
+| status_detail | [string](#string) |  | aws_rel_data_source.status_detail |
+| scan_at | [int64](#int64) |  | aws_rel_data_source.scan_at |
 
 
 
