@@ -17,6 +17,15 @@ message AWS {
   int64 updated_at = 6;
 }
 
+// Status
+enum Status {
+  UNKNOWN = 0;
+  OK = 1;
+  CONFIGURED = 2;
+  NOT_CONFIGURED = 3;
+  ERROR = 4;
+}
+
 // AWSRelDataSource
 message AWSRelDataSource {
   uint32 aws_id = 1;
@@ -49,14 +58,6 @@ message DataSource {
   uint32 project_id = 5;      // aws_rel_data_source.project_id
   string assume_role_arn = 7; // aws_rel_data_source.assume_role_arn
   string external_id = 8;     // aws_rel_data_source.external_id
-}
-
-enum Status {
-  UNKOWN = 0;
-  OK = 1;
-  CONFIGURED = 2;
-  NOT_CONFIGURED = 3;
-  ERROR = 4;
 }
 
 // DataSourceForAttach

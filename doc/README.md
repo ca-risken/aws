@@ -148,11 +148,11 @@ DataSourceForAttach
 <a name="aws.aws.Status"></a>
 
 ### Status
-
+Status
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
-| UNKOWN | 0 |  |
+| UNKNOWN | 0 |  |
 | OK | 1 |  |
 | CONFIGURED | 2 |  |
 | NOT_CONFIGURED | 3 |  |
