@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
+	awsClient "github.com/CyberAgent/mimosa-aws/proto/aws"
 	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/guardduty"
@@ -16,11 +18,13 @@ import (
 type sqsHandler struct {
 	guardduty     guardDutyAPI
 	findingClient finding.FindingServiceClient
+	awsClient     awsClient.AWSServiceClient
 }
 
 func newHandler() *sqsHandler {
 	return &sqsHandler{
 		findingClient: newFindingClient(),
+		awsClient:     newAWSClient(),
 	}
 }
 
@@ -34,24 +38,40 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		return err
 	}
 
+	ctx := context.Background()
+	status := awsClient.AttachDataSourceRequest{
+		ProjectId: message.ProjectID,
+		AttachDataSource: &awsClient.DataSourceForAttach{
+			AwsId:           message.AWSID,
+			AwsDataSourceId: message.AWSDataSourceID,
+			ProjectId:       message.ProjectID,
+			AssumeRoleArn:   message.AssumeRoleArn,
+			ExternalId:      message.ExternalID,
+			ScanAt:          time.Now().Unix(),
+			// to be updated below, after the scan
+			Status:       awsClient.Status_UNKNOWN,
+			StatusDetail: "",
+		},
+	}
+
 	// Get guardduty
 	s.guardduty, err = newGuardDutyClient(message.AssumeRoleArn, message.ExternalID)
 	if err != nil {
-		return err
+		appLogger.Errorf("Faild to create GuardDuty session: err=%+v", err)
+		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
 	findings, err := s.getGuardDuty(message)
 	if err != nil {
 		appLogger.Errorf("Faild to get findngs to AWS GuardDuty: AccountID=%+v, err=%+v", message.AccountID, err)
-		return err
+		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
 
 	// Put finding to core
-	ctx := context.Background()
 	if err := s.putFindings(ctx, findings); err != nil {
 		appLogger.Errorf("Faild to put findngs: AccountID=%+v, err=%+v", message.AccountID, err)
-		return err
+		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
-	return nil
+	return s.updateScanStatusSuccess(ctx, &status)
 }
 
 func parseMessage(msg string) (*message.AWSQueueMessage, error) {
@@ -116,6 +136,27 @@ func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.Findin
 		}
 		appLogger.Infof("Success to PutFinding, response=%+v", resp)
 	}
+	return nil
+}
+
+func (s *sqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {
+	status.AttachDataSource.Status = awsClient.Status_ERROR
+	status.AttachDataSource.StatusDetail = statusDetail[:200] + " ..." // cut text
+	return s.attachAWSStatus(ctx, status)
+}
+
+func (s *sqsHandler) updateScanStatusSuccess(ctx context.Context, status *awsClient.AttachDataSourceRequest) error {
+	status.AttachDataSource.Status = awsClient.Status_OK
+	status.AttachDataSource.StatusDetail = ""
+	return s.attachAWSStatus(ctx, status)
+}
+
+func (s *sqsHandler) attachAWSStatus(ctx context.Context, status *awsClient.AttachDataSourceRequest) error {
+	resp, err := s.awsClient.AttachDataSource(ctx, status)
+	if err != nil {
+		return err
+	}
+	appLogger.Infof("Success to AttachDataSource, response=%+v", resp)
 	return nil
 }
 

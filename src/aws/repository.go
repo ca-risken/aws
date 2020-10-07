@@ -249,11 +249,13 @@ func (a *awsRepository) DeleteAWSRelDataSource(projectID, awsID, awsDataSourceID
 
 const selectAWSDataSourceForMessage = `
 select 
-  ads.data_source        as data_source
-  , ards.project_id      as project_id
-  , a.aws_account_id     as account_id
-  , ards.assume_role_arn as assume_role_arn
-  , ards.external_id     as external_id
+	a.aws_id                  as aws_id
+  , ards.aws_data_source_id as aws_data_source_id
+  , ads.data_source         as data_source
+  , ards.project_id         as project_id
+  , a.aws_account_id        as account_id
+  , ards.assume_role_arn    as assume_role_arn
+  , ards.external_id        as external_id
 from
   aws_rel_data_source ards
   inner join aws a using(aws_id)

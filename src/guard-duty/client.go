@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/CyberAgent/mimosa-aws/proto/aws"
 	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/kelseyhightower/envconfig"
 	"google.golang.org/grpc"
@@ -26,6 +27,25 @@ func newFindingClient() finding.FindingServiceClient {
 		appLogger.Fatalf("Faild to get GRPC connection: err=%+v", err)
 	}
 	return finding.NewFindingServiceClient(conn)
+}
+
+type awsConfig struct {
+	AWSSvcAddr string `required:"true" split_words:"true"`
+}
+
+func newAWSClient() aws.AWSServiceClient {
+	var conf awsConfig
+	err := envconfig.Process("", &conf)
+	if err != nil {
+		appLogger.Fatalf("Faild to load aws config error: err=%+v", err)
+	}
+
+	ctx := context.Background()
+	conn, err := getGRPCConn(ctx, conf.AWSSvcAddr)
+	if err != nil {
+		appLogger.Fatalf("Faild to get GRPC connection: err=%+v", err)
+	}
+	return aws.NewAWSServiceClient(conn)
 }
 
 func getGRPCConn(ctx context.Context, addr string) (*grpc.ClientConn, error) {

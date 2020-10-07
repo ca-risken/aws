@@ -60,5 +60,5 @@ detach-data-source:
 invoke-guard-duty:
 	grpcurl \
 		-plaintext \
-		-d '{"project_id":1001, "aws_id":1, "aws_data_source_id":1001}' \
+		-d '{"project_id":1001, "aws_id":1005, "aws_data_source_id":1001}' \
 		localhost:9001 aws.aws.AWSService.InvokeScan
