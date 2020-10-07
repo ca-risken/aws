@@ -24,3 +24,4 @@ export GUARD_DUTY_QUEUE_URL="http://sqs:9324/queue/aws-guardduty"
 
 # gRPC server
 export FINDING_SVC_ADDR="finding:8001"
+export AWS_SVC_ADDR="aws:9001"
