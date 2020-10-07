@@ -101,6 +101,10 @@ func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.
 			return nil, err
 		}
 
+		if len(findingIDs) == 0 {
+			appLogger.Infof("No findings: accountID=%s", message.AccountID)
+			continue
+		}
 		findings, err := s.guardduty.getFindings(id, findingIDs)
 		if err != nil {
 			appLogger.Errorf(
@@ -141,7 +145,10 @@ func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.Findin
 
 func (s *sqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {
 	status.AttachDataSource.Status = awsClient.Status_ERROR
-	status.AttachDataSource.StatusDetail = statusDetail[:200] + " ..." // cut text
+	if len(statusDetail) > 200 {
+		statusDetail = statusDetail[:200] + " ..." // cut long text
+	}
+	status.AttachDataSource.StatusDetail = statusDetail
 	return s.attachAWSStatus(ctx, status)
 }
 
