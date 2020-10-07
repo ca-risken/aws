@@ -7,18 +7,16 @@ const GuardDutyType = "aws:guard-duty"
 
 // AWSQueueMessage is the message for SQS queue
 type AWSQueueMessage struct {
-	DataSource    string `json:"data_source"`
-	ProjectID     uint32 `json:"project_id"`
-	AccountID     string `json:"account_id"`
-	AssumeRoleArn string `json:"assume_role_arn"`
-	ExternalID    string `json:"external_id"`
+	AWSID           uint32 `json:"aws_id"`
+	AWSDataSourceID uint32 `json:"aws_data_source_id"`
+	ProjectID       uint32 `json:"project_id"`
 }
 
 // Validate is the validation to GuardDutyMessage
 func (g *AWSQueueMessage) Validate() error {
 	return validation.ValidateStruct(g,
-		validation.Field(&g.DataSource, validation.Required, validation.In(GuardDutyType)),
+		validation.Field(&g.AWSID, validation.Required),
+		validation.Field(&g.AWSDataSourceID, validation.Required),
 		validation.Field(&g.ProjectID, validation.Required),
-		validation.Field(&g.AccountID, validation.Required, validation.Length(12, 12)),
 	)
 }
