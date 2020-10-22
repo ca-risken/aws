@@ -21,7 +21,6 @@ fmt: proto/**/*.proto
 doc: fmt
 	protoc \
 		--proto_path=proto \
-		--proto_path=${GOPATH}/src \
 		--error_format=gcc \
 		--doc_out=markdown,README.md:doc \
 		proto/**/*.proto;
@@ -29,7 +28,6 @@ doc: fmt
 build: fmt
 	protoc \
 		--proto_path=proto \
-		--proto_path=${GOPATH}/src \
 		--error_format=gcc \
 		--go_out=plugins=grpc,paths=source_relative:proto \
 		proto/**/*.proto;
@@ -43,13 +41,11 @@ go-test: build
 go-mod-update:
 	cd src/aws \
 		&& go get -u \
-			github.com/CyberAgent/mimosa-aws/pkg/model \
-			github.com/CyberAgent/mimosa-aws/pkg/message \
-			github.com/CyberAgent/mimosa-aws/proto/aws
+			github.com/CyberAgent/mimosa-aws/...
 	cd src/guard-duty \
 		&& go get -u \
-			github.com/CyberAgent/mimosa-aws/pkg/message \
-			github.com/CyberAgent/mimosa-aws/proto/aws
+			github.com/CyberAgent/mimosa-core/... \
+			github.com/CyberAgent/mimosa-aws/...
 
 go-mod-tidy: build
 	cd proto/aws      && go mod tidy
