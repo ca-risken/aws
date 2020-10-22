@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/CyberAgent/mimosa-aws/pkg/common"
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/guardduty"
@@ -69,7 +70,7 @@ func TestGetResourceName(t *testing.T) {
 					InstanceDetails: &guardduty.InstanceDetails{InstanceId: aws.String("i-xxx")},
 				},
 			},
-			want: fmt.Sprintf(ec2ResourceTemplate, "123456789012", "i-xxx"),
+			want: fmt.Sprintf(common.EC2ResourceTemplate, "123456789012", "i-xxx"),
 		},
 		{
 			name: "EC2 INSTANCE Unknown",
@@ -90,7 +91,7 @@ func TestGetResourceName(t *testing.T) {
 					AccessKeyDetails: &guardduty.AccessKeyDetails{UserType: aws.String("IAMUser"), UserName: aws.String("user-name")},
 				},
 			},
-			want: fmt.Sprintf(iamResourceTemplate, "123456789012", "user-name"),
+			want: fmt.Sprintf(common.IAMResourceTemplate, "123456789012", "user-name"),
 		},
 		{
 			name: "IAM Unknown user type",
@@ -123,7 +124,7 @@ func TestGetResourceName(t *testing.T) {
 					S3BucketDetails: []*guardduty.S3BucketDetail{{Name: aws.String("bucket")}},
 				},
 			},
-			want: fmt.Sprintf(s3ResourceTemplate, "123456789012", "bucket"),
+			want: fmt.Sprintf(common.S3ResourceTemplate, "123456789012", "bucket"),
 		},
 		{
 			name: "S3 BUCKET 2",
@@ -134,7 +135,7 @@ func TestGetResourceName(t *testing.T) {
 					S3BucketDetails: []*guardduty.S3BucketDetail{{Name: aws.String("bucket-1")}, {Name: aws.String("bucket-2")}},
 				},
 			},
-			want: fmt.Sprintf(s3ResourceTemplate, "123456789012", "bucket-1,bucket-2"),
+			want: fmt.Sprintf(common.S3ResourceTemplate, "123456789012", "bucket-1,bucket-2"),
 		},
 		{
 			name: "S3 No bucket name",
@@ -145,7 +146,7 @@ func TestGetResourceName(t *testing.T) {
 					S3BucketDetails: []*guardduty.S3BucketDetail{{Arn: aws.String("arn")}},
 				},
 			},
-			want: fmt.Sprintf(s3ResourceTemplate, "123456789012", ""),
+			want: fmt.Sprintf(common.S3ResourceTemplate, "123456789012", ""),
 		},
 		{
 			name: "S3 Unkown bucket",
@@ -156,7 +157,7 @@ func TestGetResourceName(t *testing.T) {
 					S3BucketDetails: []*guardduty.S3BucketDetail{},
 				},
 			},
-			want: fmt.Sprintf(s3ResourceTemplate, "123456789012", s3BucketUnknown),
+			want: fmt.Sprintf(common.S3ResourceTemplate, "123456789012", s3BucketUnknown),
 		},
 		{
 			name: "Unknown resource type",
@@ -172,6 +173,63 @@ func TestGetResourceName(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			got := getResourceName(c.input)
+			if c.want != got {
+				t.Fatalf("Unexpected resource name: want=%s, got=%s", c.want, got)
+			}
+		})
+	}
+}
+
+func TestGetAWSServiceTagByResource(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "EC2",
+			input: "ec2/any",
+			want:  common.TagEC2,
+		},
+		{
+			name:  "EC2 upper case",
+			input: "EC2/any",
+			want:  common.TagEC2,
+		},
+		{
+			name:  "IAM",
+			input: "iam/any",
+			want:  common.TagIAM,
+		},
+		{
+			name:  "IAM upper case",
+			input: "IAM/any",
+			want:  common.TagIAM,
+		},
+		{
+			name:  "S3",
+			input: "s3/any",
+			want:  common.TagS3,
+		},
+		{
+			name:  "S3 upper",
+			input: "S3/any",
+			want:  common.TagS3,
+		},
+		{
+			name:  "unkonwn",
+			input: "any",
+			want:  "",
+		},
+		{
+			name:  "blank",
+			input: "",
+			want:  "",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := getAWSServiceTagByResource(c.input)
 			if c.want != got {
 				t.Fatalf("Unexpected resource name: want=%s, got=%s", c.want, got)
 			}

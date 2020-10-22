@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CyberAgent/mimosa-aws/pkg/common"
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	awsClient "github.com/CyberAgent/mimosa-aws/proto/aws"
 	"github.com/CyberAgent/mimosa-core/proto/finding"
@@ -138,9 +139,46 @@ func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.Findin
 		if err != nil {
 			return err
 		}
-		appLogger.Infof("Success to PutFinding, response=%+v", resp)
+		appLogger.Debugf("PutFinding response: finding_id=%d, project_id=%d", resp.Finding.FindingId, resp.Finding.ProjectId)
+
+		// tag
+		s.tagFinding(ctx, common.TagAWS, resp.Finding.FindingId, resp.Finding.ProjectId)
+		s.tagFinding(ctx, common.TagGuardduty, resp.Finding.FindingId, resp.Finding.ProjectId)
+		awsServiceTag := getAWSServiceTagByResource(resp.Finding.ResourceName)
+		if awsServiceTag != "" {
+			s.tagFinding(ctx, awsServiceTag, resp.Finding.FindingId, resp.Finding.ProjectId)
+		}
+		appLogger.Infof("Success to PutFinding, finding_id=%d", resp.Finding.FindingId)
 	}
 	return nil
+}
+
+func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint64, projectID uint32) error {
+	_, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
+		ProjectId: projectID,
+		Tag: &finding.FindingTagForUpsert{
+			FindingId: findingID,
+			ProjectId: projectID,
+			Tag:       tag,
+		}})
+	if err != nil {
+		appLogger.Errorf("Failed to TagFinding, finding_id=%d, tag=%s, error=%+v", findingID, tag, err)
+		return err
+	}
+	return nil
+}
+
+func getAWSServiceTagByResource(resource string) string {
+	if strings.HasPrefix(strings.ToLower(resource), common.TagEC2) {
+		return common.TagEC2
+	}
+	if strings.HasPrefix(strings.ToLower(resource), common.TagIAM) {
+		return common.TagIAM
+	}
+	if strings.HasPrefix(strings.ToLower(resource), common.TagS3) {
+		return common.TagS3
+	}
+	return ""
 }
 
 func (s *sqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {
@@ -163,7 +201,7 @@ func (s *sqsHandler) attachAWSStatus(ctx context.Context, status *awsClient.Atta
 	if err != nil {
 		return err
 	}
-	appLogger.Infof("Success to AttachDataSource, response=%+v", resp)
+	appLogger.Infof("Success to update AWS status, response=%+v", resp)
 	return nil
 }
 
@@ -192,11 +230,6 @@ const (
 
 	// S3
 	s3BucketUnknown = "UnknownBucket"
-
-	// Resource Name template
-	ec2ResourceTemplate = "ec2/%s/%s" // ec2/{account-id}/{instance-id}
-	iamResourceTemplate = "iam/%s/%s" // iam/{account-id}/{user-name}
-	s3ResourceTemplate  = "s3/%s/%s"  // s3/{account-id}/{bucket-name}
 )
 
 func getResourceName(f *guardduty.Finding) string {
@@ -209,7 +242,7 @@ func getResourceName(f *guardduty.Finding) string {
 		if f.Resource.InstanceDetails == nil || f.Resource.InstanceDetails.InstanceId == nil {
 			return ec2InstanceUnknown
 		}
-		return fmt.Sprintf(ec2ResourceTemplate, *f.AccountId, *f.Resource.InstanceDetails.InstanceId)
+		return fmt.Sprintf(common.EC2ResourceTemplate, *f.AccountId, *f.Resource.InstanceDetails.InstanceId)
 	case resourceTypeAccessKey:
 		if f.Resource.AccessKeyDetails == nil || f.Resource.AccessKeyDetails.UserName == nil {
 			return iamUserUnknown
@@ -221,7 +254,7 @@ func getResourceName(f *guardduty.Finding) string {
 			userTypeFederatedUser,
 			userTypeAWSService,
 			userTypeAWSAccount:
-			return fmt.Sprintf(iamResourceTemplate, *f.AccountId, *f.Resource.AccessKeyDetails.UserName)
+			return fmt.Sprintf(common.IAMResourceTemplate, *f.AccountId, *f.Resource.AccessKeyDetails.UserName)
 		default:
 			return userTypeUnknown
 		}
@@ -235,9 +268,9 @@ func getResourceName(f *guardduty.Finding) string {
 				buckets += *b.Name + ","
 			}
 			buckets = strings.TrimRight(buckets, ",")
-			return fmt.Sprintf(s3ResourceTemplate, *f.AccountId, buckets)
+			return fmt.Sprintf(common.S3ResourceTemplate, *f.AccountId, buckets)
 		}
-		return fmt.Sprintf(s3ResourceTemplate, *f.AccountId, s3BucketUnknown)
+		return fmt.Sprintf(common.S3ResourceTemplate, *f.AccountId, s3BucketUnknown)
 	default:
 		return resourceTypeUnknown
 	}

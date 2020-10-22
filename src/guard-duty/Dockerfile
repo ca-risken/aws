@@ -14,7 +14,8 @@ RUN apk add --no-cache ca-certificates tzdata \
   && cd /tmp/ && wget -q https://github.com/okzk/env-injector/releases/download/v0.0.5/env-injector_0.0.5_linux_amd64.tar.gz \
   && tar xvfz env-injector_0.0.5_linux_amd64.tar.gz && mv env-injector /usr/local/bin/ && rm /tmp/*
 COPY --from=builder /go/bin/guard-duty /usr/local/guard-duty/bin/
-ENV AWS_REGION= \
+ENV DEBUG= \
+    AWS_REGION= \
     AWS_ACCESS_KEY_ID= \
     AWS_SECRET_ACCESS_KEY= \
     AWS_SESSION_TOKEN= \
