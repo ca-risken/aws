@@ -1,4 +1,4 @@
-package coommon
+package common
 
 const (
 	// TagAWS aws tag
