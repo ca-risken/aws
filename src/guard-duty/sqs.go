@@ -6,10 +6,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/h2ik/go-sqs-poller/v3/worker"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/sirupsen/logrus"
 	"github.com/vikyd/zero"
 )
 
 type sqsConfig struct {
+	Debug string `default:"false"`
+
 	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
 	SQSEndpoint string `envconfig:"sqs_endpoint"` // At local, set the endpoint url. e.g.)`http://localhost:9324`. But other environments do not set the value.
 
@@ -26,6 +29,9 @@ func newSQSConsumer() *worker.Worker {
 		appLogger.Fatal(err.Error())
 	}
 
+	if conf.Debug == "true" {
+		appLogger.SetLevel(logrus.DebugLevel)
+	}
 	var sqsClient *sqs.SQS
 	if !zero.IsZeroVal(&conf.SQSEndpoint) {
 		sqsClient = sqs.New(session.New(), &aws.Config{
