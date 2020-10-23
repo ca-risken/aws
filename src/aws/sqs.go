@@ -45,7 +45,7 @@ func newSQSClient() *sqsClient {
 			// queueURLMap:
 			// key="data_source_label", value="SQS URL",
 			"aws:guard-duty":      conf.GuardDutyQueueURL,
-			"aws:access-analyzer": conf.AcceessAnalyzerQueueURL,
+			"aws:access-analyzer": conf.AccessAnalyzerQueueURL,
 		},
 	}
 }
