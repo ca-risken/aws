@@ -7,6 +7,8 @@ const (
 	TagAWS = "aws"
 	// TagGuardduty guard-duty tag
 	TagGuardduty = "guard-duty"
+	// TagAccessAnalyzer access-analyzer tag
+	TagAccessAnalyzer = "access-analyzer"
 
 	// AWS Services
 
