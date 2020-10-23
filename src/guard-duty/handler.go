@@ -33,7 +33,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	msgBody := aws.StringValue(msg.Body)
 	appLogger.Infof("got message: %s", msgBody)
 	// Parse message
-	message, err := parseMessage(msgBody)
+	message, err := message.ParseMessage(msgBody)
 	if err != nil {
 		appLogger.Errorf("Invalid message: SQS_msg=%+v, err=%+v", msg, err)
 		return err
@@ -73,17 +73,6 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
 	return s.updateScanStatusSuccess(ctx, &status)
-}
-
-func parseMessage(msg string) (*message.AWSQueueMessage, error) {
-	message := &message.AWSQueueMessage{}
-	if err := json.Unmarshal([]byte(msg), message); err != nil {
-		return nil, err
-	}
-	if err := message.Validate(); err != nil {
-		return nil, err
-	}
-	return message, nil
 }
 
 func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
@@ -144,7 +133,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.Findin
 		// tag
 		s.tagFinding(ctx, common.TagAWS, resp.Finding.FindingId, resp.Finding.ProjectId)
 		s.tagFinding(ctx, common.TagGuardduty, resp.Finding.FindingId, resp.Finding.ProjectId)
-		awsServiceTag := getAWSServiceTagByResource(resp.Finding.ResourceName)
+		awsServiceTag := common.GetAWSServiceTagByResourceName(resp.Finding.ResourceName)
 		if awsServiceTag != "" {
 			s.tagFinding(ctx, awsServiceTag, resp.Finding.FindingId, resp.Finding.ProjectId)
 		}
@@ -166,19 +155,6 @@ func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint6
 		return err
 	}
 	return nil
-}
-
-func getAWSServiceTagByResource(resource string) string {
-	if strings.HasPrefix(strings.ToLower(resource), common.TagEC2) {
-		return common.TagEC2
-	}
-	if strings.HasPrefix(strings.ToLower(resource), common.TagIAM) {
-		return common.TagIAM
-	}
-	if strings.HasPrefix(strings.ToLower(resource), common.TagS3) {
-		return common.TagS3
-	}
-	return ""
 }
 
 func (s *sqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {
@@ -242,7 +218,7 @@ func getResourceName(f *guardduty.Finding) string {
 		if f.Resource.InstanceDetails == nil || f.Resource.InstanceDetails.InstanceId == nil {
 			return ec2InstanceUnknown
 		}
-		return fmt.Sprintf(common.EC2ResourceTemplate, *f.AccountId, *f.Resource.InstanceDetails.InstanceId)
+		return common.GetResourceName(common.EC2, *f.AccountId, *f.Resource.InstanceDetails.InstanceId)
 	case resourceTypeAccessKey:
 		if f.Resource.AccessKeyDetails == nil || f.Resource.AccessKeyDetails.UserName == nil {
 			return iamUserUnknown
@@ -254,7 +230,7 @@ func getResourceName(f *guardduty.Finding) string {
 			userTypeFederatedUser,
 			userTypeAWSService,
 			userTypeAWSAccount:
-			return fmt.Sprintf(common.IAMResourceTemplate, *f.AccountId, *f.Resource.AccessKeyDetails.UserName)
+			return common.GetResourceName(common.IAM, *f.AccountId, *f.Resource.AccessKeyDetails.UserName)
 		default:
 			return userTypeUnknown
 		}
@@ -268,9 +244,9 @@ func getResourceName(f *guardduty.Finding) string {
 				buckets += *b.Name + ","
 			}
 			buckets = strings.TrimRight(buckets, ",")
-			return fmt.Sprintf(common.S3ResourceTemplate, *f.AccountId, buckets)
+			return common.GetResourceName(common.S3, *f.AccountId, buckets)
 		}
-		return fmt.Sprintf(common.S3ResourceTemplate, *f.AccountId, s3BucketUnknown)
+		return common.GetResourceName(common.S3, *f.AccountId, s3BucketUnknown)
 	default:
 		return resourceTypeUnknown
 	}
