@@ -31,6 +31,7 @@ ENV PORT= \
     AWS_SESSION_TOKEN= \
     SQS_ENDPOINT= \
     GUARD_DUTY_QUEUE_URL= \
+    ACCESS_ANALYZER_QUEUE_URL= \
     TZ=Asia/Tokyo
 WORKDIR /usr/local/aws
 ENTRYPOINT ["/usr/local/bin/env-injector"]
