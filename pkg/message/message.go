@@ -1,6 +1,10 @@
 package message
 
-import validation "github.com/go-ozzo/ozzo-validation"
+import (
+	"encoding/json"
+
+	validation "github.com/go-ozzo/ozzo-validation"
+)
 
 // GuardDutyType is the specific data_source label for guard-duty
 const GuardDutyType = "aws:guard-duty"
@@ -25,4 +29,16 @@ func (g *AWSQueueMessage) Validate() error {
 		validation.Field(&g.ProjectID, validation.Required),
 		validation.Field(&g.AccountID, validation.Required, validation.Length(12, 12)),
 	)
+}
+
+// ParseMessage parse message & validation
+func ParseMessage(msg string) (*AWSQueueMessage, error) {
+	message := &AWSQueueMessage{}
+	if err := json.Unmarshal([]byte(msg), message); err != nil {
+		return nil, err
+	}
+	if err := message.Validate(); err != nil {
+		return nil, err
+	}
+	return message, nil
 }

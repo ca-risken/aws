@@ -1,6 +1,9 @@
 package message
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestValidate(t *testing.T) {
 	cases := []struct {
@@ -60,6 +63,42 @@ func TestValidate(t *testing.T) {
 				t.Fatal("Unexpected no error")
 			} else if !c.wantErr && err != nil {
 				t.Fatalf("Unexpected error occured: wantErr=%t, err=%+v", c.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestParseMessage(t *testing.T) {
+	cases := []struct {
+		name    string
+		input   string
+		want    *AWSQueueMessage
+		wantErr bool
+	}{
+		{
+			name:  "OK",
+			input: `{"aws_id":1, "aws_data_source_id":1, "data_source":"aws:guard-duty", "project_id":1, "account_id":"123456789012", "assume_role_arn":"", "external_id":""}`,
+			want:  &AWSQueueMessage{AWSID: 1, AWSDataSourceID: 1, DataSource: "aws:guard-duty", ProjectID: 1, AccountID: "123456789012", AssumeRoleArn: "", ExternalID: ""},
+		},
+		{
+			name:    "NG Json parse erroro",
+			input:   `{"parse...: error`,
+			wantErr: true,
+		},
+		{
+			name:    "NG Invalid mmessage(required parammeter)",
+			input:   `{}`,
+			wantErr: true,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, err := ParseMessage(c.input)
+			if err != nil && !c.wantErr {
+				t.Fatalf("Unexpected error occured, wantErr=%t, err=%+v", c.wantErr, err)
+			}
+			if !reflect.DeepEqual(c.want, got) {
+				t.Fatalf("Unexpaeted response, want=%+v, got=%+v", c.want, got)
 			}
 		})
 	}
