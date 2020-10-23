@@ -3,9 +3,9 @@ module github.com/CyberAgent/mimosa-aws/src/guard-duty
 go 1.15
 
 require (
-	github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20201023052659-ff164b72bbb2
-	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20201023052659-ff164b72bbb2
-	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20201023052659-ff164b72bbb2
+	github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20201023104052-00aa993c37ec
+	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20201023104052-00aa993c37ec
+	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20201023104052-00aa993c37ec
 	github.com/CyberAgent/mimosa-core/proto/finding v0.0.0-20201023041025-fbc9ccc91389
 	github.com/aws/aws-sdk-go v1.35.13
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect

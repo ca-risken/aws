@@ -29,10 +29,11 @@ build: fmt
 		proto/**/*.proto;
 
 go-test: build
-	cd proto/aws      && go test ./...
-	cd pkg/message    && go test ./...
-	cd src/aws        && go test ./...
-	cd src/guard-duty && go test ./...
+	cd proto/aws           && go test ./...
+	cd pkg/message         && go test ./...
+	cd src/aws             && go test ./...
+	cd src/guard-duty      && go test ./...
+	cd src/access-analyzer && go test ./...
 
 go-mod-update:
 	cd src/aws \
@@ -42,13 +43,18 @@ go-mod-update:
 		&& go get -u \
 			github.com/CyberAgent/mimosa-core/... \
 			github.com/CyberAgent/mimosa-aws/...
+	cd src/access-analyzer \
+		&& go get -u \
+			github.com/CyberAgent/mimosa-core/... \
+			github.com/CyberAgent/mimosa-aws/...
 
 go-mod-tidy: build
-	cd proto/aws      && go mod tidy
-	cd pkg/model      && go mod tidy
-	cd pkg/message    && go mod tidy
-	cd src/aws        && go mod tidy
-	cd src/guard-duty && go mod tidy
+	cd proto/aws           && go mod tidy
+	cd pkg/model           && go mod tidy
+	cd pkg/message         && go mod tidy
+	cd src/aws             && go mod tidy
+	cd src/guard-duty      && go mod tidy
+	cd src/access-analyzer && go mod tidy
 
 # @see https://github.com/CyberAgent/mimosa-common/tree/master/local
 network:
