@@ -5,6 +5,8 @@ import "fmt"
 const (
 	// Resource Name template
 
+	// UnknownResourceTemplate resource name for unknown service
+	UnknownResourceTemplate = "unknown/%s/%s"
 	// EC2ResourceTemplate resource name for ec2 (ec2/{account-id}/{resource})
 	EC2ResourceTemplate = "ec2/%s/%s"
 	// IAMResourceTemplate resource name for iam (iam/{account-id}/{resource})
@@ -35,6 +37,6 @@ func GetResourceName(svc AWSService, accountID, resourceName string) string {
 	case KMS:
 		return fmt.Sprintf(KMSResourceTemplate, accountID, resourceName)
 	default:
-		return fmt.Sprintf("%s/%s", accountID, resourceName)
+		return fmt.Sprintf(UnknownResourceTemplate, accountID, resourceName)
 	}
 }
