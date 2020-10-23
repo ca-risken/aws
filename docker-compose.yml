@@ -27,6 +27,7 @@ services:
       - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
       - SQS_ENDPOINT=${SQS_ENDPOINT}
       - GUARD_DUTY_QUEUE_URL=${GUARD_DUTY_QUEUE_URL}
+      - ACCESS_ANALYZER_QUEUE_URL=${ACCESS_ANALYZER_QUEUE_URL}
     ports:
       - "9001:9001" # 本来docker-compose外にexposeする必要はない（Debug用）
 
