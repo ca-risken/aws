@@ -12,8 +12,12 @@ func TestValidate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:  "OK",
+			name:  "OK (guard-duty)",
 			input: &AWSQueueMessage{AWSID: 1, AWSDataSourceID: 2, DataSource: "aws:guard-duty", ProjectID: 1, AccountID: "123456789012", AssumeRoleArn: "role", ExternalID: ""},
+		},
+		{
+			name:  "OK (access-analyzer)",
+			input: &AWSQueueMessage{AWSID: 1, AWSDataSourceID: 2, DataSource: "aws:access-analyzer", ProjectID: 1, AccountID: "123456789012", AssumeRoleArn: "role", ExternalID: ""},
 		},
 		{
 			name:    "NG Required(AWSID)",
