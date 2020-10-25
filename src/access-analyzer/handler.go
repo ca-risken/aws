@@ -208,13 +208,22 @@ func scoreAccessAnalyzerFinding(status string, isPublic bool, actions []*string)
 	if !isPublic {
 		return 0.3
 	}
+	readable := false
+	writable := false
 	for _, action := range actions {
 		if strings.Contains(*action, "List") ||
 			strings.Contains(*action, "Get") ||
 			strings.Contains(*action, "Describe") {
+			readable = true
 			continue
 		}
-		return 0.9 // Public resource, and maybe contains mutable action (danger action)
+		writable = true
 	}
-	return 0.7 // Public resource, but only imutable action
+	if readable && !writable {
+		return 0.7 // Readable resource
+	}
+	if !readable && writable {
+		return 0.9 // Writable resource
+	}
+	return 1.0 // Both readable and writable
 }
