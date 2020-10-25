@@ -68,24 +68,36 @@ func TestScoreAccessAnalyzerFinding(t *testing.T) {
 			want:     0.3,
 		},
 		{
-			name:     "Public but imutable action score",
+			name:     "Public (readable)",
 			status:   accessanalyzer.FindingStatusActive,
 			isPublic: true,
 			actions: []*string{
 				aws.String("s3:ListBucket"),
 				aws.String("s3:ListObject"),
-				aws.String("s3:DescribeBucketPolicy")},
+				aws.String("s3:DescribeBucketPolicy"),
+			},
 			want: 0.7,
 		},
 		{
-			name:     "Public and mutable action score",
+			name:     "Public (writable)",
+			status:   accessanalyzer.FindingStatusActive,
+			isPublic: true,
+			actions: []*string{
+				aws.String("s3:PutObject"),
+				aws.String("s3:DeleteBucket"),
+			},
+			want: 0.9,
+		},
+		{
+			name:     "Public (readable / writable)",
 			status:   accessanalyzer.FindingStatusActive,
 			isPublic: true,
 			actions: []*string{
 				aws.String("s3:ListBucket"),
-				aws.String("s3:ListObject"),
-				aws.String("s3:PutObject")},
-			want: 0.9,
+				aws.String("s3:GetObject"),
+				aws.String("s3:PutObject"),
+			},
+			want: 1.0,
 		},
 	}
 	for _, c := range cases {
