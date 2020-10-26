@@ -31,7 +31,10 @@ func (g *AWSQueueMessage) Validate() error {
 	return validation.ValidateStruct(g,
 		validation.Field(&g.AWSID, validation.Required),
 		validation.Field(&g.AWSDataSourceID, validation.Required),
-		validation.Field(&g.DataSource, validation.Required, validation.In(GuardDutyDataSource, AccessAnalyzerDataSource)),
+		validation.Field(&g.DataSource, validation.Required, validation.In(
+			GuardDutyDataSource,
+			AccessAnalyzerDataSource,
+			AdminCheckerDataSource)),
 		validation.Field(&g.ProjectID, validation.Required),
 		validation.Field(&g.AccountID, validation.Required, validation.Length(12, 12)),
 	)
