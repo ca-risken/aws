@@ -9,6 +9,8 @@ const (
 	TagGuardduty = "guard-duty"
 	// TagAccessAnalyzer access-analyzer tag
 	TagAccessAnalyzer = "access-analyzer"
+	// TagAdminChecker admin-checker tag
+	TagAdminChecker = "admin-checker"
 
 	// AWS Services
 

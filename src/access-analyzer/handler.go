@@ -218,6 +218,9 @@ func scoreAccessAnalyzerFinding(status string, isPublic bool, actions []*string)
 			continue
 		}
 		writable = true
+		if readable && writable {
+			break
+		}
 	}
 	if readable && !writable {
 		return 0.7 // Readable resource
