@@ -11,6 +11,8 @@ const (
 	GuardDutyDataSource = "aws:guard-duty"
 	// AccessAnalyzerDataSource is the specific data_source label for access-analyzer
 	AccessAnalyzerDataSource = "aws:access-analyzer"
+	// AdminCheckerDataSource is the specific data_source label for admin-checker
+	AdminCheckerDataSource = "aws:admin-checker"
 )
 
 // AWSQueueMessage is the message for SQS queue
