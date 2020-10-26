@@ -16,10 +16,10 @@ type sqsConfig struct {
 	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
 	SQSEndpoint string `envconfig:"sqs_endpoint"` // At local, set the endpoint url. e.g.)`http://localhost:9324`. But other environments do not set the value.
 
-	AccessAnalyzerQueueName string `split_words:"true" default:"aws-accessanalyzer"`
-	AccessAnalyzerQueueURL  string `split_words:"true" default:"http://localhost:9324/queue/aws-accessanalyzer"`
-	MaxNumberOfMessage      int64  `split_words:"true" default:"10"`
-	WaitTimeSecond          int64  `split_words:"true" default:"20"`
+	AdminCheckerQueueName string `split_words:"true" default:"aws-accessanalyzer"`
+	AdminCheckerQueueURL  string `split_words:"true" default:"http://localhost:9324/queue/aws-adminchecker"`
+	MaxNumberOfMessage    int64  `split_words:"true" default:"10"`
+	WaitTimeSecond        int64  `split_words:"true" default:"20"`
 }
 
 func newSQSConsumer() *worker.Worker {
@@ -45,8 +45,8 @@ func newSQSConsumer() *worker.Worker {
 	}
 	return &worker.Worker{
 		Config: &worker.Config{
-			QueueName:          conf.AccessAnalyzerQueueName,
-			QueueURL:           conf.AccessAnalyzerQueueURL,
+			QueueName:          conf.AdminCheckerQueueName,
+			QueueURL:           conf.AdminCheckerQueueURL,
 			MaxNumberOfMessage: conf.MaxNumberOfMessage,
 			WaitTimeSecond:     conf.WaitTimeSecond,
 		},

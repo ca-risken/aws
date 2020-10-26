@@ -34,6 +34,7 @@ go-test: build
 	cd src/aws             && go test ./...
 	cd src/guard-duty      && go test ./...
 	cd src/access-analyzer && go test ./...
+	cd src/admin-checker   && go test ./...
 
 go-mod-update:
 	cd src/aws \
@@ -47,6 +48,10 @@ go-mod-update:
 		&& go get -u \
 			github.com/CyberAgent/mimosa-core/... \
 			github.com/CyberAgent/mimosa-aws/...
+	cd src/admin-checker \
+		&& go get -u \
+			github.com/CyberAgent/mimosa-core/... \
+			github.com/CyberAgent/mimosa-aws/...
 
 go-mod-tidy: build
 	cd proto/aws           && go mod tidy
@@ -55,6 +60,7 @@ go-mod-tidy: build
 	cd src/aws             && go mod tidy
 	cd src/guard-duty      && go mod tidy
 	cd src/access-analyzer && go mod tidy
+	cd src/admin-checker   && go mod tidy
 
 # @see https://github.com/CyberAgent/mimosa-common/tree/master/local
 network:

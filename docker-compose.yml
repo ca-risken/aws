@@ -28,6 +28,7 @@ services:
       - SQS_ENDPOINT=${SQS_ENDPOINT}
       - GUARD_DUTY_QUEUE_URL=${GUARD_DUTY_QUEUE_URL}
       - ACCESS_ANALYZER_QUEUE_URL=${ACCESS_ANALYZER_QUEUE_URL}
+      - ADMIN_CHECKER_QUEUE_URL=${ADMIN_CHECKER_QUEUE_URL}
     ports:
       - "9001:9001" # 本来docker-compose外にexposeする必要はない（Debug用）
 
@@ -76,6 +77,29 @@ services:
       - AWS_SVC_ADDR=${AWS_SVC_ADDR}
     ports:
       - "9003"
+
+  admin-checker:
+    networks:
+      - aws
+      - local-shared
+    build:
+      context: src/admin-checker
+      args:
+        - GITHUB_USER=${GITHUB_USER}
+        - GITHUB_TOKEN=${GITHUB_TOKEN}
+    environment:
+      - DEBUG=true
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      - SQS_ENDPOINT=${SQS_ENDPOINT}
+      - ADMIN_CHECKER_QUEUE_NAME=${ADMIN_CHECKER_QUEUE_NAME}
+      - ADMIN_CHECKER_QUEUE_URL=${ADMIN_CHECKER_QUEUE_URL}
+      - FINDING_SVC_ADDR=${FINDING_SVC_ADDR}
+      - AWS_SVC_ADDR=${AWS_SVC_ADDR}
+    ports:
+      - "9004"
 
 networks:
   aws:
