@@ -5,6 +5,7 @@ env:
     IMAGE_AWS: "aws/aws"
     IMAGE_GUARDDUTY: "aws/guardduty"
     IMAGE_ACCESSANALYZER: "aws/accessanalyzer"    
+    IMAGE_ADMINCHECKER: "aws/adminchecker"    
   parameter-store:
     GITHUB_USER: "/build/GITHUB_USER"
     GITHUB_TOKEN: "/build/GITHUB_TOKEN"
@@ -28,6 +29,7 @@ phases:
       - cd ${SRC}/aws        && go test ./...
       - cd ${SRC}/guard-duty && go test ./...
       - cd ${SRC}/access-analyzer && go test ./...
+      - cd ${SRC}/admin-checker   && go test ./...
 
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region ${AWS_DEFAULT_REGION})
@@ -38,3 +40,4 @@ phases:
       - cd ${SRC}/aws             && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_AWS}:${TAG} .
       - cd ${SRC}/guard-duty      && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_GUARDDUTY}:${TAG} .
       - cd ${SRC}/access-analyzer && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_ACCESSANALYZER}:${TAG} .
+      - cd ${SRC}/admin-checker   && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_ADMINCHECKER}:${TAG} .

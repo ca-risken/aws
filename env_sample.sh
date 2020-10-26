@@ -23,6 +23,8 @@ export GUARD_DUTY_QUEUE_NAME="aws-guardduty"
 export GUARD_DUTY_QUEUE_URL="http://sqs:9324/queue/aws-guardduty"
 export ACCESS_ANALYZER_QUEUE_NAME="aws-accessanalyzer"
 export ACCESS_ANALYZER_QUEUE_URL="http://sqs:9324/queue/aws-accessanalyzer"
+export ADMIN_CHECKER_QUEUE_NAME="aws-adminchecker"
+export ADMIN_CHECKER_QUEUE_URL="http://sqs:9324/queue/aws-adminchecker"
 
 # gRPC server
 export FINDING_SVC_ADDR="finding:8001"

@@ -1,4 +1,4 @@
-module github.com/CyberAgent/mimosa-aws/src/guard-duty
+module github.com/CyberAgent/mimosa-aws/src/admin-checker
 
 go 1.15
 
