@@ -10,6 +10,7 @@ import (
 	"github.com/CyberAgent/mimosa-aws/pkg/common"
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	awsClient "github.com/CyberAgent/mimosa-aws/proto/aws"
+	"github.com/CyberAgent/mimosa-core/proto/alert"
 	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/guardduty"
@@ -19,12 +20,14 @@ import (
 type sqsHandler struct {
 	guardduty     guardDutyAPI
 	findingClient finding.FindingServiceClient
+	alertClient   alert.AlertServiceClient
 	awsClient     awsClient.AWSServiceClient
 }
 
 func newHandler() *sqsHandler {
 	return &sqsHandler{
 		findingClient: newFindingClient(),
+		alertClient:   newAlertClient(),
 		awsClient:     newAWSClient(),
 	}
 }
@@ -72,7 +75,10 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		appLogger.Errorf("Faild to put findngs: AccountID=%+v, err=%+v", message.AccountID, err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
-	return s.updateScanStatusSuccess(ctx, &status)
+	if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
+		return err
+	}
+	return s.analyzeAlert(ctx, message.ProjectID)
 }
 
 func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
@@ -179,6 +185,13 @@ func (s *sqsHandler) attachAWSStatus(ctx context.Context, status *awsClient.Atta
 	}
 	appLogger.Infof("Success to update AWS status, response=%+v", resp)
 	return nil
+}
+
+func (s *sqsHandler) analyzeAlert(ctx context.Context, projectID uint32) error {
+	_, err := s.alertClient.AnalyzeAlert(ctx, &alert.AnalyzeAlertRequest{
+		ProjectId: projectID,
+	})
+	return err
 }
 
 const (

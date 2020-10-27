@@ -25,6 +25,7 @@ ENV DEBUG= \
     MAX_NUMBER_OF_MESSAGE=10 \
     WAIT_TIME_SECOND=20 \
     FINDING_SVC_ADDR= \
+    ALERT_SVC_ADDR= \
     AWS_SVC_ADDR= \
     TZ=Asia/Tokyo
 WORKDIR /usr/local/access-analyzer

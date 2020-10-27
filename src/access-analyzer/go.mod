@@ -6,6 +6,7 @@ require (
 	github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20201026071817-d2ee1c61e826
 	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20201026071817-d2ee1c61e826
 	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20201026071817-d2ee1c61e826
+	github.com/CyberAgent/mimosa-core/proto/alert v0.0.0-20201026054944-8fb6ae8d6271
 	github.com/CyberAgent/mimosa-core/proto/finding v0.0.0-20201026054944-8fb6ae8d6271
 	github.com/aws/aws-sdk-go v1.35.14
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
