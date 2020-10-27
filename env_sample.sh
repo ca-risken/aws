@@ -28,4 +28,5 @@ export ADMIN_CHECKER_QUEUE_URL="http://sqs:9324/queue/aws-adminchecker"
 
 # gRPC server
 export FINDING_SVC_ADDR="finding:8001"
+export ALERT_SVC_ADDR="alert:8004"
 export AWS_SVC_ADDR="aws:9001"
