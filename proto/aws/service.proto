@@ -19,7 +19,10 @@ service AWSService {
   rpc DetachDataSource(DetachDataSourceRequest) returns (google.protobuf.Empty);
 
   // Scan
-  rpc InvokeScan(InvokeScanRequest) returns (google.protobuf.Empty);
+  rpc InvokeScan(InvokeScanRequest)
+      returns (google.protobuf.Empty); // For ondeamnd
+  rpc InvokeScanAll(google.protobuf.Empty)
+      returns (google.protobuf.Empty); // For scheduled
 }
 
 message ListAWSRequest {

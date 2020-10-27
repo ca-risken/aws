@@ -372,7 +372,10 @@ Status
 | ListDataSource | [ListDataSourceRequest](#aws.aws.ListDataSourceRequest) | [ListDataSourceResponse](#aws.aws.ListDataSourceResponse) | AWS DataSource |
 | AttachDataSource | [AttachDataSourceRequest](#aws.aws.AttachDataSourceRequest) | [AttachDataSourceResponse](#aws.aws.AttachDataSourceResponse) |  |
 | DetachDataSource | [DetachDataSourceRequest](#aws.aws.DetachDataSourceRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) |  |
-| InvokeScan | [InvokeScanRequest](#aws.aws.InvokeScanRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) | Scan |
+| InvokeScan | [InvokeScanRequest](#aws.aws.InvokeScanRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) | Scan
+
+For ondeamnd |
+| InvokeScanAll | [.google.protobuf.Empty](#google.protobuf.Empty) | [.google.protobuf.Empty](#google.protobuf.Empty) | For scheduled |
 
  
 
