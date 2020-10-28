@@ -707,7 +707,7 @@ var file_aws_service_proto_rawDesc = []byte{
 	0x28, 0x0d, 0x52, 0x05, 0x61, 0x77, 0x73, 0x49, 0x64, 0x12, 0x2b, 0x0a, 0x12, 0x61, 0x77, 0x73,
 	0x5f, 0x64, 0x61, 0x74, 0x61, 0x5f, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x69, 0x64, 0x18,
 	0x03, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x0f, 0x61, 0x77, 0x73, 0x44, 0x61, 0x74, 0x61, 0x53, 0x6f,
-	0x75, 0x72, 0x63, 0x65, 0x49, 0x64, 0x32, 0x81, 0x04, 0x0a, 0x0a, 0x41, 0x57, 0x53, 0x53, 0x65,
+	0x75, 0x72, 0x63, 0x65, 0x49, 0x64, 0x32, 0xc2, 0x04, 0x0a, 0x0a, 0x41, 0x57, 0x53, 0x53, 0x65,
 	0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x3c, 0x0a, 0x07, 0x4c, 0x69, 0x73, 0x74, 0x41, 0x57, 0x53,
 	0x12, 0x17, 0x2e, 0x61, 0x77, 0x73, 0x2e, 0x61, 0x77, 0x73, 0x2e, 0x4c, 0x69, 0x73, 0x74, 0x41,
 	0x57, 0x53, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x18, 0x2e, 0x61, 0x77, 0x73, 0x2e,
@@ -739,10 +739,15 @@ var file_aws_service_proto_rawDesc = []byte{
 	0x6b, 0x65, 0x53, 0x63, 0x61, 0x6e, 0x12, 0x1a, 0x2e, 0x61, 0x77, 0x73, 0x2e, 0x61, 0x77, 0x73,
 	0x2e, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x53, 0x63, 0x61, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65,
 	0x73, 0x74, 0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x42, 0x2c, 0x5a, 0x2a, 0x67, 0x69,
-	0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x43, 0x79, 0x62, 0x65, 0x72, 0x41, 0x67,
-	0x65, 0x6e, 0x74, 0x2f, 0x6d, 0x69, 0x6d, 0x6f, 0x73, 0x61, 0x2d, 0x61, 0x77, 0x73, 0x2f, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x61, 0x77, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x12, 0x3f, 0x0a, 0x0d, 0x49, 0x6e,
+	0x76, 0x6f, 0x6b, 0x65, 0x53, 0x63, 0x61, 0x6e, 0x41, 0x6c, 0x6c, 0x12, 0x16, 0x2e, 0x67, 0x6f,
+	0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d,
+	0x70, 0x74, 0x79, 0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x42, 0x2c, 0x5a, 0x2a, 0x67,
+	0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x43, 0x79, 0x62, 0x65, 0x72, 0x41,
+	0x67, 0x65, 0x6e, 0x74, 0x2f, 0x6d, 0x69, 0x6d, 0x6f, 0x73, 0x61, 0x2d, 0x61, 0x77, 0x73, 0x2f,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x61, 0x77, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x33,
 }
 
 var (
@@ -791,15 +796,17 @@ var file_aws_service_proto_depIdxs = []int32{
 	7,  // 10: aws.aws.AWSService.AttachDataSource:input_type -> aws.aws.AttachDataSourceRequest
 	9,  // 11: aws.aws.AWSService.DetachDataSource:input_type -> aws.aws.DetachDataSourceRequest
 	10, // 12: aws.aws.AWSService.InvokeScan:input_type -> aws.aws.InvokeScanRequest
-	1,  // 13: aws.aws.AWSService.ListAWS:output_type -> aws.aws.ListAWSResponse
-	3,  // 14: aws.aws.AWSService.PutAWS:output_type -> aws.aws.PutAWSResponse
-	16, // 15: aws.aws.AWSService.DeleteAWS:output_type -> google.protobuf.Empty
-	6,  // 16: aws.aws.AWSService.ListDataSource:output_type -> aws.aws.ListDataSourceResponse
-	8,  // 17: aws.aws.AWSService.AttachDataSource:output_type -> aws.aws.AttachDataSourceResponse
-	16, // 18: aws.aws.AWSService.DetachDataSource:output_type -> google.protobuf.Empty
-	16, // 19: aws.aws.AWSService.InvokeScan:output_type -> google.protobuf.Empty
-	13, // [13:20] is the sub-list for method output_type
-	6,  // [6:13] is the sub-list for method input_type
+	16, // 13: aws.aws.AWSService.InvokeScanAll:input_type -> google.protobuf.Empty
+	1,  // 14: aws.aws.AWSService.ListAWS:output_type -> aws.aws.ListAWSResponse
+	3,  // 15: aws.aws.AWSService.PutAWS:output_type -> aws.aws.PutAWSResponse
+	16, // 16: aws.aws.AWSService.DeleteAWS:output_type -> google.protobuf.Empty
+	6,  // 17: aws.aws.AWSService.ListDataSource:output_type -> aws.aws.ListDataSourceResponse
+	8,  // 18: aws.aws.AWSService.AttachDataSource:output_type -> aws.aws.AttachDataSourceResponse
+	16, // 19: aws.aws.AWSService.DetachDataSource:output_type -> google.protobuf.Empty
+	16, // 20: aws.aws.AWSService.InvokeScan:output_type -> google.protobuf.Empty
+	16, // 21: aws.aws.AWSService.InvokeScanAll:output_type -> google.protobuf.Empty
+	14, // [14:22] is the sub-list for method output_type
+	6,  // [6:14] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
@@ -987,6 +994,7 @@ type AWSServiceClient interface {
 	DetachDataSource(ctx context.Context, in *DetachDataSourceRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	// Scan
 	InvokeScan(ctx context.Context, in *InvokeScanRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	InvokeScanAll(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*empty.Empty, error)
 }
 
 type aWSServiceClient struct {
@@ -1060,6 +1068,15 @@ func (c *aWSServiceClient) InvokeScan(ctx context.Context, in *InvokeScanRequest
 	return out, nil
 }
 
+func (c *aWSServiceClient) InvokeScanAll(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/aws.aws.AWSService/InvokeScanAll", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AWSServiceServer is the server API for AWSService service.
 type AWSServiceServer interface {
 	// AWS
@@ -1072,6 +1089,7 @@ type AWSServiceServer interface {
 	DetachDataSource(context.Context, *DetachDataSourceRequest) (*empty.Empty, error)
 	// Scan
 	InvokeScan(context.Context, *InvokeScanRequest) (*empty.Empty, error)
+	InvokeScanAll(context.Context, *empty.Empty) (*empty.Empty, error)
 }
 
 // UnimplementedAWSServiceServer can be embedded to have forward compatible implementations.
@@ -1098,6 +1116,9 @@ func (*UnimplementedAWSServiceServer) DetachDataSource(context.Context, *DetachD
 }
 func (*UnimplementedAWSServiceServer) InvokeScan(context.Context, *InvokeScanRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method InvokeScan not implemented")
+}
+func (*UnimplementedAWSServiceServer) InvokeScanAll(context.Context, *empty.Empty) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InvokeScanAll not implemented")
 }
 
 func RegisterAWSServiceServer(s *grpc.Server, srv AWSServiceServer) {
@@ -1230,6 +1251,24 @@ func _AWSService_InvokeScan_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AWSService_InvokeScanAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(empty.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AWSServiceServer).InvokeScanAll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/aws.aws.AWSService/InvokeScanAll",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AWSServiceServer).InvokeScanAll(ctx, req.(*empty.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _AWSService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "aws.aws.AWSService",
 	HandlerType: (*AWSServiceServer)(nil),
@@ -1261,6 +1300,10 @@ var _AWSService_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "InvokeScan",
 			Handler:    _AWSService_InvokeScan_Handler,
+		},
+		{
+			MethodName: "InvokeScanAll",
+			Handler:    _AWSService_InvokeScanAll_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
