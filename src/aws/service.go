@@ -8,6 +8,7 @@ import (
 	"github.com/CyberAgent/mimosa-aws/proto/aws"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/jinzhu/gorm"
+	"github.com/vikyd/zero"
 )
 
 type awsService struct {
@@ -196,4 +197,28 @@ func convertAWS(data *model.AWS) *aws.AWS {
 		CreatedAt:    data.CreatedAt.Unix(),
 		UpdatedAt:    data.CreatedAt.Unix(),
 	}
+}
+
+func (a *awsService) InvokeScanAll(ctx context.Context, _ *empty.Empty) (*empty.Empty, error) {
+	list, err := a.repository.ListDataSource(0, 0, "")
+	if err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return &empty.Empty{}, nil
+		}
+		return nil, err
+	}
+	for _, dataSource := range *list {
+		if zero.IsZeroVal(dataSource.ProjectID) || zero.IsZeroVal(dataSource.AWSID) || zero.IsZeroVal(dataSource.AWSDataSourceID) {
+			continue
+		}
+		if _, err := a.InvokeScan(ctx, &aws.InvokeScanRequest{
+			ProjectId:       dataSource.ProjectID,
+			AwsId:           dataSource.AWSID,
+			AwsDataSourceId: dataSource.AWSDataSourceID,
+		}); err != nil {
+			// エラーログはいて握りつぶす（すべてのスキャナ登録しきる）
+			appLogger.Errorf("AWS InvokeScan error: err=%+v", err)
+		}
+	}
+	return &empty.Empty{}, nil
 }
