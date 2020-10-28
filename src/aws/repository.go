@@ -177,9 +177,11 @@ select
 from
   aws_data_source ads
   left outer join (
-    select * from aws_rel_data_source where project_id = ? `
-	params = append(params, projectID)
-
+		select * from aws_rel_data_source where 1=1 `
+	if !zero.IsZeroVal(awsID) {
+		query += " and project_id = ? "
+		params = append(params, projectID)
+	}
 	if !zero.IsZeroVal(awsID) {
 		query += " and aws_id = ?"
 		params = append(params, awsID)
@@ -194,7 +196,9 @@ where
 	}
 	query += `
 order by
-  ads.aws_data_source_id
+	ards.project_id
+	, ards.aws_id
+  , ads.aws_data_source_id
 `
 	data := []dataSource{}
 	if err := a.SlaveDB.Raw(query, params...).Scan(&data).Error; err != nil {

@@ -56,9 +56,15 @@ detach-data-source:
 		-d '{"project_id":1001, "aws_id":1001, "aws_data_source_id":1004}' \
 		localhost:9001 aws.aws.AWSService.DetachDataSource
 
-.PHONY: invoke-guard-duty
-invoke-guard-duty:
+.PHONY: invoke-scan
+invoke-scan:
 	grpcurl \
 		-plaintext \
 		-d '{"project_id":1001, "aws_id":1005, "aws_data_source_id":1001}' \
 		localhost:9001 aws.aws.AWSService.InvokeScan
+
+.PHONY: invoke-scan-all
+invoke-scan-all:
+	grpcurl \
+		-plaintext \
+		localhost:9001 aws.aws.AWSService.InvokeScanAll
