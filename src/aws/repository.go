@@ -110,7 +110,7 @@ const selectGetAWSByAccountID = `select * from aws where project_id = ? and aws_
 
 func (a *awsRepository) GetAWSByAccountID(projectID uint32, awsAccountID string) (*model.AWS, error) {
 	data := model.AWS{}
-	if err := a.SlaveDB.Raw(selectGetAWSByAccountID, projectID, awsAccountID).First(&data).Error; err != nil {
+	if err := a.MasterDB.Raw(selectGetAWSByAccountID, projectID, awsAccountID).First(&data).Error; err != nil {
 		return nil, err
 	}
 	return &data, nil
@@ -236,7 +236,7 @@ const selectGetAWSRelDataSourceByID = `select * from aws_rel_data_source where a
 
 func (a *awsRepository) GetAWSRelDataSourceByID(awsID, awsDataSourceID, projectID uint32) (*model.AWSRelDataSource, error) {
 	data := model.AWSRelDataSource{}
-	if err := a.SlaveDB.Raw(selectGetAWSRelDataSourceByID, awsID, awsDataSourceID, projectID).First(&data).Error; err != nil {
+	if err := a.MasterDB.Raw(selectGetAWSRelDataSourceByID, awsID, awsDataSourceID, projectID).First(&data).Error; err != nil {
 		return nil, err
 	}
 	return &data, nil
