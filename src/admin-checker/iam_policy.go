@@ -12,6 +12,11 @@ type policyDocumentRaw struct {
 	Statement []statementEntryRaw
 }
 
+type policyDocumentRawWithSingleStatement struct {
+	Version   string
+	Statement statementEntryRaw
+}
+
 type statementEntryRaw struct {
 	Effect   string
 	Action   interface{}
@@ -39,7 +44,11 @@ func convertPolicyDocument(doc *string) (*policyDocument, error) {
 	appLogger.Debugf("Got a policy document decoded: %s", decodedDoc)
 	var pdRaw policyDocumentRaw
 	if err := json.Unmarshal([]byte(decodedDoc), &pdRaw); err != nil {
-		return nil, err
+		var pdSingle policyDocumentRawWithSingleStatement
+		if errSingle := json.Unmarshal([]byte(decodedDoc), &pdSingle); errSingle != nil {
+			return nil, errSingle
+		}
+		pdRaw.Statement = append(pdRaw.Statement, pdSingle.Statement)
 	}
 	pd.Version = pdRaw.Version
 	for _, stmtRaw := range pdRaw.Statement {

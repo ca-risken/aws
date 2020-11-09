@@ -57,12 +57,12 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	// IAM Admin Checker
 	s.adminChecker, err = newAdminCheckerClient(message.AssumeRoleArn, message.ExternalID)
 	if err != nil {
-		appLogger.Errorf("Faild to create AccessAnalyzer session: err=%+v", err)
+		appLogger.Errorf("Faild to create AdminChecker session: err=%+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
 	findings, err := s.getAdminUser(message)
 	if err != nil {
-		appLogger.Errorf("Faild to get findngs to AWS AccessAnalyzer: AccountID=%+v, err=%+v", message.AccountID, err)
+		appLogger.Errorf("Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", message.AccountID, err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 
 	}

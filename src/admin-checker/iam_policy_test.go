@@ -14,7 +14,7 @@ func TestConvertPolicyDocument(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "OK",
+			name: "OK 1",
 			input: `{
 				"Version": "2012-10-17",
 				"Statement": [
@@ -22,7 +22,9 @@ func TestConvertPolicyDocument(t *testing.T) {
 						"Sid": "ListYourObjects",
 						"Effect": "Allow",
 						"Action": "s3:ListBucket",
-						"Resource": ["arn:aws:s3:::bucket-name"],
+						"Resource": [
+							"arn:aws:s3:::bucket-name"
+						],
 						"Condition": {
 							"StringLike": {
 								"s3:prefix": ["cognito/application-name/${cognito-identity.amazonaws.com:sub}"]
@@ -58,6 +60,56 @@ func TestConvertPolicyDocument(t *testing.T) {
 						Resource: []string{
 							"arn:aws:s3:::bucket-name/cognito/application-name/${cognito-identity.amazonaws.com:sub}",
 							"arn:aws:s3:::bucket-name/cognito/application-name/${cognito-identity.amazonaws.com:sub}/*",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "OK 2",
+			input: `{
+				"Version": "2012-10-17",
+				"Statement": [
+					{
+						"Effect": "Allow",
+						"Action": "s3:*",
+						"Resource": "*"
+					}
+				]
+			}`,
+			want: &policyDocument{
+				Version: "2012-10-17",
+				Statement: []statementEntry{
+					{
+						Effect:   "Allow",
+						Action:   []string{"s3:*"},
+						Resource: []string{"*"},
+					},
+				},
+			},
+		},
+		{
+			name: "OK 3",
+			input: `{
+				"Version": "2012-10-17",
+				"Statement": {
+					"Effect": "Allow",
+					"Action": "s3:*",
+					"Resource": [
+						"arn:aws:s3:::some-bucket/*",
+						"arn:aws:s3:::some-bucket"
+					]
+				}
+			}`,
+			want: &policyDocument{
+				Version: "2012-10-17",
+				Statement: []statementEntry{
+					{
+						Effect: "Allow",
+						Action: []string{"s3:*"},
+						Resource: []string{
+							"arn:aws:s3:::some-bucket/*",
+							"arn:aws:s3:::some-bucket",
 						},
 					},
 				},

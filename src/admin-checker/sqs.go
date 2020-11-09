@@ -16,7 +16,7 @@ type sqsConfig struct {
 	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
 	SQSEndpoint string `envconfig:"sqs_endpoint"` // At local, set the endpoint url. e.g.)`http://localhost:9324`. But other environments do not set the value.
 
-	AdminCheckerQueueName string `split_words:"true" default:"aws-accessanalyzer"`
+	AdminCheckerQueueName string `split_words:"true" default:"aws-adminchecker"`
 	AdminCheckerQueueURL  string `split_words:"true" default:"http://localhost:9324/queue/aws-adminchecker"`
 	MaxNumberOfMessage    int64  `split_words:"true" default:"10"`
 	WaitTimeSecond        int64  `split_words:"true" default:"20"`
