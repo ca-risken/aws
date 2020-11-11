@@ -68,7 +68,6 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	if err != nil {
 		appLogger.Errorf("Faild to get findngs to AWS AccessAnalyzer: AccountID=%+v, err=%+v", message.AccountID, err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
-
 	}
 
 	// Put finding to core
@@ -98,27 +97,29 @@ func (s *sqsHandler) getAccessAnalyzer(msg *message.AWSQueueMessage) ([]*finding
 				"AccessAnalyzer.ListFindings error: analyzerArn=%s, accountID=%s, err=%+v", arn, msg.AccountID, err)
 			return nil, err
 		}
-
+		appLogger.Debugf("[Debug]Got findings, %+v", findings)
 		if len(findings) == 0 {
 			appLogger.Infof("No findings: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
 			continue
 		}
 		for _, data := range findings {
-			if data == nil {
-				continue
-			}
 			buf, err := json.Marshal(data)
 			if err != nil {
 				appLogger.Errorf("Failed to json encoding error: err=%+v", err)
 				return nil, err
 			}
+			isPublic := false
+			if data.IsPublic != nil {
+				appLogger.Warnf("API Response parameter `IsPublic` got nil data, maybe something error occured, accountID=%s", msg.AccountID)
+				isPublic = *data.IsPublic
+			}
 			putData = append(putData, &finding.FindingForUpsert{
-				Description:      fmt.Sprintf("AccessAnalyzer: %s (public=%t)", *data.Resource, *data.IsPublic),
+				Description:      fmt.Sprintf("AccessAnalyzer: %s (public=%t)", *data.Resource, isPublic),
 				DataSource:       msg.DataSource,
 				DataSourceId:     *data.Id,
 				ResourceName:     getFormatedResourceName(msg.AccountID, *data.ResourceType, *data.Resource),
 				ProjectId:        msg.ProjectID,
-				OriginalScore:    scoreAccessAnalyzerFinding(*data.Status, *data.IsPublic, data.Action),
+				OriginalScore:    scoreAccessAnalyzerFinding(*data.Status, isPublic, data.Action),
 				OriginalMaxScore: 1.0,
 				Data:             string(buf),
 			})
