@@ -91,7 +91,7 @@ func (s *sqsHandler) getAccessAnalyzer(msg *message.AWSQueueMessage) ([]*finding
 	}
 
 	for _, arn := range *analyzerArns {
-		appLogger.Infof("detect analyzer arn: %s", arn)
+		appLogger.Infof("Detected analyzer: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
 		findings, err := s.accessAnalyzer.listFindings(msg.AccountID, arn)
 		if err != nil {
 			appLogger.Errorf(
@@ -104,6 +104,9 @@ func (s *sqsHandler) getAccessAnalyzer(msg *message.AWSQueueMessage) ([]*finding
 			continue
 		}
 		for _, data := range findings {
+			if data == nil {
+				continue
+			}
 			buf, err := json.Marshal(data)
 			if err != nil {
 				appLogger.Errorf("Failed to json encoding error: err=%+v", err)
