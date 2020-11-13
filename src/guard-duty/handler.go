@@ -114,9 +114,9 @@ func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.
 				return nil, err
 			}
 			var score float32
-			if (*data.Service.Archived) {
-				score = 0.0
-			}else {
+			if *data.Service.Archived {
+				score = 1.0
+			} else {
 				score = float32(*data.Severity)
 			}
 			putData = append(putData, &finding.FindingForUpsert{
