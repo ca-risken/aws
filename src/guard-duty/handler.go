@@ -113,13 +113,19 @@ func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.
 				appLogger.Errorf("Failed to json encoding error: err=%+v", err)
 				return nil, err
 			}
+			var score float32
+			if (*data.Service.Archived) {
+				score = 0.0
+			}else {
+				score = float32(*data.Severity)
+			}
 			putData = append(putData, &finding.FindingForUpsert{
 				Description:      *data.Title,
 				DataSource:       message.DataSource,
 				DataSourceId:     *data.Id,
 				ResourceName:     getResourceName(data),
 				ProjectId:        message.ProjectID,
-				OriginalScore:    float32(*data.Severity),
+				OriginalScore:    score,
 				OriginalMaxScore: 10.0,
 				Data:             string(buf),
 			})
