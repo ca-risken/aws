@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/model"
 	"github.com/CyberAgent/mimosa-aws/proto/aws"
@@ -219,6 +220,7 @@ func (a *awsService) InvokeScanAll(ctx context.Context, _ *empty.Empty) (*empty.
 			// エラーログはいて握りつぶす（すべてのスキャナ登録しきる）
 			appLogger.Errorf("AWS InvokeScan error: err=%+v", err)
 		}
+		time.Sleep(time.Second * 1) // jitter
 	}
 	return &empty.Empty{}, nil
 }
