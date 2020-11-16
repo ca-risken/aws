@@ -120,13 +120,28 @@ func (g *guardDutyClient) listFindings(accountID, detectorID string) ([]*string,
 	return findingIDs, nil
 }
 
+const findingIdsPerRequest = 50
 func (g *guardDutyClient) getFindings(detectorID string, findingIDs []*string) ([]*guardduty.Finding, error) {
-	finding, err := g.Svc.GetFindings(&guardduty.GetFindingsInput{
-		DetectorId: &detectorID,
-		FindingIds: findingIDs,
-	})
-	if err != nil {
-		return nil, err
+	// The `FindingIds` parameter of the GetFindings API allows numbers from 0 to 50
+	// @see https://docs.aws.amazon.com/ja_jp/guardduty/latest/APIReference/API_GetFindings.html
+	var guardDutyFindings []*guardduty.Finding
+	for i := 0; i < len(findingIDs); i += findingIdsPerRequest {
+		var end int 
+		if findingIdsPerRequest < len(findingIDs) - i  {
+			end = i + findingIdsPerRequest
+		} else {
+			end = len(findingIDs)
+		}
+		finding, err := g.Svc.GetFindings(&guardduty.GetFindingsInput{
+			DetectorId: &detectorID,
+			FindingIds: findingIDs[i:end],
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, f := range finding.Findings  {
+			guardDutyFindings = append(guardDutyFindings, f)
+		}
 	}
-	return finding.Findings, nil
+	return guardDutyFindings, nil
 }
