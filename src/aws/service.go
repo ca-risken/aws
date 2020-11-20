@@ -220,7 +220,7 @@ func (a *awsService) InvokeScanAll(ctx context.Context, _ *empty.Empty) (*empty.
 			// エラーログはいて握りつぶす（すべてのスキャナ登録しきる）
 			appLogger.Errorf("AWS InvokeScan error: err=%+v", err)
 		}
-		time.Sleep(time.Second * 1) // jitter
+		time.Sleep(time.Millisecond * 100) // jitter
 	}
 	return &empty.Empty{}, nil
 }
