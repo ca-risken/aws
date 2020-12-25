@@ -11,6 +11,8 @@ const (
 	TagAccessAnalyzer = "access-analyzer"
 	// TagAdminChecker admin-checker tag
 	TagAdminChecker = "admin-checker"
+	// TagCloudsploit cloudsploit tag
+	TagCloudsploit = "cloudsploit"
 
 	// AWS Services
 
