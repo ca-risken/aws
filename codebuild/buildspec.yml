@@ -6,6 +6,7 @@ env:
     IMAGE_GUARDDUTY: "aws/guardduty"
     IMAGE_ACCESSANALYZER: "aws/accessanalyzer"    
     IMAGE_ADMINCHECKER: "aws/adminchecker"    
+    IMAGE_CLOUDSPLOIT: "aws/cloudsploit"    
   parameter-store:
     GITHUB_USER: "/build/GITHUB_USER"
     GITHUB_TOKEN: "/build/GITHUB_TOKEN"
@@ -32,6 +33,7 @@ phases:
       - cd ${SRC}/guard-duty && go test ./...
       - cd ${SRC}/access-analyzer && go test ./...
       - cd ${SRC}/admin-checker   && go test ./...
+      - cd ${SRC}/cloudsploit   && go test ./...
 
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region ${AWS_DEFAULT_REGION})
@@ -43,6 +45,7 @@ phases:
       - cd ${SRC}/guard-duty      && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_GUARDDUTY}:${TAG} .
       - cd ${SRC}/access-analyzer && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_ACCESSANALYZER}:${TAG} .
       - cd ${SRC}/admin-checker   && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_ADMINCHECKER}:${TAG} .
+      - cd ${SRC}/cloudsploit     && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_CLOUDSPLOIT}:${TAG} .
 
       - echo Tagging the images...
       # tag the specific version
@@ -50,12 +53,15 @@ phases:
       - docker tag ${IMAGE_GUARDDUTY}:${TAG}      ${REGISTORY}/${IMAGE_GUARDDUTY}:${TAG}
       - docker tag ${IMAGE_ACCESSANALYZER}:${TAG} ${REGISTORY}/${IMAGE_ACCESSANALYZER}:${TAG}
       - docker tag ${IMAGE_ADMINCHECKER}:${TAG}   ${REGISTORY}/${IMAGE_ADMINCHECKER}:${TAG}
+      - docker tag ${IMAGE_CLOUDSPLOIT}:${TAG}    ${REGISTORY}/${IMAGE_CLOUDSPLOIT}:${TAG}
 
       # update latest version 
       - docker tag ${IMAGE_AWS}:${TAG}            ${REGISTORY}/${IMAGE_AWS}:latest
       - docker tag ${IMAGE_GUARDDUTY}:${TAG}      ${REGISTORY}/${IMAGE_GUARDDUTY}:latest
       - docker tag ${IMAGE_ACCESSANALYZER}:${TAG} ${REGISTORY}/${IMAGE_ACCESSANALYZER}:latest
       - docker tag ${IMAGE_ADMINCHECKER}:${TAG}   ${REGISTORY}/${IMAGE_ADMINCHECKER}:latest
+      - docker tag ${IMAGE_CLOUDSPLOIT}:${TAG}    ${REGISTORY}/${IMAGE_CLOUDSPLOIT}:latest
+
   post_build:
     commands:
       - echo Build completed on `date`
@@ -66,9 +72,11 @@ phases:
       - docker push ${REGISTORY}/${IMAGE_GUARDDUTY}:${TAG}
       - docker push ${REGISTORY}/${IMAGE_ACCESSANALYZER}:${TAG}
       - docker push ${REGISTORY}/${IMAGE_ADMINCHECKER}:${TAG}
+      - docker push ${REGISTORY}/${IMAGE_CLOUDSPLOIT}:${TAG}
 
       # latest version
       - docker push ${REGISTORY}/${IMAGE_AWS}:latest
       - docker push ${REGISTORY}/${IMAGE_GUARDDUTY}:latest
       - docker push ${REGISTORY}/${IMAGE_ACCESSANALYZER}:latest
       - docker push ${REGISTORY}/${IMAGE_ADMINCHECKER}:latest
+      - docker push ${REGISTORY}/${IMAGE_CLOUDSPLOIT}:latest

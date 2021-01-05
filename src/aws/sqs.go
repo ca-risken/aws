@@ -18,6 +18,7 @@ type sqsConfig struct {
 	GuardDutyQueueURL      string `split_words:"true" required:"true"`
 	AccessAnalyzerQueueURL string `split_words:"true" required:"true"`
 	AdminCheckerQueueURL   string `split_words:"true" required:"true"`
+	CloudsploitQueueURL    string `split_words:"true" required:"true"`
 }
 
 type sqsAPI interface {
@@ -48,6 +49,7 @@ func newSQSClient() *sqsClient {
 			message.GuardDutyDataSource:      conf.GuardDutyQueueURL,
 			message.AccessAnalyzerDataSource: conf.AccessAnalyzerQueueURL,
 			message.AdminCheckerDataSource:   conf.AdminCheckerQueueURL,
+			message.CloudsploitDataSource:    conf.CloudsploitQueueURL,
 		},
 	}
 }
