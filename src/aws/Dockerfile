@@ -33,6 +33,7 @@ ENV PORT= \
     GUARD_DUTY_QUEUE_URL= \
     ACCESS_ANALYZER_QUEUE_URL= \
     ADMIN_CHECKER_QUEUE_URL= \
+    CLOUDSPLOIT_QUEUE_URL= \
     TZ=Asia/Tokyo
 WORKDIR /usr/local/aws
 ENTRYPOINT ["/usr/local/bin/env-injector"]
