@@ -66,8 +66,8 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	}
 
 	// Run cloudsploit
-	//	cloudsploitResult, err := s.cloudsploitConfig.run(message.AccountID)
-	cloudsploitResult, err := s.cloudsploitConfig.tmpRun(message.AccountID)
+	cloudsploitResult, err := s.cloudsploitConfig.run(message.AccountID)
+	//cloudsploitResult, err := s.cloudsploitConfig.tmpRun(message.AccountID)
 	if err != nil {
 		appLogger.Errorf("Failed exec cloudsploit, error: %v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
