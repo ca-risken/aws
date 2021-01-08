@@ -58,6 +58,8 @@ func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.Findin
 			}
 			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS)
 			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagCloudsploit)
+			tagService := getServiceTag(res.Finding.ResourceName)
+			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, tagService)
 			//appLogger.Infof("Success to PutFinding. finding: %v", f)
 		}
 	}
@@ -101,29 +103,6 @@ const (
 	// Unknown
 	cloudsploitUnknown = "Unknown"
 	cloudsploitNA      = "N/A"
-
-	// Resource Type
-	resourceTypeInstance  = "INSTANCE"
-	resourceTypeAccessKey = "ACCESSKEY"
-	resourceTypeS3        = "S3"
-	resourceTypeEC2       = "EC2"
-	resourceTypeIAM       = "IAM"
-	resourceTypeKMS       = "KMS"
-	resourceTypeLambda    = "LAMBDA"
-	resourceTypeGuardDuty = "GUARDDUTY"
-	resourceTypeUnknown   = "UnknownResourceType"
-
-	// EC2
-	ec2InstanceUnknown = "UnknownInstance"
-
-	// IAM
-	iamUserUnknown = "UnknownUser"
-	userTypeRoot   = "ROOT"
-	userTypeUser   = "USER"
-	userTypeRole   = "ROLE"
-
-	// S3
-	s3BucketUnknown = "UnknownBucket"
 )
 
 func getResourceName(resource, category, accountID string) string {
@@ -131,4 +110,19 @@ func getResourceName(resource, category, accountID string) string {
 		return fmt.Sprintf("%v/%v/%v", accountID, category, resource)
 	}
 	return resource
+}
+
+func getServiceTag(resource string) string {
+	if strings.HasPrefix(strings.ToLower(resource), "arn:aws:") {
+		service := strings.Replace(resource, "arn:aws:", "", 1)
+		appLogger.Infof("service: %v", service)
+		return common.GetAWSServiceTagByResourceName(service)
+	}
+	if strings.HasSuffix(resource, cloudsploitUnknown) {
+		service := strings.Split(resource, "/")[1]
+		appLogger.Infof("service: %v", service)
+		return common.GetAWSServiceTagByResourceName(service)
+	}
+	appLogger.Infof("resource: %v", resource)
+	return common.GetAWSServiceTagByResourceName(resource)
 }
