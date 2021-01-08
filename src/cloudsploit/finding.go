@@ -20,11 +20,14 @@ func makeFindings(results *[]cloudSploitResult, message *message.AWSQueueMessage
 		if err != nil {
 			return nil, err
 		}
+		if r.Resource == cloudsploitNA {
+			r.Resource = cloudsploitUnknown
+		}
 		findings = append(findings, &finding.FindingForUpsert{
 			Description:      r.Description,
 			DataSource:       message.DataSource,
 			DataSourceId:     generateDataSourceID(fmt.Sprintf("description_%v_%v_%v", r.Description, r.Region, r.Resource)),
-			ResourceName:     getResourceName(r.Resource, message.AccountID),
+			ResourceName:     getResourceName(r.Resource, r.Category, message.AccountID),
 			ProjectId:        message.ProjectID,
 			OriginalScore:    getScore(r.Status, r.Resource),
 			OriginalMaxScore: 10.0,
@@ -54,7 +57,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.Findin
 				return err
 			}
 			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS)
-
+			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagCloudsploit)
 			//appLogger.Infof("Success to PutFinding. finding: %v", f)
 		}
 	}
@@ -94,12 +97,10 @@ func getScore(status, resource string) float32 {
 }
 
 const (
-	// cloudsploit resource
-	cloudsploitUnknown = "Unknown"
-	cloudsploitNA      = "N/A"
 
 	// Unknown
-	resourceUnknown = "UnknownResource"
+	cloudsploitUnknown = "Unknown"
+	cloudsploitNA      = "N/A"
 
 	// Resource Type
 	resourceTypeInstance  = "INSTANCE"
@@ -125,57 +126,9 @@ const (
 	s3BucketUnknown = "UnknownBucket"
 )
 
-func getResourceName(originalResource, accountID string) string {
-	if originalResource == cloudsploitUnknown || originalResource == cloudsploitNA {
-		return resourceUnknown
+func getResourceName(resource, category, accountID string) string {
+	if resource == cloudsploitUnknown {
+		return fmt.Sprintf("%v/%v/%v", accountID, category, resource)
 	}
-	resource := strings.Replace(originalResource, "arn:aws:", "", 1)
-	service := strings.Split(resource, ":")[0]
-	detail := strings.Join(strings.Split(resource, ":")[1:], ":")
-	splitDetail := strings.Split(detail, ":")
-	switch strings.ToUpper(service) {
-	case resourceTypeIAM:
-		iamDetail := splitDetail[len(splitDetail)-1]
-		if iamDetail == "" {
-			appLogger.Infof("resource: %v, detail: %v, iamDetail: %v", resource, detail, iamDetail)
-			return iamUserUnknown
-		}
-		return common.GetResourceName(common.IAM, accountID, iamDetail)
-	case resourceTypeEC2:
-		ec2Detail := splitDetail[len(splitDetail)-1]
-		if ec2Detail == "" {
-			appLogger.Infof("resource: %v, detail: %v, iamDetail: %v", resource, detail, ec2Detail)
-			return ec2InstanceUnknown
-		}
-		instanceID := strings.Split(ec2Detail, "/")[1]
-		return common.GetResourceName(common.EC2, accountID, instanceID)
-	case resourceTypeS3:
-		s3Detail := splitDetail[len(splitDetail)-1]
-		if s3Detail == "" {
-			return s3BucketUnknown
-		}
-		return common.GetResourceName(common.S3, accountID, s3Detail)
-	case resourceTypeGuardDuty:
-		gdDetail := splitDetail[len(splitDetail)-1]
-		if gdDetail == "" {
-			return resourceUnknown
-		}
-		//		return common.GetResourceName(common.GuardDuty, accountID, gdDetail)
-		return resourceUnknown
-	case resourceTypeKMS:
-		kmsDetail := splitDetail[len(splitDetail)-1]
-		if kmsDetail == "" {
-			return resourceUnknown
-		}
-		return common.GetResourceName(common.KMS, accountID, kmsDetail)
-	case resourceTypeLambda:
-		kmsDetail := splitDetail[len(splitDetail)-1]
-		if kmsDetail == "" {
-			return resourceUnknown
-		}
-		return common.GetResourceName(common.Lambda, accountID, kmsDetail)
-	default:
-		appLogger.Infof("resource: %v, service: %v, detail: %v", resource, service, detail)
-		return resourceUnknown
-	}
+	return resource
 }
