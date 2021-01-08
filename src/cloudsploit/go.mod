@@ -3,11 +3,11 @@ module github.com/CyberAgent/mimosa-aws/src/cloudsploit
 go 1.15
 
 require (
-	github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20210108044707-52b17f6c8738
-	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210108044707-52b17f6c8738
-	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210108044707-52b17f6c8738
-	github.com/CyberAgent/mimosa-core/proto/alert v0.0.0-20210107151237-3a213664694e
-	github.com/CyberAgent/mimosa-core/proto/finding v0.0.0-20210107151237-3a213664694e
+	github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20210108111015-fe81a9812e8d
+	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210108111015-fe81a9812e8d
+	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210108111015-fe81a9812e8d
+	github.com/CyberAgent/mimosa-core/proto/alert v0.0.0-20210108063741-eceb6a32f58c
+	github.com/CyberAgent/mimosa-core/proto/finding v0.0.0-20210108063741-eceb6a32f58c
 	github.com/aws/aws-sdk-go v1.36.23
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
