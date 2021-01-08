@@ -98,6 +98,8 @@ const (
 	TagTransfer = "transfer"
 	// TagXRay xray tag
 	TagXRay = "xray"
+	// TagVPC vpc tag
+	TagVPC = "vpc"
 )
 
 // GetAWSServiceTagByResourceName return tag name by resource
@@ -224,6 +226,9 @@ func GetAWSServiceTagByResourceName(resourceName string) string {
 	}
 	if strings.HasPrefix(strings.ToLower(resourceName), TagXRay) {
 		return TagXRay
+	}
+	if strings.HasPrefix(strings.ToLower(resourceName), TagVPC) {
+		return TagVPC
 	}
 
 	return TagUnknown
