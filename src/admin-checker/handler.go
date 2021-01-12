@@ -97,7 +97,7 @@ func (s *sqsHandler) getAdminUser(msg *message.AWSQueueMessage) ([]*finding.Find
 			Description:      fmt.Sprintf("AdminChekcer: %s(admin=%t)", user.UserName, (user.IsUserAdmin || user.IsGroupAdmin)),
 			DataSource:       msg.DataSource,
 			DataSourceId:     user.UserArn,
-			ResourceName:     common.GetResourceName(common.IAM, msg.AccountID, fmt.Sprintf("user/%s", user.UserName)),
+			ResourceName:     user.UserArn,
 			ProjectId:        msg.ProjectID,
 			OriginalScore:    scoreAdminUser(&user),
 			OriginalMaxScore: 1.0,
