@@ -5,10 +5,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/accessanalyzer"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/kelseyhightower/envconfig"
 )
 
 type accessAnalyzerAPI interface {
+	listAvailableRegion() ([]*ec2.Region, error)
 	listAnalyzers() (*[]string, error)
 	listFindings(string, string) ([]*accessanalyzer.FindingSummary, error)
 }
@@ -16,21 +18,24 @@ type accessAnalyzerAPI interface {
 type accessAnalyzerClient struct {
 	Sess *session.Session
 	Svc  *accessanalyzer.AccessAnalyzer
+	EC2  *ec2.EC2
 }
 
 type accessAnalyzerConfig struct {
-	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"`
+	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
 }
 
-func newAccessAnalyzerClient(assumeRole, externalID string) (*accessAnalyzerClient, error) {
-	var conf accessAnalyzerConfig
-	err := envconfig.Process("", &conf)
-	if err != nil {
-		return nil, err
+func newAccessAnalyzerClient(region, assumeRole, externalID string) (*accessAnalyzerClient, error) {
+	if region == "" {
+		var conf accessAnalyzerConfig
+		err := envconfig.Process("", &conf)
+		if err != nil {
+			return nil, err
+		}
+		region = conf.AWSRegion
 	}
-
 	a := accessAnalyzerClient{}
-	if err := a.newAWSSession(conf.AWSRegion, assumeRole, externalID); err != nil {
+	if err := a.newAWSSession(region, assumeRole, externalID); err != nil {
 		return nil, err
 	}
 	return &a, nil
@@ -60,7 +65,20 @@ func (a *accessAnalyzerClient) newAWSSession(region, assumeRole, externalID stri
 	}
 	a.Sess = sess
 	a.Svc = accessanalyzer.New(a.Sess)
+	a.EC2 = ec2.New(a.Sess)
 	return nil
+}
+
+func (a *accessAnalyzerClient) listAvailableRegion() ([]*ec2.Region, error) {
+	out, err := a.EC2.DescribeRegions(&ec2.DescribeRegionsInput{})
+	if err != nil {
+		return nil, err
+	}
+	if out == nil {
+		appLogger.Warn("Got no regions")
+		return nil, nil
+	}
+	return out.Regions, nil
 }
 
 func (a *accessAnalyzerClient) listAnalyzers() (*[]string, error) {
