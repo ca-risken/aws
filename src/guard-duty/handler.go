@@ -120,10 +120,11 @@ func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.
 				score = float32(*data.Severity)
 			}
 			putData = append(putData, &finding.FindingForUpsert{
-				Description:      *data.Title,
-				DataSource:       message.DataSource,
-				DataSourceId:     *data.Id,
-				ResourceName:     getResourceName(data),
+				Description:  *data.Title,
+				DataSource:   message.DataSource,
+				DataSourceId: *data.Id,
+				ResourceName: *data.Arn,
+				// ResourceName:     getResourceName(data),
 				ProjectId:        message.ProjectID,
 				OriginalScore:    score,
 				OriginalMaxScore: 10.0,

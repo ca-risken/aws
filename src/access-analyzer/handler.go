@@ -117,7 +117,7 @@ func (s *sqsHandler) getAccessAnalyzer(msg *message.AWSQueueMessage) ([]*finding
 				Description:      fmt.Sprintf("AccessAnalyzer: %s (public=%t)", *data.Resource, isPublic),
 				DataSource:       msg.DataSource,
 				DataSourceId:     *data.Id,
-				ResourceName:     getFormatedResourceName(msg.AccountID, *data.ResourceType, *data.Resource),
+				ResourceName:     *data.Resource,
 				ProjectId:        msg.ProjectID,
 				OriginalScore:    scoreAccessAnalyzerFinding(*data.Status, isPublic, data.Action),
 				OriginalMaxScore: 1.0,
