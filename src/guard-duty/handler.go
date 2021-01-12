@@ -43,7 +43,49 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	}
 
 	ctx := context.Background()
-	status := awsClient.AttachDataSourceRequest{
+	status := initScanStatus(message)
+	s.guardduty, err = newGuardDutyClient("", message.AssumeRoleArn, message.ExternalID)
+	if err != nil {
+		appLogger.Errorf("Faild to create GuardDuty session: err=%+v", err)
+		return s.updateScanStatusError(ctx, &status, err.Error())
+	}
+	regions, err := s.guardduty.listAvailableRegion()
+	if err != nil {
+		appLogger.Errorf("Faild to get available regions, err = %+v", err)
+		return s.updateScanStatusError(ctx, &status, err.Error())
+	}
+
+	for _, region := range regions {
+		if region == nil || *region.RegionName == "" {
+			appLogger.Warnf("Invalid region in AccountID=%s", message.AccountID)
+			continue
+		}
+		appLogger.Infof("Start %s region search...", *region.RegionName)
+		s.guardduty, err = newGuardDutyClient(*region.RegionName, message.AssumeRoleArn, message.ExternalID)
+		if err != nil {
+			appLogger.Errorf("Faild to create GuardDuty session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
+			return s.updateScanStatusError(ctx, &status, err.Error())
+		}
+		// Get guardduty
+		findings, err := s.getGuardDuty(message)
+		if err != nil {
+			appLogger.Errorf("Faild to get findngs to AWS GuardDuty: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
+			return s.updateScanStatusError(ctx, &status, err.Error())
+		}
+		// Put finding to core
+		if err := s.putFindings(ctx, findings); err != nil {
+			appLogger.Errorf("Faild to put findngs: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
+			return s.updateScanStatusError(ctx, &status, err.Error())
+		}
+		if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
+			return err
+		}
+	}
+	return s.analyzeAlert(ctx, message.ProjectID)
+}
+
+func initScanStatus(message *message.AWSQueueMessage) awsClient.AttachDataSourceRequest {
+	return awsClient.AttachDataSourceRequest{
 		ProjectId: message.ProjectID,
 		AttachDataSource: &awsClient.DataSourceForAttach{
 			AwsId:           message.AWSID,
@@ -57,28 +99,6 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			StatusDetail: "",
 		},
 	}
-
-	// Get guardduty
-	s.guardduty, err = newGuardDutyClient(message.AssumeRoleArn, message.ExternalID)
-	if err != nil {
-		appLogger.Errorf("Faild to create GuardDuty session: err=%+v", err)
-		return s.updateScanStatusError(ctx, &status, err.Error())
-	}
-	findings, err := s.getGuardDuty(message)
-	if err != nil {
-		appLogger.Errorf("Faild to get findngs to AWS GuardDuty: AccountID=%+v, err=%+v", message.AccountID, err)
-		return s.updateScanStatusError(ctx, &status, err.Error())
-	}
-
-	// Put finding to core
-	if err := s.putFindings(ctx, findings); err != nil {
-		appLogger.Errorf("Faild to put findngs: AccountID=%+v, err=%+v", message.AccountID, err)
-		return s.updateScanStatusError(ctx, &status, err.Error())
-	}
-	if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
-		return err
-	}
-	return s.analyzeAlert(ctx, message.ProjectID)
 }
 
 func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
