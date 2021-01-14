@@ -13,6 +13,8 @@ const (
 	TagAdminChecker = "admin-checker"
 	// TagCloudsploit cloudsploit tag
 	TagCloudsploit = "cloudsploit"
+	// TagPortscan portscan tag
+	TagPortscan = "portscan"
 
 	// AWS Services
 
