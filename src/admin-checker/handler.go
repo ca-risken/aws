@@ -117,8 +117,8 @@ func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.Findin
 		// finding-tag
 		s.tagFinding(ctx, common.TagAWS, resp.Finding.FindingId, resp.Finding.ProjectId)
 		s.tagFinding(ctx, common.TagAdminChecker, resp.Finding.FindingId, resp.Finding.ProjectId)
-		awsServiceTag := common.GetAWSServiceTagByResourceName(resp.Finding.ResourceName)
-		if awsServiceTag != "" {
+		awsServiceTag := common.GetAWSServiceTagByARN(resp.Finding.ResourceName)
+		if awsServiceTag != common.TagUnknown {
 			s.tagFinding(ctx, awsServiceTag, resp.Finding.FindingId, resp.Finding.ProjectId)
 		}
 		appLogger.Infof("Success to PutFinding, finding_id=%d", resp.Finding.FindingId)

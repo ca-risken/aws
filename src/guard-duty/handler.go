@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/common"
@@ -13,7 +12,6 @@ import (
 	"github.com/CyberAgent/mimosa-core/proto/alert"
 	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/guardduty"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
@@ -140,11 +138,10 @@ func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.
 				score = float32(*data.Severity)
 			}
 			putData = append(putData, &finding.FindingForUpsert{
-				Description:  *data.Title,
-				DataSource:   message.DataSource,
-				DataSourceId: *data.Id,
-				ResourceName: *data.Arn,
-				// ResourceName:     getResourceName(data),
+				Description:      *data.Title,
+				DataSource:       message.DataSource,
+				DataSourceId:     *data.Id,
+				ResourceName:     *data.Arn,
 				ProjectId:        message.ProjectID,
 				OriginalScore:    score,
 				OriginalMaxScore: 10.0,
@@ -166,8 +163,8 @@ func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.Findin
 		// tag
 		s.tagFinding(ctx, common.TagAWS, resp.Finding.FindingId, resp.Finding.ProjectId)
 		s.tagFinding(ctx, common.TagGuardduty, resp.Finding.FindingId, resp.Finding.ProjectId)
-		awsServiceTag := common.GetAWSServiceTagByResourceName(resp.Finding.ResourceName)
-		if awsServiceTag != "" {
+		awsServiceTag := common.GetAWSServiceTagByARN(resp.Finding.ResourceName)
+		if awsServiceTag != common.TagUnknown {
 			s.tagFinding(ctx, awsServiceTag, resp.Finding.FindingId, resp.Finding.ProjectId)
 		}
 		appLogger.Infof("Success to PutFinding, finding_id=%d", resp.Finding.FindingId)
@@ -219,75 +216,4 @@ func (s *sqsHandler) analyzeAlert(ctx context.Context, projectID uint32) error {
 		ProjectId: projectID,
 	})
 	return err
-}
-
-const (
-	// Unknown
-	resourceUnknown = "UnknownResource"
-
-	// Resource Type
-	resourceTypeInstance  = "INSTANCE"
-	resourceTypeAccessKey = "ACCESSKEY"
-	resourceTypeS3Bucket  = "S3BUCKET"
-	resourceTypeUnknown   = "UnknownResourceType"
-
-	// EC2
-	ec2InstanceUnknown = "UnknownInstance"
-
-	// IAM
-	iamUserUnknown        = "UnknownUser"
-	userTypeRoot          = "ROOT"
-	userTypeIAMUser       = "IAMUSER"
-	userTypeAssumedRole   = "ASSUMEDROLE"
-	userTypeFederatedUser = "FEDERATEDUSER"
-	userTypeAWSService    = "AWSSERVICE"
-	userTypeAWSAccount    = "AWSACCOUNT"
-	userTypeUnknown       = "UnknownUserType"
-
-	// S3
-	s3BucketUnknown = "UnknownBucket"
-)
-
-func getResourceName(f *guardduty.Finding) string {
-	if f == nil || f.Resource == nil || f.Resource.ResourceType == nil {
-		return resourceUnknown
-	}
-
-	switch strings.ToUpper(*f.Resource.ResourceType) {
-	case resourceTypeInstance:
-		if f.Resource.InstanceDetails == nil || f.Resource.InstanceDetails.InstanceId == nil {
-			return ec2InstanceUnknown
-		}
-		return common.GetResourceName(common.EC2, *f.AccountId, *f.Resource.InstanceDetails.InstanceId)
-	case resourceTypeAccessKey:
-		if f.Resource.AccessKeyDetails == nil || f.Resource.AccessKeyDetails.UserName == nil {
-			return iamUserUnknown
-		}
-		switch strings.ToUpper(*f.Resource.AccessKeyDetails.UserType) {
-		case userTypeRoot,
-			userTypeIAMUser,
-			userTypeAssumedRole,
-			userTypeFederatedUser,
-			userTypeAWSService,
-			userTypeAWSAccount:
-			return common.GetResourceName(common.IAM, *f.AccountId, *f.Resource.AccessKeyDetails.UserName)
-		default:
-			return userTypeUnknown
-		}
-	case resourceTypeS3Bucket:
-		if len(f.Resource.S3BucketDetails) > 0 {
-			buckets := ""
-			for _, b := range f.Resource.S3BucketDetails {
-				if b.Name == nil {
-					continue
-				}
-				buckets += *b.Name + ","
-			}
-			buckets = strings.TrimRight(buckets, ",")
-			return common.GetResourceName(common.S3, *f.AccountId, buckets)
-		}
-		return common.GetResourceName(common.S3, *f.AccountId, s3BucketUnknown)
-	default:
-		return resourceTypeUnknown
-	}
 }

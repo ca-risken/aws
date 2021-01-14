@@ -7,44 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/accessanalyzer"
 )
 
-const accountID = "123456789012"
-
-func TestGetFormatedResourceName(t *testing.T) {
-	cases := []struct {
-		name         string
-		resourceType string
-		resourceName string
-		want         string
-	}{
-		{
-			name:         "OK",
-			resourceType: accessanalyzer.ResourceTypeAwsS3Bucket,
-			resourceName: "arn:aws:s3:::resource-name",
-			want:         "s3/123456789012/resource-name",
-		},
-		{
-			name:         "OK no colon resouce name",
-			resourceType: accessanalyzer.ResourceTypeAwsS3Bucket,
-			resourceName: "resource-name",
-			want:         "s3/123456789012/resource-name",
-		},
-		{
-			name:         "OK Unknown",
-			resourceType: "AWS::Unknown::Type",
-			resourceName: "resource-name",
-			want:         "unknown/123456789012/resource-name",
-		},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			got := getFormatedResourceName(accountID, c.resourceType, c.resourceName)
-			if c.want != got {
-				t.Fatalf("Unexpected resource name: want=%s, got=%s", c.want, got)
-			}
-		})
-	}
-}
-
 func TestScoreAccessAnalyzerFinding(t *testing.T) {
 	cases := []struct {
 		name     string
