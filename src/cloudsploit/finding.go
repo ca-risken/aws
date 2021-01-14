@@ -107,22 +107,26 @@ const (
 
 func getResourceName(resource, category, accountID string) string {
 	if resource == cloudsploitUnknown {
-		return fmt.Sprintf("%v/%v/%v", accountID, category, resource)
+		return fmt.Sprintf("%s/%s/%s", accountID, category, resource)
 	}
 	return resource
 }
 
 func getServiceTag(resource string) string {
-	if strings.HasPrefix(strings.ToLower(resource), "arn:aws:") {
-		service := strings.Replace(resource, "arn:aws:", "", 1)
-		appLogger.Infof("service: %v", service)
-		return common.GetAWSServiceTagByResourceName(service)
+	tag := common.GetAWSServiceTagByARN(resource)
+	if tag != common.TagUnknown {
+		appLogger.Infof("service: %s", tag)
+		return tag
 	}
 	if strings.HasSuffix(resource, cloudsploitUnknown) {
-		service := strings.Split(resource, "/")[1]
-		appLogger.Infof("service: %v", service)
-		return common.GetAWSServiceTagByResourceName(service)
+		splited := strings.Split(resource, "/")
+		if len(splited) < 3 {
+			appLogger.Infof("service: %s", tag)
+			return tag
+		}
+		appLogger.Infof("service: %s", splited[2])
+		return splited[2]
 	}
-	appLogger.Infof("resource: %v", resource)
-	return common.GetAWSServiceTagByResourceName(resource)
+	appLogger.Infof("service: %s", tag)
+	return tag
 }

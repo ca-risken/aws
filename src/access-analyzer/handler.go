@@ -158,8 +158,8 @@ func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.Findin
 		// finding-tag
 		s.tagFinding(ctx, common.TagAWS, resp.Finding.FindingId, resp.Finding.ProjectId)
 		s.tagFinding(ctx, common.TagAccessAnalyzer, resp.Finding.FindingId, resp.Finding.ProjectId)
-		awsServiceTag := common.GetAWSServiceTagByResourceName(resp.Finding.ResourceName)
-		if awsServiceTag != "" {
+		awsServiceTag := common.GetAWSServiceTagByARN(resp.Finding.ResourceName)
+		if awsServiceTag != common.TagUnknown {
 			s.tagFinding(ctx, awsServiceTag, resp.Finding.FindingId, resp.Finding.ProjectId)
 		}
 		appLogger.Infof("Success to PutFinding, finding_id=%d", resp.Finding.FindingId)
@@ -211,31 +211,6 @@ func (s *sqsHandler) analyzeAlert(ctx context.Context, projectID uint32) error {
 		ProjectId: projectID,
 	})
 	return err
-}
-
-func getFormatedResourceName(accountID, resourceType, resource string) string {
-	shortName := ""
-	if !strings.Contains(resource, ":") {
-		shortName = resource
-	} else {
-		shortName = resource[strings.LastIndex(resource, ":")+1:] // aaa:bbb:ccc => ccc
-	}
-	var svc common.AWSService
-	switch resourceType {
-	case accessanalyzer.ResourceTypeAwsS3Bucket:
-		svc = common.S3
-	case accessanalyzer.ResourceTypeAwsIamRole:
-		svc = common.IAM
-	case accessanalyzer.ResourceTypeAwsSqsQueue:
-		svc = common.SQS
-	case accessanalyzer.ResourceTypeAwsLambdaFunction, accessanalyzer.ResourceTypeAwsLambdaLayerVersion:
-		svc = common.Lambda
-	case accessanalyzer.ResourceTypeAwsKmsKey:
-		svc = common.KMS
-	default:
-		svc = common.Unknown
-	}
-	return common.GetResourceName(svc, accountID, shortName)
 }
 
 func scoreAccessAnalyzerFinding(status string, isPublic bool, actions []*string) float32 {
