@@ -110,11 +110,10 @@ func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.
 		fmt.Printf("detecterId: %s\n", id)
 		findingIDs, err := s.guardduty.listFindings(message.AccountID, id)
 		if err != nil {
-			appLogger.Errorf(
+			appLogger.Warnf(
 				"GuardDuty.ListDetectors error: detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)
-			return nil, err
+			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
 		}
-
 		if len(findingIDs) == 0 {
 			appLogger.Infof("No findings: accountID=%s", message.AccountID)
 			continue
