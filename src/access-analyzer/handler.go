@@ -113,9 +113,9 @@ func (s *sqsHandler) getAccessAnalyzer(msg *message.AWSQueueMessage) ([]*finding
 		appLogger.Infof("Detected analyzer: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
 		findings, err := s.accessAnalyzer.listFindings(msg.AccountID, arn)
 		if err != nil {
-			appLogger.Errorf(
+			appLogger.Warnf(
 				"AccessAnalyzer.ListFindings error: analyzerArn=%s, accountID=%s, err=%+v", arn, msg.AccountID, err)
-			return nil, err
+			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
 		}
 		appLogger.Debugf("[Debug]Got findings, %+v", findings)
 		if len(findings) == 0 {
