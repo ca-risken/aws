@@ -68,7 +68,7 @@ func (c *cloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) 
 }
 
 func (c *cloudsploitConfig) tmpRun(accountID string) (*[]cloudSploitResult, error) {
-	bytes, err := readFile("/tmp/171706544897_1609824895.json")
+	bytes, err := readFile("/tmp/hogehoge.json")
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ type cloudSploitResult struct {
 	Title       string
 	Description string
 	Resource    string
-	Region      string
+	Region      interface{}
 	Status      string
 	Message     string
 }
