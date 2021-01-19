@@ -15,6 +15,8 @@ const (
 	AdminCheckerDataSource = "aws:admin-checker"
 	// CloudsploitDataSource is the specific data_source label for cloudsploit
 	CloudsploitDataSource = "aws:cloudsploit"
+	// PortscanDataSource is the specific data_source label for portscan
+	PortscanDataSource = "aws:portscan"
 )
 
 // AWSQueueMessage is the message for SQS queue
@@ -37,7 +39,8 @@ func (g *AWSQueueMessage) Validate() error {
 			GuardDutyDataSource,
 			AccessAnalyzerDataSource,
 			AdminCheckerDataSource,
-			CloudsploitDataSource)),
+			CloudsploitDataSource,
+			PortscanDataSource)),
 		validation.Field(&g.ProjectID, validation.Required),
 		validation.Field(&g.AccountID, validation.Required, validation.Length(12, 12)),
 	)
