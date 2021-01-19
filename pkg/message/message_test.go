@@ -20,6 +20,18 @@ func TestValidate(t *testing.T) {
 			input: &AWSQueueMessage{AWSID: 1, AWSDataSourceID: 2, DataSource: "aws:access-analyzer", ProjectID: 1, AccountID: "123456789012", AssumeRoleArn: "role", ExternalID: ""},
 		},
 		{
+			name:  "OK (admin-checker)",
+			input: &AWSQueueMessage{AWSID: 1, AWSDataSourceID: 2, DataSource: "aws:access-analyzer", ProjectID: 1, AccountID: "123456789012", AssumeRoleArn: "role", ExternalID: ""},
+		},
+		{
+			name:  "OK (cloudsploit)",
+			input: &AWSQueueMessage{AWSID: 1, AWSDataSourceID: 2, DataSource: "aws:cloudsploit", ProjectID: 1, AccountID: "123456789012", AssumeRoleArn: "role", ExternalID: ""},
+		},
+		{
+			name:  "OK (portscan)",
+			input: &AWSQueueMessage{AWSID: 1, AWSDataSourceID: 2, DataSource: "aws:portscan", ProjectID: 1, AccountID: "123456789012", AssumeRoleArn: "role", ExternalID: ""},
+		},
+		{
 			name:    "NG Required(AWSID)",
 			input:   &AWSQueueMessage{AWSID: 0, AWSDataSourceID: 2, DataSource: "aws:guard-duty", ProjectID: 1, AccountID: "123456789012", AssumeRoleArn: "role", ExternalID: ""},
 			wantErr: true,
