@@ -38,7 +38,6 @@ func (c *cloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) 
 	filePath := fmt.Sprintf("%v/%v_%v.json", c.ResultDir, accountID, now)
 	cmd := exec.Command(fmt.Sprintf("%v/index.js", c.CloudsploitDir), "--config", c.ConfigPath, "--console", "none", "--json", filePath)
 	err := cmd.Run()
-	appLogger.Infof("error: %v", cmd.Stderr)
 	if err != nil {
 		appLogger.Errorf("Failed exec cloudsploit. error: %v", err)
 		return nil, fmt.Errorf("Failed exec cloudsploit. error: %v", err)

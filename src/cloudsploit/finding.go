@@ -116,19 +116,15 @@ func getResourceName(resource, category, accountID string) string {
 func getServiceTag(resource string) string {
 	tag := common.GetAWSServiceTagByARN(resource)
 	if tag != common.TagUnknown {
-		appLogger.Infof("service: %s", tag)
 		return tag
 	}
 	if strings.HasSuffix(resource, cloudsploitUnknown) {
 		splited := strings.Split(resource, "/")
 		if len(splited) < 3 {
-			appLogger.Infof("service: %s", tag)
 			return tag
 		}
-		appLogger.Infof("service: %s", splited[2])
 		return splited[2]
 	}
-	appLogger.Infof("service: %s", tag)
 	return tag
 }
 
