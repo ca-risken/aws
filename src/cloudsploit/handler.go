@@ -72,14 +72,9 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		appLogger.Errorf("Failed exec cloudsploit, error: %v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
-	findings, err := makeFindings(cloudsploitResult, message)
-	if err != nil {
-		appLogger.Errorf("Failed making Findings, error: %v", err)
-		return err
-	}
 
 	// Put Finding and Tag Finding
-	if err := s.putFindings(ctx, findings); err != nil {
+	if err := s.putFindings(ctx, cloudsploitResult, message); err != nil {
 		appLogger.Errorf("Faild to put findings. AWSID: %v, error: %v", message.AWSID, err)
 		return err
 	}
