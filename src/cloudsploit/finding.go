@@ -13,54 +13,59 @@ import (
 	"github.com/CyberAgent/mimosa-core/proto/finding"
 )
 
-func makeFindings(results *[]cloudSploitResult, message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
-	var findings []*finding.FindingForUpsert
-	for _, r := range *results {
-		data, err := json.Marshal(map[string]cloudSploitResult{"data": r})
+func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResult, message *message.AWSQueueMessage) error {
+	for _, result := range *results {
+		data, err := json.Marshal(map[string]cloudSploitResult{"data": result})
 		if err != nil {
-			return nil, err
+			return err
 		}
-		if r.Resource == cloudsploitNA {
-			r.Resource = cloudsploitUnknown
+		if result.Resource == cloudsploitNA {
+			result.Resource = cloudsploitUnknown
 		}
-		findings = append(findings, &finding.FindingForUpsert{
-			Description:      r.Description,
+		finding := &finding.FindingForUpsert{
+			Description:      result.Description,
 			DataSource:       message.DataSource,
-			DataSourceId:     generateDataSourceID(fmt.Sprintf("description_%v_%v_%v", r.Description, r.Region, r.Resource)),
-			ResourceName:     getResourceName(r.Resource, r.Category, message.AccountID),
+			DataSourceId:     generateDataSourceID(fmt.Sprintf("description_%v_%v_%v", result.Description, result.Region, result.Resource)),
+			ResourceName:     getResourceName(result.Resource, result.Category, message.AccountID),
 			ProjectId:        message.ProjectID,
-			OriginalScore:    getScore(r.Status, r.Resource),
+			OriginalScore:    getScore(result.Status, result.Category, result.Plugin),
 			OriginalMaxScore: 10.0,
 			Data:             string(data),
-		})
+		}
+		err = s.putFinding(ctx, finding, result)
+		if err != nil {
+			return err
+		}
 	}
-	return findings, nil
+	return nil
 }
 
-func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.FindingForUpsert) error {
-	for _, f := range findings {
-		if f.OriginalScore == 0.0 {
-			_, err := s.findingClient.PutResource(ctx, &finding.PutResourceRequest{
-				Resource: &finding.ResourceForUpsert{
-					ResourceName: f.ResourceName,
-					ProjectId:    f.ProjectId,
-				},
-			})
-			if err != nil {
-				appLogger.Errorf("Failed to put finding project_id=%d, resource=%s, err=%+v", f.ProjectId, f.ResourceName, err)
-				return err
-			}
-			//appLogger.Infof("Success to PutResource, finding_id=%d", resp.Resource.ResourceId)
-		} else {
-			res, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
-			if err != nil {
-				return err
-			}
-			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS)
-			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagCloudsploit)
-			tagService := getServiceTag(res.Finding.ResourceName)
-			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, tagService)
-			//appLogger.Infof("Success to PutFinding. finding: %v", f)
+func (s *sqsHandler) putFinding(ctx context.Context, cloudsploitFinding *finding.FindingForUpsert, result cloudSploitResult) error {
+	if cloudsploitFinding.OriginalScore == 0.0 {
+		_, err := s.findingClient.PutResource(ctx, &finding.PutResourceRequest{
+			Resource: &finding.ResourceForUpsert{
+				ResourceName: cloudsploitFinding.ResourceName,
+				ProjectId:    cloudsploitFinding.ProjectId,
+			},
+		})
+		if err != nil {
+			appLogger.Errorf("Failed to put finding project_id=%d, resource=%s, err=%+v", cloudsploitFinding.ProjectId, cloudsploitFinding.ResourceName, err)
+			return err
+		}
+		//appLogger.Infof("Success to PutResource, finding_id=%d", resp.Resource.ResourceId)
+	} else {
+		res, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: cloudsploitFinding})
+		if err != nil {
+			return err
+		}
+		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS)
+		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagCloudsploit)
+		serviceTag := getServiceTag(res.Finding.ResourceName)
+		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, serviceTag)
+		//appLogger.Infof("Success to PutFinding. finding: %v", f)
+		complianceTags := getComplianceTags(result.Category, result.Plugin)
+		for _, complianceTag := range complianceTags {
+			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, complianceTag)
 		}
 	}
 
@@ -88,21 +93,17 @@ func generateDataSourceID(input string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func getScore(status, resource string) float32 {
-	if strings.ToUpper(status) == "OK" {
-		return 0.0
-	}
-	if resource == "Unknown" || resource == "N/A" {
-		return 1.0
-	}
-	return 3.0
-}
-
 const (
 
 	// Unknown
 	cloudsploitUnknown = "Unknown"
 	cloudsploitNA      = "N/A"
+
+	resultOK      string = "OK"      // 0: PASS: No risks
+	resultWARN    string = "WARN"    // 1: WARN: The result represents a potential misconfiguration or issue but is not an immediate risk
+	resultFAIL    string = "FAIL"    // 2: FAIL: The result presents an immediate risk to the security of the account
+	resultUNKNOWN string = "UNKNOWN" // 3: UNKNOWN: The results could not be determined (API failure, wrong permissions, etc.)
+
 )
 
 func getResourceName(resource, category, accountID string) string {
@@ -115,18 +116,39 @@ func getResourceName(resource, category, accountID string) string {
 func getServiceTag(resource string) string {
 	tag := common.GetAWSServiceTagByARN(resource)
 	if tag != common.TagUnknown {
-		appLogger.Infof("service: %s", tag)
 		return tag
 	}
 	if strings.HasSuffix(resource, cloudsploitUnknown) {
 		splited := strings.Split(resource, "/")
 		if len(splited) < 3 {
-			appLogger.Infof("service: %s", tag)
 			return tag
 		}
-		appLogger.Infof("service: %s", splited[2])
 		return splited[2]
 	}
-	appLogger.Infof("service: %s", tag)
 	return tag
+}
+
+func getScore(status, category, plugin string) float32 {
+	switch strings.ToUpper(status) {
+	case resultOK:
+		return 0.0
+	case resultUNKNOWN:
+		return 1.0
+	case resultWARN:
+		return 3.0
+	default:
+		findingInf, ok := cloudSploitFindingMap[fmt.Sprintf("%s/%s", category, plugin)]
+		if ok {
+			return findingInf.Score
+		}
+		return 3.0
+	}
+}
+
+func getComplianceTags(category, plugin string) []string {
+	findingInf, ok := cloudSploitFindingMap[fmt.Sprintf("%s/%s", category, plugin)]
+	if ok {
+		return findingInf.ComplianceTag
+	}
+	return []string{}
 }
