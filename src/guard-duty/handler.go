@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/common"
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
@@ -41,7 +40,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	}
 
 	ctx := context.Background()
-	status := initScanStatus(message)
+	status := common.InitScanStatus(message)
 	s.guardduty, err = newGuardDutyClient("", message.AssumeRoleArn, message.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create GuardDuty session: err=%+v", err)
@@ -80,23 +79,6 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		}
 	}
 	return s.analyzeAlert(ctx, message.ProjectID)
-}
-
-func initScanStatus(message *message.AWSQueueMessage) awsClient.AttachDataSourceRequest {
-	return awsClient.AttachDataSourceRequest{
-		ProjectId: message.ProjectID,
-		AttachDataSource: &awsClient.DataSourceForAttach{
-			AwsId:           message.AWSID,
-			AwsDataSourceId: message.AWSDataSourceID,
-			ProjectId:       message.ProjectID,
-			AssumeRoleArn:   message.AssumeRoleArn,
-			ExternalId:      message.ExternalID,
-			ScanAt:          time.Now().Unix(),
-			// to be updated below, after the scan
-			Status:       awsClient.Status_UNKNOWN,
-			StatusDetail: "",
-		},
-	}
 }
 
 func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
