@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"time"
 
+	"github.com/CyberAgent/mimosa-aws/pkg/common"
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	awsClient "github.com/CyberAgent/mimosa-aws/proto/aws"
 	"github.com/CyberAgent/mimosa-core/proto/alert"
@@ -50,21 +50,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	appLogger.Info("Start cloudsploit Client")
 
 	ctx := context.Background()
-	status := awsClient.AttachDataSourceRequest{
-		ProjectId: message.ProjectID,
-		AttachDataSource: &awsClient.DataSourceForAttach{
-			AwsId:           message.AWSID,
-			AwsDataSourceId: message.AWSDataSourceID,
-			ProjectId:       message.ProjectID,
-			AssumeRoleArn:   message.AssumeRoleArn,
-			ExternalId:      message.ExternalID,
-			ScanAt:          time.Now().Unix(),
-			// to be updated below, after the scan
-			Status:       awsClient.Status_UNKNOWN,
-			StatusDetail: "",
-		},
-	}
-
+	status := common.InitScanStatus(message)
 	// Run cloudsploit
 	cloudsploitResult, err := s.cloudsploitConfig.run(message.AccountID)
 	//cloudsploitResult, err := s.cloudsploitConfig.tmpRun(message.AccountID)
