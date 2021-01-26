@@ -120,9 +120,9 @@ func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.
 		}
 		findings, err := s.guardduty.getFindings(id, findingIDs)
 		if err != nil {
-			appLogger.Errorf(
+			appLogger.Warnf(
 				"GuardDuty.GetFindings error:detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)
-			return nil, err
+			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
 		}
 		for _, data := range findings {
 			buf, err := json.Marshal(data)
