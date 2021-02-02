@@ -66,8 +66,8 @@ func (g *guardDutyClient) newAWSSession(region, assumeRole, externalID string) e
 		})
 	}
 	g.Sess = sess
-	g.Svc = guardduty.New(g.Sess)
-	g.EC2 = ec2.New(g.Sess)
+	g.Svc = guardduty.New(g.Sess, aws.NewConfig().WithRegion(region))
+	g.EC2 = ec2.New(g.Sess, aws.NewConfig().WithRegion(region))
 	return nil
 }
 
