@@ -64,8 +64,8 @@ func (a *accessAnalyzerClient) newAWSSession(region, assumeRole, externalID stri
 		})
 	}
 	a.Sess = sess
-	a.Svc = accessanalyzer.New(a.Sess)
-	a.EC2 = ec2.New(a.Sess)
+	a.Svc = accessanalyzer.New(a.Sess, aws.NewConfig().WithRegion(region))
+	a.EC2 = ec2.New(a.Sess, aws.NewConfig().WithRegion(region))
 	return nil
 }
 
