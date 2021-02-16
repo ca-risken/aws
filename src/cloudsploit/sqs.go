@@ -18,8 +18,8 @@ type sqsConfig struct {
 
 	CloudsploitQueueName string `split_words:"true" default:"aws-cloudsploit"`
 	CloudsploitQueueURL  string `split_words:"true" default:"http://localhost:9324/queue/aws-cloudsploit"`
-	MaxNumberOfMessage int64  `split_words:"true" default:"10"`
-	WaitTimeSecond     int64  `split_words:"true" default:"20"`
+	MaxNumberOfMessage   int64  `split_words:"true" default:"5"`
+	WaitTimeSecond       int64  `split_words:"true" default:"20"`
 }
 
 func newSQSConsumer() *worker.Worker {
