@@ -14,7 +14,6 @@ RUN apk add --no-cache ca-certificates tzdata git \
   && cd /tmp/ && wget -q https://github.com/gassara-kys/env-injector/releases/download/v0.0.6/env-injector_0.0.6_Linux_x86_64.tar.gz \
   && tar xvfz env-injector_0.0.6_Linux_x86_64.tar.gz && mv env-injector /usr/local/bin/ && rm -rf /tmp/* \
   && cd /opt && git clone https://github.com/aquasecurity/cloudsploit.git -b v2.0.0 --depth 1  \
-  && mkdir /results && mkdir /configs \
   && cd cloudsploit && yarn install
 COPY --from=builder /go/bin/cloudsploit /usr/local/cloudsploit/bin/
 ENV DEBUG= \
@@ -25,13 +24,13 @@ ENV DEBUG= \
     SQS_ENDPOINT= \
     CLOUDSPLOIT_QUEUE_NAME= \
     CLOUDSPLOIT_QUEUE_URL= \
-    MAX_NUMBER_OF_MESSAGE=10 \
+    MAX_NUMBER_OF_MESSAGE=5 \
     WAIT_TIME_SECOND=20 \
     FINDING_SVC_ADDR= \
     ALERT_SVC_ADDR= \
     AWS_SVC_ADDR= \
-    RESULT_DIR=/results \
-    CONFIG_DIR=/configs \
+    RESULT_DIR=/tmp \
+    CONFIG_DIR=/tmp \
     CLOUDSPLOIT_DIR="/opt/cloudsploit" \
     TZ=Asia/Tokyo
 WORKDIR /usr/local/cloudsploit
