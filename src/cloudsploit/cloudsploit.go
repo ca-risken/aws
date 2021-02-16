@@ -53,14 +53,14 @@ func (c *cloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) 
 		return nil, err
 	}
 	// delete result
-	//	err = deleteFile(filePath)
-	//	if err != nil {
-	//		return nil, err
-	//	}
+	err = deleteFile(filePath)
+	if err != nil {
+		appLogger.Warnf("Failed to delete result file. error: %v", err)
+	}
 	// delete config
 	err = deleteFile(c.ConfigPath)
 	if err != nil {
-		return nil, err
+		appLogger.Warnf("Failed to delete config file. error: %v", err)
 	}
 
 	return &results, nil
