@@ -4,7 +4,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/h2ik/go-sqs-poller/v3/worker"
+	"github.com/gassara-kys/go-sqs-poller/worker/v4"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 	"github.com/vikyd/zero"
@@ -18,8 +18,8 @@ type sqsConfig struct {
 
 	CloudsploitQueueName string `split_words:"true" default:"aws-cloudsploit"`
 	CloudsploitQueueURL  string `split_words:"true" default:"http://localhost:9324/queue/aws-cloudsploit"`
-	MaxNumberOfMessage int64  `split_words:"true" default:"10"`
-	WaitTimeSecond     int64  `split_words:"true" default:"20"`
+	MaxNumberOfMessage   int64  `split_words:"true" default:"10"`
+	WaitTimeSecond       int64  `split_words:"true" default:"20"`
 }
 
 func newSQSConsumer() *worker.Worker {
@@ -33,13 +33,19 @@ func newSQSConsumer() *worker.Worker {
 		appLogger.SetLevel(logrus.DebugLevel)
 	}
 	var sqsClient *sqs.SQS
+	sess, err := session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	})
+	if err != nil {
+		appLogger.Fatalf("Failed to create a new session, %v", err)
+	}
 	if !zero.IsZeroVal(&conf.SQSEndpoint) {
-		sqsClient = sqs.New(session.New(), &aws.Config{
+		sqsClient = sqs.New(sess, &aws.Config{
 			Region:   &conf.AWSRegion,
 			Endpoint: &conf.SQSEndpoint,
 		})
 	} else {
-		sqsClient = sqs.New(session.New(), &aws.Config{
+		sqsClient = sqs.New(sess, &aws.Config{
 			Region: &conf.AWSRegion,
 		})
 	}

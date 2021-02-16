@@ -36,11 +36,16 @@ func newSQSClient() *sqsClient {
 	if err != nil {
 		appLogger.Fatal(err.Error())
 	}
-	session := sqs.New(session.New(), &aws.Config{
+	sess, err := session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	})
+	if err != nil {
+		appLogger.Fatalf("Failed to create a new session, %v", err)
+	}
+	session := sqs.New(sess, &aws.Config{
 		Region:   &conf.AWSRegion,
 		Endpoint: &conf.SQSEndpoint,
 	})
-
 	return &sqsClient{
 		svc: session,
 		queueURLMap: map[string]string{
