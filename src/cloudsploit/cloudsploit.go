@@ -34,7 +34,7 @@ func newcloudsploitConfig(assumeRole, externalID string) (cloudsploitConfig, err
 }
 
 func (c *cloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) {
-	now := time.Now().Unix()
+	now := time.Now().UnixNano()
 	filePath := fmt.Sprintf("%v/%v_%v.json", c.ResultDir, accountID, now)
 	cmd := exec.Command(fmt.Sprintf("%v/index.js", c.CloudsploitDir), "--config", c.ConfigPath, "--console", "none", "--json", filePath)
 	err := cmd.Run()
