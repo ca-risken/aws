@@ -54,7 +54,7 @@ module.exports = {
 `
 
 func (c *cloudsploitConfig) createConfigFile(accessKeyID, secretAccessKey, sessoinToken string) (string, error) {
-	now := time.Now().Unix()
+	now := time.Now().UnixNano()
 	file, err := os.Create(fmt.Sprintf("%v/%v_%v_config.js", c.ConfigDir, accessKeyID, now))
 	if err != nil {
 		return "", err

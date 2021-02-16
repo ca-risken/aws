@@ -34,7 +34,7 @@ func newcloudsploitConfig(assumeRole, externalID string) (cloudsploitConfig, err
 }
 
 func (c *cloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) {
-	now := time.Now().Unix()
+	now := time.Now().UnixNano()
 	filePath := fmt.Sprintf("%v/%v_%v.json", c.ResultDir, accountID, now)
 	cmd := exec.Command(fmt.Sprintf("%v/index.js", c.CloudsploitDir), "--config", c.ConfigPath, "--console", "none", "--json", filePath)
 	err := cmd.Run()
@@ -53,14 +53,14 @@ func (c *cloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) 
 		return nil, err
 	}
 	// delete result
-	//	err = deleteFile(filePath)
-	//	if err != nil {
-	//		return nil, err
-	//	}
+	err = deleteFile(filePath)
+	if err != nil {
+		appLogger.Warnf("Failed to delete result file. error: %v", err)
+	}
 	// delete config
 	err = deleteFile(c.ConfigPath)
 	if err != nil {
-		return nil, err
+		appLogger.Warnf("Failed to delete config file. error: %v", err)
 	}
 
 	return &results, nil
