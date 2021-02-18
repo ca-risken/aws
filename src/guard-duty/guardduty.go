@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -52,7 +54,7 @@ func (g *guardDutyClient) newAWSSession(region, assumeRole, externalID string) e
 	}
 	if assumeRole != "" && externalID != "" {
 		sess = session.New(&aws.Config{
-			Region: sess.Config.Region,
+			Region: aws.String(region),
 			Credentials: stscreds.NewCredentials(
 				sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
 					p.ExternalID = aws.String(externalID)
@@ -61,7 +63,7 @@ func (g *guardDutyClient) newAWSSession(region, assumeRole, externalID string) e
 		})
 	} else if assumeRole != "" && externalID == "" {
 		sess = session.New(&aws.Config{
-			Region:      sess.Config.Region,
+			Region:      aws.String(region),
 			Credentials: stscreds.NewCredentials(sess, assumeRole),
 		})
 	}
@@ -162,6 +164,7 @@ func (g *guardDutyClient) getFindings(detectorID string, findingIDs []*string) (
 		for _, f := range finding.Findings {
 			guardDutyFindings = append(guardDutyFindings, f)
 		}
+		time.Sleep(time.Millisecond * 100)
 	}
 	return guardDutyFindings, nil
 }
