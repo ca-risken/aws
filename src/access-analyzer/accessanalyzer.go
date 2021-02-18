@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -50,7 +52,7 @@ func (a *accessAnalyzerClient) newAWSSession(region, assumeRole, externalID stri
 	}
 	if assumeRole != "" && externalID != "" {
 		sess = session.New(&aws.Config{
-			Region: sess.Config.Region,
+			Region: aws.String(region),
 			Credentials: stscreds.NewCredentials(
 				sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
 					p.ExternalID = aws.String(externalID)
@@ -59,7 +61,7 @@ func (a *accessAnalyzerClient) newAWSSession(region, assumeRole, externalID stri
 		})
 	} else if assumeRole != "" && externalID == "" {
 		sess = session.New(&aws.Config{
-			Region:      sess.Config.Region,
+			Region:      aws.String(region),
 			Credentials: stscreds.NewCredentials(sess, assumeRole),
 		})
 	}
@@ -129,6 +131,7 @@ func (a *accessAnalyzerClient) listFindings(accountID string, analyzerArn string
 			break
 		}
 		nextToken = *out.NextToken
+		time.Sleep(time.Millisecond * 100)
 	}
 	return findings, nil
 }
