@@ -158,7 +158,7 @@ Status
 | UNKNOWN | 0 |  |
 | OK | 1 |  |
 | CONFIGURED | 2 |  |
-| NOT_CONFIGURED | 3 |  |
+| IN_PROGRESS | 3 |  |
 | ERROR | 4 |  |
 
 
