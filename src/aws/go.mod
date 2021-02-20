@@ -1,6 +1,6 @@
 module github.com/CyberAgent/mimosa-aws/src/aws
 
-go 1.15
+go 1.16
 
 require (
 	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210219124113-041825be9bca
