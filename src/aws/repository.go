@@ -14,14 +14,15 @@ import (
 )
 
 type awsRepoInterface interface {
-	ListAWS(uint32, uint32, string) (*[]model.AWS, error)
-	GetAWSByAccountID(uint32, string) (*model.AWS, error)
-	UpsertAWS(*model.AWS) (*model.AWS, error)
-	DeleteAWS(uint32, uint32) error
-	ListDataSource(uint32, uint32, string) (*[]dataSource, error)
-	UpsertAWSRelDataSource(*aws.DataSourceForAttach) (*model.AWSRelDataSource, error)
-	DeleteAWSRelDataSource(uint32, uint32, uint32) error
-	GetAWSDataSourceForMessage(uint32, uint32, uint32) (*message.AWSQueueMessage, error)
+	ListAWS(projectID, awsID uint32, awsAccountID string) (*[]model.AWS, error)
+	GetAWSByAccountID(projectID uint32, awsAccountID string) (*model.AWS, error)
+	UpsertAWS(data *model.AWS) (*model.AWS, error)
+	DeleteAWS(projectID, awsID uint32) error
+	ListDataSource(projectID, awsID uint32, ds string) (*[]dataSource, error)
+	UpsertAWSRelDataSource(data *aws.DataSourceForAttach) (*model.AWSRelDataSource, error)
+	GetAWSRelDataSourceByID(awsID, awsDataSourceID, projectID uint32) (*model.AWSRelDataSource, error)
+	DeleteAWSRelDataSource(projectID, awsID, awsDataSourceID uint32) error
+	GetAWSDataSourceForMessage(awsID, awsDataSourceID, projectID uint32) (*message.AWSQueueMessage, error)
 }
 
 type awsRepository struct {
