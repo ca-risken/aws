@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -92,8 +93,8 @@ func getStatus(s string) aws.Status {
 		return aws.Status_OK
 	case aws.Status_CONFIGURED.String():
 		return aws.Status_CONFIGURED
-	case aws.Status_NOT_CONFIGURED.String():
-		return aws.Status_NOT_CONFIGURED
+	case aws.Status_IN_PROGRESS.String():
+		return aws.Status_IN_PROGRESS
 	case aws.Status_ERROR.String():
 		return aws.Status_ERROR
 	default:
@@ -180,6 +181,22 @@ func (a *awsService) InvokeScan(ctx context.Context, req *aws.InvokeScanRequest)
 	}
 	resp, err := a.sqs.send(msg)
 	if err != nil {
+		return nil, err
+	}
+	data, err := a.repository.GetAWSRelDataSourceByID(msg.AWSID, msg.AWSDataSourceID, msg.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = a.repository.UpsertAWSRelDataSource(&aws.DataSourceForAttach{
+		AwsId:           data.AWSID,
+		AwsDataSourceId: data.AWSDataSourceID,
+		ProjectId:       data.ProjectID,
+		AssumeRoleArn:   data.AssumeRoleArn,
+		ExternalId:      data.ExternalID,
+		Status:          aws.Status_IN_PROGRESS,
+		StatusDetail:    fmt.Sprintf("Start scan at %+v", time.Now().Format(time.RFC3339)),
+		ScanAt:          data.ScanAt.Unix(),
+	}); err != nil {
 		return nil, err
 	}
 	appLogger.Infof("Invoke scanned, messageId: %v", resp.MessageId)
