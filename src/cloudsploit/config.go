@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -13,20 +14,23 @@ import (
 )
 
 func (c *cloudsploitConfig) makeConfig(region, assumeRole, externalID string) (string, error) {
+	if assumeRole == "" {
+		return "", errors.New("Required AWS AssumeRole")
+	}
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(region)},
 	)
-	var creds *credentials.Credentials
 	if err != nil {
 		return "", err
 	}
-	if assumeRole != "" && externalID != "" {
+	var creds *credentials.Credentials
+	if externalID != "" {
 		creds = stscreds.NewCredentials(
 			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
 				p.ExternalID = aws.String(externalID)
 			},
 		)
-	} else if assumeRole != "" && externalID == "" {
+	} else {
 		creds = stscreds.NewCredentials(sess, assumeRole)
 	}
 	val, err := creds.Get()
