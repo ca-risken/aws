@@ -1,7 +1,10 @@
 package main
 
 import (
+	"errors"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -36,26 +39,25 @@ func newAdminCheckerClient(assumeRole, externalID string) (*adminCheckerClient, 
 }
 
 func (a *adminCheckerClient) newAWSSession(region, assumeRole, externalID string) error {
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(region)},
-	)
+	if assumeRole == "" {
+		return errors.New("Required AWS AssumeRole")
+	}
+	var cred *credentials.Credentials
+	if externalID != "" {
+		cred = stscreds.NewCredentials(
+			session.New(), assumeRole, func(p *stscreds.AssumeRoleProvider) {
+				p.ExternalID = aws.String(externalID)
+			},
+		)
+	} else {
+		cred = stscreds.NewCredentials(session.New(), assumeRole)
+	}
+	sess, err := session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Config:            aws.Config{Region: &region, Credentials: cred},
+	})
 	if err != nil {
 		return err
-	}
-	if assumeRole != "" && externalID != "" {
-		sess = session.New(&aws.Config{
-			Region: sess.Config.Region,
-			Credentials: stscreds.NewCredentials(
-				sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
-					p.ExternalID = aws.String(externalID)
-				},
-			),
-		})
-	} else if assumeRole != "" && externalID == "" {
-		sess = session.New(&aws.Config{
-			Region:      sess.Config.Region,
-			Credentials: stscreds.NewCredentials(sess, assumeRole),
-		})
 	}
 	a.Sess = sess
 	a.Svc = iam.New(a.Sess)
