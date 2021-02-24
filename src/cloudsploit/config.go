@@ -28,10 +28,15 @@ func (c *cloudsploitConfig) makeConfig(region, assumeRole, externalID string) (s
 		creds = stscreds.NewCredentials(
 			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
 				p.ExternalID = aws.String(externalID)
+				p.Duration = time.Duration(60) * time.Minute
 			},
 		)
 	} else {
-		creds = stscreds.NewCredentials(sess, assumeRole)
+		creds = stscreds.NewCredentials(
+			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
+				p.Duration = time.Duration(60) * time.Minute
+			},
+		)
 	}
 	val, err := creds.Get()
 	if err != nil {
