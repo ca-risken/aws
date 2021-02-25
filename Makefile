@@ -73,10 +73,10 @@ network:
 	@if [ -z "`docker network ls | grep local-shared`" ]; then docker network create local-shared; fi
 
 run: go-test network
-	. env.sh && docker-compose up -d --build
+	source env.sh && docker-compose up -d --build
 
 log:
-	. env.sh && docker-compose logs -f
+	source env.sh && docker-compose logs -f
 
 stop:
-	. env.sh && docker-compose down
+	source env.sh && docker-compose down
