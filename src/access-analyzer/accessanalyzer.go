@@ -132,7 +132,7 @@ func (a *accessAnalyzerClient) listFindings(accountID string, analyzerArn string
 			break
 		}
 		nextToken = *out.NextToken
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * 500)
 	}
 	return findings, nil
 }

@@ -165,7 +165,7 @@ func (g *guardDutyClient) getFindings(detectorID string, findingIDs []*string) (
 		for _, f := range finding.Findings {
 			guardDutyFindings = append(guardDutyFindings, f)
 		}
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * 500)
 	}
 	return guardDutyFindings, nil
 }
