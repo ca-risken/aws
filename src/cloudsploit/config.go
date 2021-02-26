@@ -11,32 +11,17 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/iam"
 )
 
 func (c *cloudsploitConfig) makeConfig(region, assumeRole, externalID string) (string, error) {
 	if assumeRole == "" {
 		return "", errors.New("Required AWS AssumeRole")
 	}
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(region)},
-	)
-	if err != nil {
-		return "", err
-	}
-	var creds *credentials.Credentials
-	if externalID != "" {
-		creds = stscreds.NewCredentials(
-			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
-				p.ExternalID = aws.String(externalID)
-				p.Duration = time.Duration(60) * time.Minute
-			},
-		)
-	} else {
-		creds = stscreds.NewCredentials(
-			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
-				p.Duration = time.Duration(60) * time.Minute
-			},
-		)
+	creds := getCredential(assumeRole, externalID, 3600)
+	roleDuration, err := getRoleMaxSessionDuration(creds, region, assumeRole)
+	if err == nil && roleDuration != 3600 {
+		creds = getCredential(assumeRole, externalID, roleDuration)
 	}
 	val, err := creds.Get()
 	if err != nil {
@@ -75,4 +60,42 @@ func (c *cloudsploitConfig) createConfigFile(accessKeyID, secretAccessKey, sesso
 	config = strings.Replace(config, "SESSION_TOKEN", sessoinToken, 1)
 	file.Write(([]byte)(config))
 	return file.Name(), nil
+}
+
+func getCredential(assumeRole, externalID string, duration int) *credentials.Credentials {
+	var creds *credentials.Credentials
+	if externalID != "" {
+		creds = stscreds.NewCredentials(
+			session.New(), assumeRole, func(p *stscreds.AssumeRoleProvider) {
+				p.ExternalID = aws.String(externalID)
+				p.Duration = time.Duration(duration) * time.Second
+			},
+		)
+	} else {
+		creds = stscreds.NewCredentials(
+			session.New(), assumeRole, func(p *stscreds.AssumeRoleProvider) {
+				p.Duration = time.Duration(duration) * time.Second
+			},
+		)
+	}
+	return creds
+}
+
+func getRoleMaxSessionDuration(cred *credentials.Credentials, region, assumeRole string) (int, error) {
+	sess, err := session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Config:            aws.Config{Region: &region, Credentials: cred},
+	})
+	if err != nil {
+		return 0, err
+	}
+	svc := iam.New(sess)
+	roleName := strings.Split(assumeRole, "/")[len(strings.Split(assumeRole, "/"))-1]
+	res, err := svc.GetRole(&iam.GetRoleInput{
+		RoleName: aws.String(roleName),
+	})
+	if err != nil {
+		return 0, err
+	}
+	return int(*res.Role.MaxSessionDuration), nil
 }
