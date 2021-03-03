@@ -57,6 +57,10 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			appLogger.Warnf("Invalid region in AccountID=%s", message.AccountID)
 			continue
 		}
+		if !supportedRegion(*region.RegionName) {
+			appLogger.Infof("Skip the %s region,Because GuadDuty serveice is not supported", *region.RegionName)
+			continue
+		}
 		appLogger.Infof("Start %s region search...", *region.RegionName)
 		s.guardduty, err = newGuardDutyClient(*region.RegionName, message.AssumeRoleArn, message.ExternalID)
 		if err != nil {
@@ -79,6 +83,19 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		}
 	}
 	return s.analyzeAlert(ctx, message.ProjectID)
+}
+
+var unsupportedRegions = []string{
+	"ap-northeast-3",
+}
+
+func supportedRegion(region string) bool {
+	for _, unsupported := range unsupportedRegions {
+		if region == unsupported {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
