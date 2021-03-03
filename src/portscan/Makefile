@@ -1,0 +1,11 @@
+.PHONY: all run
+all: run
+
+run:
+	ls *.go | grep -v '_test.go' | xargs go run
+
+enque:
+	aws sqs send-message \
+		--endpoint-url http://localhost:9324 \
+		--queue-url http://localhost:9324/queue/aws-portscan \
+		--message-body '{"aws_id":1001, "aws_data_source_id":1005, "data_source":"aws:portscan", "project_id":1001, "account_id":"315855282677", "assume_role_arn":"arn:aws:iam::315855282677:role/stg-security-monitor", "external_id":""}'

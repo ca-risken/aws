@@ -38,3 +38,6 @@ export AWS_SVC_ADDR="aws:9001"
 export RESULT_DIR="/results"
 export CONFIG_DIR="/configs"
 export CLOUDSPLOIT_DIR="/opt/cloudsploit/"
+
+# portscan
+export SCAN_EXCLUDE_PORT_NUMBER="100"
