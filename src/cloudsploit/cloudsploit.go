@@ -19,13 +19,13 @@ type cloudsploitConfig struct {
 	ConfigPath     string
 }
 
-func newcloudsploitConfig(assumeRole, externalID string) (cloudsploitConfig, error) {
+func newcloudsploitConfig(assumeRole, externalID string, awsID uint32, accountID string) (cloudsploitConfig, error) {
 	var conf cloudsploitConfig
 	err := envconfig.Process("", &conf)
 	if err != nil {
 		return conf, err
 	}
-	configPath, err := conf.makeConfig(conf.AWSRegion, assumeRole, externalID)
+	configPath, err := conf.makeConfig(conf.AWSRegion, assumeRole, externalID, awsID, accountID)
 	if err != nil {
 		return conf, err
 	}

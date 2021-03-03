@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 )
 
-func (c *cloudsploitConfig) makeConfig(region, assumeRole, externalID string) (string, error) {
+func (c *cloudsploitConfig) makeConfig(region, assumeRole, externalID string, awsID uint32, accountID string) (string, error) {
 	if assumeRole == "" {
 		return "", errors.New("Required AWS AssumeRole")
 	}
@@ -27,7 +27,7 @@ func (c *cloudsploitConfig) makeConfig(region, assumeRole, externalID string) (s
 	if err != nil {
 		return "", err
 	}
-	configPath, err := c.createConfigFile(val.AccessKeyID, val.SecretAccessKey, val.SessionToken)
+	configPath, err := c.createConfigFile(val.AccessKeyID, val.SecretAccessKey, val.SessionToken, awsID, accountID)
 	if err != nil {
 		return "", err
 	}
@@ -47,9 +47,10 @@ module.exports = {
 };
 `
 
-func (c *cloudsploitConfig) createConfigFile(accessKeyID, secretAccessKey, sessoinToken string) (string, error) {
+func (c *cloudsploitConfig) createConfigFile(accessKeyID, secretAccessKey, sessoinToken string, awsID uint32, accountID string) (string, error) {
 	now := time.Now().UnixNano()
-	file, err := os.Create(fmt.Sprintf("%v/%v_%v_config.js", c.ConfigDir, accessKeyID, now))
+	file, err := os.Create(fmt.Sprintf("%v/%v_%v_%v_config.js", c.ConfigDir, awsID, accountID, now))
+	appLogger.Infof("Created config file. filename: %v", file.Name())
 	if err != nil {
 		return "", err
 	}

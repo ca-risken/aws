@@ -14,10 +14,9 @@ import (
 )
 
 type sqsHandler struct {
-	cloudsploitConfig cloudsploitConfig
-	findingClient     finding.FindingServiceClient
-	alertClient       alert.AlertServiceClient
-	awsClient         awsClient.AWSServiceClient
+	findingClient finding.FindingServiceClient
+	alertClient   alert.AlertServiceClient
+	awsClient     awsClient.AWSServiceClient
 }
 
 func newHandler() *sqsHandler {
@@ -42,7 +41,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		appLogger.Errorf("Invalid message. message: %v, error: %v", message, err)
 		return err
 	}
-	s.cloudsploitConfig, err = newcloudsploitConfig(message.AssumeRoleArn, message.ExternalID)
+	cloudsploitConfig, err := newcloudsploitConfig(message.AssumeRoleArn, message.ExternalID, message.AWSID, message.AccountID)
 	if err != nil {
 		appLogger.Errorf("Error occured when configure: %v, error: %v", message, err)
 		return err
@@ -52,8 +51,8 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	ctx := context.Background()
 	status := common.InitScanStatus(message)
 	// Run cloudsploit
-	cloudsploitResult, err := s.cloudsploitConfig.run(message.AccountID)
-	//cloudsploitResult, err := s.cloudsploitConfig.tmpRun(message.AccountID)
+	cloudsploitResult, err := cloudsploitConfig.run(message.AccountID)
+	//cloudsploitResult, err := cloudsploitConfig.tmpRun(message.AccountID)
 	if err != nil {
 		appLogger.Errorf("Failed exec cloudsploit, error: %v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
