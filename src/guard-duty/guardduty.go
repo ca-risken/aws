@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/CyberAgent/mimosa-aws/pkg/message"
+	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -14,6 +16,7 @@ import (
 )
 
 type guardDutyAPI interface {
+	getGuardDuty(*message.AWSQueueMessage) ([]*finding.FindingForUpsert, error)
 	listAvailableRegion() ([]*ec2.Region, error)
 	listDetectors() (*[]string, error)
 	listFindings(string, string) ([]*string, error)

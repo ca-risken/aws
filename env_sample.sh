@@ -28,6 +28,8 @@ export ADMIN_CHECKER_QUEUE_NAME="aws-adminchecker"
 export ADMIN_CHECKER_QUEUE_URL="http://sqs:9324/queue/aws-adminchecker"
 export CLOUDSPLOIT_QUEUE_NAME="aws-cloudsploit"
 export CLOUDSPLOIT_QUEUE_URL="http://sqs:9324/queue/aws-cloudsploit"
+export PORTSCAN_QUEUE_NAME="aws-portscan"
+export PORTSCAN_QUEUE_URL="http://sqs:9324/queue/aws-portscan"
 
 # gRPC server
 export FINDING_SVC_ADDR="finding:8001"

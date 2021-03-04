@@ -15,7 +15,6 @@ import (
 )
 
 type sqsHandler struct {
-	adminChecker  adminCheckerAPI
 	findingClient finding.FindingServiceClient
 	alertClient   alert.AlertServiceClient
 	awsClient     awsClient.AWSServiceClient
@@ -41,12 +40,12 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	ctx := context.Background()
 	status := common.InitScanStatus(message)
 	// IAM Admin Checker
-	s.adminChecker, err = newAdminCheckerClient(message.AssumeRoleArn, message.ExternalID)
+	adminChecker, err := newAdminCheckerClient(message.AssumeRoleArn, message.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create AdminChecker session: err=%+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
-	findings, err := s.getAdminUser(message)
+	findings, err := adminChecker.getAdminUser(message)
 	if err != nil {
 		appLogger.Errorf("Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", message.AccountID, err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
@@ -64,9 +63,9 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	return s.analyzeAlert(ctx, message.ProjectID)
 }
 
-func (s *sqsHandler) getAdminUser(msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
+func (a *adminCheckerClient) getAdminUser(msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
 	putData := []*finding.FindingForUpsert{}
-	iamUsers, err := s.adminChecker.listUser()
+	iamUsers, err := a.listUser()
 	if err != nil {
 		appLogger.Errorf("IAM.ListUser error: err=%+v", err)
 		return nil, err
