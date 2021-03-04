@@ -14,7 +14,6 @@ import (
 )
 
 type sqsHandler struct {
-	portscan      portscanAPI
 	findingClient finding.FindingServiceClient
 	alertClient   alert.AlertServiceClient
 	awsClient     awsClient.AWSServiceClient
@@ -55,12 +54,12 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	}
 
 	// Get portscan
-	s.portscan, err = newPortscanClient("", message.AssumeRoleArn, message.ExternalID)
+	portscan, err := newPortscanClient("", message.AssumeRoleArn, message.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create Portscan session: err=%+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
-	regions, err := s.portscan.listAvailableRegion()
+	regions, err := portscan.listAvailableRegion()
 	if err != nil {
 		appLogger.Errorf("Faild to get available regions, err = %+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
@@ -73,12 +72,12 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			continue
 		}
 		appLogger.Infof("Start %s region search...", *region.RegionName)
-		s.portscan, err = newPortscanClient(*region.RegionName, message.AssumeRoleArn, message.ExternalID)
+		portscan, err = newPortscanClient(*region.RegionName, message.AssumeRoleArn, message.ExternalID)
 		if err != nil {
 			appLogger.Warnf("Faild to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
 			continue
 		}
-		findings, err := s.getResult(message, isFirstRegion)
+		findings, err := portscan.getResult(message, isFirstRegion)
 		if err != nil {
 			appLogger.Warnf("Faild to get findngs to AWS Portscan: AccountID=%+v, err=%+v", message.AccountID, err)
 			continue
@@ -95,58 +94,6 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		return err
 	}
 	return s.analyzeAlert(ctx, message.ProjectID)
-}
-
-func (s *sqsHandler) getResult(message *message.AWSQueueMessage, isFirstRegion bool) ([]*finding.FindingForUpsert, error) {
-	putData := []*finding.FindingForUpsert{}
-	err := s.portscan.listSecurityGroup()
-	if err != nil {
-		appLogger.Errorf("Faild to describeSecurityGroups: err=%+v", err)
-		return putData, err
-	}
-	err = s.portscan.listEC2(message.AccountID)
-	if err != nil {
-		appLogger.Errorf("Faild to describeInstances: err=%+v", err)
-		return putData, err
-	}
-	err = s.portscan.listELB(message.AccountID)
-	if err != nil {
-		appLogger.Errorf("Faild to describeLoadBalancers: err=%+v", err)
-		return putData, err
-	}
-	err = s.portscan.listELBv2()
-	if err != nil {
-		appLogger.Errorf("Faild to describeLoadBalancers(elbv2): err=%+v", err)
-		return putData, err
-	}
-	err = s.portscan.listRDS()
-	if err != nil {
-		appLogger.Errorf("Faild to describeDBInstances(rds): err=%+v", err)
-		return putData, err
-	}
-	err = s.portscan.listLightsail()
-	if err != nil {
-		appLogger.Errorf("Faild to getInstances(lightsail): err=%+v", err)
-		return putData, err
-	}
-	excludeList := s.portscan.excludeScan()
-	nmapResults, err := s.portscan.scan()
-	if err != nil {
-		appLogger.Errorf("Faild to describeSecurityGroups: err=%+v", err)
-		return putData, err
-	}
-	putData, err = makeFindings(nmapResults, message)
-	if err != nil {
-		appLogger.Errorf("Faild to make findings: err=%+v", err)
-		return putData, err
-	}
-	putDataExclude, err := makeExcludeFindings(excludeList, message)
-	if err != nil {
-		appLogger.Errorf("Faild to make findings: err=%+v", err)
-		return putData, err
-	}
-	putData = append(putData, putDataExclude...)
-	return putData, nil
 }
 
 func (s *sqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {

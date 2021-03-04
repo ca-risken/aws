@@ -15,7 +15,6 @@ import (
 )
 
 type sqsHandler struct {
-	guardduty     guardDutyAPI
 	findingClient finding.FindingServiceClient
 	alertClient   alert.AlertServiceClient
 	awsClient     awsClient.AWSServiceClient
@@ -41,12 +40,12 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 
 	ctx := context.Background()
 	status := common.InitScanStatus(message)
-	s.guardduty, err = newGuardDutyClient("", message.AssumeRoleArn, message.ExternalID)
+	guardduty, err := newGuardDutyClient("", message.AssumeRoleArn, message.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create GuardDuty session: err=%+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
-	regions, err := s.guardduty.listAvailableRegion()
+	regions, err := guardduty.listAvailableRegion()
 	if err != nil {
 		appLogger.Errorf("Faild to get available regions, err = %+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
@@ -62,13 +61,13 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			continue
 		}
 		appLogger.Infof("Start %s region search...", *region.RegionName)
-		s.guardduty, err = newGuardDutyClient(*region.RegionName, message.AssumeRoleArn, message.ExternalID)
+		guardduty, err = newGuardDutyClient(*region.RegionName, message.AssumeRoleArn, message.ExternalID)
 		if err != nil {
 			appLogger.Errorf("Faild to create GuardDuty session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
 		}
 		// Get guardduty
-		findings, err := s.getGuardDuty(message)
+		findings, err := guardduty.getGuardDuty(message)
 		if err != nil {
 			appLogger.Errorf("Faild to get findngs to AWS GuardDuty: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
@@ -98,16 +97,16 @@ func supportedRegion(region string) bool {
 	return true
 }
 
-func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
+func (g *guardDutyClient) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
 	putData := []*finding.FindingForUpsert{}
-	detecterIDs, err := s.guardduty.listDetectors()
+	detecterIDs, err := g.listDetectors()
 	if err != nil {
 		appLogger.Errorf("GuardDuty.ListDetectors error: err=%+v", err)
 		return nil, err
 	}
 	for _, id := range *detecterIDs {
 		fmt.Printf("detecterId: %s\n", id)
-		findingIDs, err := s.guardduty.listFindings(message.AccountID, id)
+		findingIDs, err := g.listFindings(message.AccountID, id)
 		if err != nil {
 			appLogger.Warnf(
 				"GuardDuty.ListDetectors error: detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)
@@ -117,7 +116,7 @@ func (s *sqsHandler) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.
 			appLogger.Infof("No findings: accountID=%s", message.AccountID)
 			continue
 		}
-		findings, err := s.guardduty.getFindings(id, findingIDs)
+		findings, err := g.getFindings(id, findingIDs)
 		if err != nil {
 			appLogger.Warnf(
 				"GuardDuty.GetFindings error:detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)

@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 
+	"github.com/CyberAgent/mimosa-aws/pkg/message"
+	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -12,6 +14,7 @@ import (
 )
 
 type adminCheckerAPI interface {
+	getAdminUser(*message.AWSQueueMessage) ([]*finding.FindingForUpsert, error)
 	listUser() (*[]iamUser, error)
 }
 

@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 
+	"github.com/CyberAgent/mimosa-aws/pkg/message"
+	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/Ullaakut/nmap/v2"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -17,6 +19,7 @@ import (
 )
 
 type portscanAPI interface {
+	getResult(*message.AWSQueueMessage, bool) ([]*finding.FindingForUpsert, error)
 	listAvailableRegion() ([]*ec2.Region, error)
 	listEC2(string) error
 	listSecurityGroup() error
@@ -106,6 +109,58 @@ func (p *portscanClient) listAvailableRegion() ([]*ec2.Region, error) {
 		return nil, nil
 	}
 	return out.Regions, nil
+}
+
+func (p *portscanClient) getResult(message *message.AWSQueueMessage, isFirstRegion bool) ([]*finding.FindingForUpsert, error) {
+	putData := []*finding.FindingForUpsert{}
+	err := p.listSecurityGroup()
+	if err != nil {
+		appLogger.Errorf("Faild to describeSecurityGroups: err=%+v", err)
+		return putData, err
+	}
+	err = p.listEC2(message.AccountID)
+	if err != nil {
+		appLogger.Errorf("Faild to describeInstances: err=%+v", err)
+		return putData, err
+	}
+	err = p.listELB(message.AccountID)
+	if err != nil {
+		appLogger.Errorf("Faild to describeLoadBalancers: err=%+v", err)
+		return putData, err
+	}
+	err = p.listELBv2()
+	if err != nil {
+		appLogger.Errorf("Faild to describeLoadBalancers(elbv2): err=%+v", err)
+		return putData, err
+	}
+	err = p.listRDS()
+	if err != nil {
+		appLogger.Errorf("Faild to describeDBInstances(rds): err=%+v", err)
+		return putData, err
+	}
+	err = p.listLightsail()
+	if err != nil {
+		appLogger.Errorf("Faild to getInstances(lightsail): err=%+v", err)
+		return putData, err
+	}
+	excludeList := p.excludeScan()
+	nmapResults, err := p.scan()
+	if err != nil {
+		appLogger.Errorf("Faild to describeSecurityGroups: err=%+v", err)
+		return putData, err
+	}
+	putData, err = makeFindings(nmapResults, message)
+	if err != nil {
+		appLogger.Errorf("Faild to make findings: err=%+v", err)
+		return putData, err
+	}
+	putDataExclude, err := makeExcludeFindings(excludeList, message)
+	if err != nil {
+		appLogger.Errorf("Faild to make findings: err=%+v", err)
+		return putData, err
+	}
+	putData = append(putData, putDataExclude...)
+	return putData, nil
 }
 
 func (p *portscanClient) listSecurityGroup() error {
