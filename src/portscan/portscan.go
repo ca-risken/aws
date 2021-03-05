@@ -257,9 +257,9 @@ func (p *portscanClient) listELB(accountID string) error {
 	}
 	for _, l := range result.LoadBalancerDescriptions {
 		listELB = append(listELB, &infoELB{
-			CanonicalHostedZoneName: *l.CanonicalHostedZoneName,
-			LoadBalancerName:        *l.LoadBalancerName,
-			GroupID:                 l.SecurityGroups,
+			DNSName:          *l.DNSName,
+			LoadBalancerName: *l.LoadBalancerName,
+			GroupID:          l.SecurityGroups,
 		})
 	}
 	for _, elb := range listELB {
@@ -270,7 +270,7 @@ func (p *portscanClient) listELB(accountID string) error {
 		for _, securityGroup := range securityGroups {
 			targetELB := &target{
 				Arn:           fmt.Sprintf("arn:aws:elasticloadbalancing:%v:%v:loadbalancer/%v", p.Region, accountID, elb.LoadBalancerName),
-				Target:        elb.CanonicalHostedZoneName,
+				Target:        elb.DNSName,
 				Protocol:      securityGroup.protocol,
 				FromPort:      securityGroup.fromPort,
 				ToPort:        securityGroup.toPort,
@@ -424,7 +424,6 @@ func (p *portscanClient) excludeScan() []*excludeResult {
 	var excludeList []*excludeResult
 	var excludedTarget []*target
 	for _, t := range p.target {
-		appLogger.Infof("SEP: %v", p.ScanExcludePortNumber)
 		if (t.ToPort - t.FromPort) > p.ScanExcludePortNumber {
 			excludeList = append(excludeList, &excludeResult{
 				FromPort:      t.FromPort,
@@ -556,9 +555,9 @@ type infoEC2 struct {
 }
 
 type infoELB struct {
-	CanonicalHostedZoneName string
-	LoadBalancerName        string
-	GroupID                 []*string
+	DNSName          string
+	LoadBalancerName string
+	GroupID          []*string
 }
 
 type infoELBv2 struct {
