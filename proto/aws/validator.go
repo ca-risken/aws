@@ -102,12 +102,15 @@ func (d *DataSourceForAttach) Validate() error {
 	)
 }
 
-// // Check the Status
-// func validStatus(s Status) validation.RuleFunc {
-// 	return func(value interface{}) error {
-// 		if s == Status_UNKOWN {
-// 			return errors.New("Invalid status")
-// 		}
-// 		return nil
-// 	}
-// }
+// ValidateForUser DataSourceForAttach
+func (d *DataSourceForAttach) ValidateForUser() error {
+	return validation.ValidateStruct(d,
+		validation.Field(&d.AwsId, validation.Required),
+		validation.Field(&d.AwsDataSourceId, validation.Required),
+		validation.Field(&d.ProjectId, validation.Required),
+		validation.Field(&d.AssumeRoleArn, validation.Required, validation.Length(0, 255)),
+		validation.Field(&d.ExternalId, validation.Required, validation.Length(8, 255)),
+		validation.Field(&d.StatusDetail, validation.Length(0, 255)),
+		validation.Field(&d.ScanAt, validation.Min(0), validation.Max(253402268399)), //  1970-01-01T00:00:00 ~ 9999-12-31T23:59:59
+	)
+}
