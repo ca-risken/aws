@@ -58,6 +58,19 @@ func (a *AttachDataSourceRequest) Validate() error {
 	return a.AttachDataSource.Validate()
 }
 
+// ValidateForUser AttachDataSourceRequest
+func (a *AttachDataSourceRequest) ValidateForUser() error {
+	if a.AttachDataSource == nil {
+		return errors.New("Required AttachDataSource")
+	}
+	if err := validation.ValidateStruct(a,
+		validation.Field(&a.ProjectId, validation.Required, validation.In(a.AttachDataSource.ProjectId)),
+	); err != nil {
+		return err
+	}
+	return a.AttachDataSource.ValidateForUser()
+}
+
 // Validate DetachDataSourceRequest
 func (d *DetachDataSourceRequest) Validate() error {
 	return validation.ValidateStruct(d,
