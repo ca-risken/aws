@@ -28,7 +28,7 @@ func makeFindings(results []*nmapResult, message *message.AWSQueueMessage) ([]*f
 			DataSourceId:     generateDataSourceID(fmt.Sprintf("%v:%v:%v", r.Target, r.Protocol, r.Port)),
 			ResourceName:     r.Arn,
 			ProjectId:        message.ProjectID,
-			OriginalScore:    getScore(r.Status, r.Protocol, r.Port),
+			OriginalScore:    getScore(r),
 			OriginalMaxScore: 10.0,
 			Data:             string(data),
 		})
@@ -109,19 +109,33 @@ func generateDataSourceID(input string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func getScore(status, protocol string, port int) float32 {
-	if strings.ToUpper(status) == "CLOSED" || strings.Index(strings.ToUpper(status), "FILTERED") > -1 {
+func getScore(result *nmapResult) float32 {
+	status := result.Status
+	protocol := result.Protocol
+	port := result.Port
+	if strings.ToUpper(status) == "CLOSED" || (strings.ToUpper(protocol) == "TCP" && strings.Index(strings.ToUpper(status), "FILTERED") > -1) {
 		return 1.0
 	}
 	if strings.ToUpper(protocol) == "UDP" {
-		return 3.0
+		return 6.0
 	}
 	switch port {
 	case 22, 3306, 5432, 6379:
 		return 8.0
-	case 80, 443:
-		return 1.0
 	default:
-		return 3.0
+		score := getScoreByScanDetail(result.ScanDetail)
+		return score
 	}
+}
+
+func getScoreByScanDetail(detail map[string]interface{}) float32 {
+	val, ok := detail["status"]
+	if !ok {
+		return 6.0
+	}
+	if strings.Index(val.(string), "401") > -1 || strings.Index(val.(string), "403") > -1 {
+		return 1.0
+	}
+	return 6.0
+
 }
