@@ -58,6 +58,19 @@ func (a *AttachDataSourceRequest) Validate() error {
 	return a.AttachDataSource.Validate()
 }
 
+// ValidateForUser AttachDataSourceRequest
+func (a *AttachDataSourceRequest) ValidateForUser() error {
+	if a.AttachDataSource == nil {
+		return errors.New("Required AttachDataSource")
+	}
+	if err := validation.ValidateStruct(a,
+		validation.Field(&a.ProjectId, validation.Required, validation.In(a.AttachDataSource.ProjectId)),
+	); err != nil {
+		return err
+	}
+	return a.AttachDataSource.ValidateForUser()
+}
+
 // Validate DetachDataSourceRequest
 func (d *DetachDataSourceRequest) Validate() error {
 	return validation.ValidateStruct(d,
@@ -102,12 +115,15 @@ func (d *DataSourceForAttach) Validate() error {
 	)
 }
 
-// // Check the Status
-// func validStatus(s Status) validation.RuleFunc {
-// 	return func(value interface{}) error {
-// 		if s == Status_UNKOWN {
-// 			return errors.New("Invalid status")
-// 		}
-// 		return nil
-// 	}
-// }
+// ValidateForUser DataSourceForAttach
+func (d *DataSourceForAttach) ValidateForUser() error {
+	return validation.ValidateStruct(d,
+		validation.Field(&d.AwsId, validation.Required),
+		validation.Field(&d.AwsDataSourceId, validation.Required),
+		validation.Field(&d.ProjectId, validation.Required),
+		validation.Field(&d.AssumeRoleArn, validation.Required, validation.Length(0, 255)),
+		validation.Field(&d.ExternalId, validation.Required, validation.Length(8, 255)),
+		validation.Field(&d.StatusDetail, validation.Length(0, 255)),
+		validation.Field(&d.ScanAt, validation.Min(0), validation.Max(253402268399)), //  1970-01-01T00:00:00 ~ 9999-12-31T23:59:59
+	)
+}

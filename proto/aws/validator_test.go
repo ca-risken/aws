@@ -168,7 +168,7 @@ func TestValidate_AttachDataSourceRequest(t *testing.T) {
 	}{
 		{
 			name:    "OK",
-			input:   &AttachDataSourceRequest{ProjectId: 1, AttachDataSource: &DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "assume-role", ExternalId: ""}},
+			input:   &AttachDataSourceRequest{ProjectId: 1, AttachDataSource: &DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "assume-role", ExternalId: "12345678"}},
 			wantErr: false,
 		},
 		{
@@ -178,12 +178,12 @@ func TestValidate_AttachDataSourceRequest(t *testing.T) {
 		},
 		{
 			name:    "NG Required(ProjectID)",
-			input:   &AttachDataSourceRequest{AttachDataSource: &DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "assume-role", ExternalId: ""}},
+			input:   &AttachDataSourceRequest{AttachDataSource: &DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "assume-role", ExternalId: "12345678"}},
 			wantErr: true,
 		},
 		{
 			name:    "NG Invalid ProjectID",
-			input:   &AttachDataSourceRequest{ProjectId: 999, AttachDataSource: &DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "assume-role", ExternalId: ""}},
+			input:   &AttachDataSourceRequest{ProjectId: 999, AttachDataSource: &DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "assume-role", ExternalId: "12345678"}},
 			wantErr: true,
 		},
 	}
@@ -363,15 +363,10 @@ func TestValidate_DataSourceForAttach(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "NG Length(assume_role_arn)",
+			name:    "NG Length MAX(external_id)",
 			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: stringLength256, Status: Status_OK, StatusDetail: "", ScanAt: 0},
 			wantErr: true,
 		},
-		// {
-		// 	name:    "NG Invalid(Status)",
-		// 	input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_UNKOWN, StatusDetail: "", ScanAt: 0},
-		// 	wantErr: true,
-		// },
 		{
 			name:    "NG Length(Status Detail)",
 			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: stringLength256, ScanAt: 0},
@@ -391,6 +386,85 @@ func TestValidate_DataSourceForAttach(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			err := c.input.Validate()
+			if c.wantErr && err == nil {
+				t.Fatal("Unexpected no error")
+			} else if !c.wantErr && err != nil {
+				t.Fatalf("Unexpected error occured: wantErr=%t, err=%+v", c.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestValidateForUser_DataSourceForAttach(t *testing.T) {
+	cases := []struct {
+		name    string
+		input   *DataSourceForAttach
+		wantErr bool
+	}{
+		{
+			name:    "OK",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "12345678", Status: Status_OK, StatusDetail: "", ScanAt: 0},
+			wantErr: false,
+		},
+		{
+			name:    "NG Required(aws_id)",
+			input:   &DataSourceForAttach{AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "12345678", Status: Status_OK, StatusDetail: "", ScanAt: 0},
+			wantErr: true,
+		},
+		{
+			name:    "NG Required(aws_data_source_id)",
+			input:   &DataSourceForAttach{AwsId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "12345678", Status: Status_OK, StatusDetail: "", ScanAt: 0},
+			wantErr: true,
+		},
+		{
+			name:    "NG Required(project_id)",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, AssumeRoleArn: "role", ExternalId: "12345678", Status: Status_OK, StatusDetail: "", ScanAt: 0},
+			wantErr: true,
+		},
+		{
+			name:    "NG Required(assume_role_arn)",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, ExternalId: "12345678", Status: Status_OK, StatusDetail: "", ScanAt: 0},
+			wantErr: true,
+		},
+		{
+			name:    "NG Length(assume_role_arn)",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: stringLength256, ExternalId: "12345678", Status: Status_OK, StatusDetail: "", ScanAt: 0},
+			wantErr: true,
+		},
+		{
+			name:    "NG Required(external_id)",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: "", ScanAt: 0},
+			wantErr: true,
+		},
+		{
+			name:    "NG Length MIN(external_id)",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "1234567", Status: Status_OK, StatusDetail: "", ScanAt: 0},
+			wantErr: true,
+		},
+		{
+			name:    "NG Length MAX(external_id)",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: stringLength256, Status: Status_OK, StatusDetail: "", ScanAt: 0},
+			wantErr: true,
+		},
+		{
+			name:    "NG Length(Status Detail)",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: stringLength256, ScanAt: 0},
+			wantErr: true,
+		},
+		{
+			name:    "NG Range1(ScanAt)",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: stringLength256, ScanAt: -1},
+			wantErr: true,
+		},
+		{
+			name:    "NG Range2(ScanAt)",
+			input:   &DataSourceForAttach{AwsId: 1001, AwsDataSourceId: 1001, ProjectId: 111, AssumeRoleArn: "role", ExternalId: "", Status: Status_OK, StatusDetail: stringLength256, ScanAt: 253402268400},
+			wantErr: true,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := c.input.ValidateForUser()
 			if c.wantErr && err == nil {
 				t.Fatal("Unexpected no error")
 			} else if !c.wantErr && err != nil {
