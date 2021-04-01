@@ -40,7 +40,7 @@ type CloudTrail struct {
 	EventSource     string    `protobuf:"bytes,6,opt,name=event_source,json=eventSource,proto3" json:"event_source,omitempty"`
 	Username        string    `protobuf:"bytes,7,opt,name=username,proto3" json:"username,omitempty"`
 	Resources       *Resource `protobuf:"bytes,8,opt,name=resources,proto3" json:"resources,omitempty"`
-	CloudtrailEvent string    `protobuf:"bytes,9,opt,name=cloudtrail_event,json=cloudtrailEvent,proto3" json:"cloudtrail_event,omitempty"`
+	CloudtrailEvent string    `protobuf:"bytes,9,opt,name=cloudtrail_event,json=cloudtrailEvent,proto3" json:"cloudtrail_event,omitempty"` // Raw data(JSON)
 }
 
 func (x *CloudTrail) Reset() {
