@@ -5,6 +5,7 @@ install:
 	go get \
 		google.golang.org/grpc \
 		github.com/golang/protobuf/protoc-gen-go \
+		github.com/envoyproxy/protoc-gen-validate \
 		github.com/grpc-ecosystem/go-grpc-middleware
 
 clean:
@@ -18,17 +19,32 @@ doc: fmt
 	protoc \
 		--proto_path=proto \
 		--error_format=gcc \
+		-I $(GOPATH)/src/github.com/envoyproxy/protoc-gen-validate \
 		--doc_out=markdown,README.md:doc \
 		proto/**/*.proto;
 
-build: fmt
-	protoc \
-		--proto_path=proto \
-		--error_format=gcc \
-		--go_out=plugins=grpc,paths=source_relative:proto \
-		proto/**/*.proto;
+build: fmt doc
+	for svc in "aws"; do \
+		protoc \
+			--proto_path=proto \
+			--error_format=gcc \
+			--go_out=plugins=grpc,paths=source_relative:proto \
+			proto/$$svc/*.proto; \
+	done
 
-go-test: build
+# build with protoc-gen-validate
+build-validate: fmt doc
+	for svc in "cloudtrail"; do \
+		protoc \
+			--proto_path=proto \
+			--error_format=gcc \
+			-I $(GOPATH)/src/github.com/envoyproxy/protoc-gen-validate \
+			--go_out=plugins=grpc,paths=source_relative:proto \
+			--validate_out="lang=go,paths=source_relative:proto" \
+			proto/$$svc/*.proto; \
+	done
+
+go-test: build build-validate
 	cd proto/aws           && go test ./...
 	cd pkg/message         && go test ./...
 	cd src/aws             && go test ./...
@@ -59,7 +75,7 @@ go-mod-update:
 			github.com/CyberAgent/mimosa-core/... \
 			github.com/CyberAgent/mimosa-aws/...
 
-go-mod-tidy: build
+go-mod-tidy: build build-validate
 	cd proto/aws           && go mod tidy
 	cd pkg/model           && go mod tidy
 	cd pkg/message         && go mod tidy

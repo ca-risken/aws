@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package aws.cloudtrail;
+option go_package = "github.com/CyberAgent/mimosa-aws/proto/cloudtrail";
+
+import "google/protobuf/empty.proto";
+import "cloudtrail/entity.proto";
+import "validate/validate.proto";
+
+service AWSService {
+  // AWS
+  rpc ListCloudTrail(ListCloudTrailRequest) returns (ListCloudTrailResponse);
+}
+
+message ListCloudTrailRequest {
+  uint32 project_id = 1 [ (validate.rules).uint32.gt = 0 ];
+  uint32 aws_id = 2 [ (validate.rules).uint32.gt = 0 ];
+  // CloudTrail lookup-events API parameters:
+  // https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html
+
+  int64 start_time = 3
+      [ (validate.rules).int64 = {gte : 0, lte : 253402268399} ];
+  int64 end_time = 4 [ (validate.rules).int64 = {gte : 0, lte : 253402268399} ];
+  string event_id = 5;
+  string event_name = 6;
+  string event_source = 7;
+  string read_only = 8;
+  string resource_name = 9;
+  string resource_type = 10;
+  string user_name = 11;
+}
+
+message ListCloudTrailResponse { repeated CloudTrail cloudtrail = 1; }

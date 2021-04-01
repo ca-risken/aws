@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package aws.cloudtrail;
+option go_package = "github.com/CyberAgent/mimosa-aws/proto/cloudtrail";
+
+/**
+ * Entity
+ **/
+
+// CloudTrail:
+// https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#output
+message CloudTrail {
+  string event_id = 1;
+  string event_name = 2;
+  string read_only = 3;
+  string access_key_id = 4;
+  int64 event_time = 5;
+  string event_source = 6;
+  string username = 7;
+  Resource resources = 8;
+  string cloudtrail_event = 9; // Raw data(JSON)
+}
+
+message Resource {
+  string resource_type = 1;
+  string resource_name = 2;
+}

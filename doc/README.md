@@ -27,6 +27,16 @@
   
     - [AWSService](#aws.aws.AWSService)
   
+- [cloudtrail/entity.proto](#cloudtrail/entity.proto)
+    - [CloudTrail](#aws.cloudtrail.CloudTrail)
+    - [Resource](#aws.cloudtrail.Resource)
+  
+- [cloudtrail/service.proto](#cloudtrail/service.proto)
+    - [ListCloudTrailRequest](#aws.cloudtrail.ListCloudTrailRequest)
+    - [ListCloudTrailResponse](#aws.cloudtrail.ListCloudTrailResponse)
+  
+    - [AWSService](#aws.cloudtrail.AWSService)
+  
 - [Scalar Value Types](#scalar-value-types)
 
 
@@ -376,6 +386,128 @@ Status
 
 For ondeamnd |
 | InvokeScanAll | [.google.protobuf.Empty](#google.protobuf.Empty) | [.google.protobuf.Empty](#google.protobuf.Empty) | For scheduled |
+
+ 
+
+
+
+<a name="cloudtrail/entity.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## cloudtrail/entity.proto
+
+
+
+<a name="aws.cloudtrail.CloudTrail"></a>
+
+### CloudTrail
+CloudTrail:
+https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#output
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| event_id | [string](#string) |  |  |
+| event_name | [string](#string) |  |  |
+| read_only | [string](#string) |  |  |
+| access_key_id | [string](#string) |  |  |
+| event_time | [int64](#int64) |  |  |
+| event_source | [string](#string) |  |  |
+| username | [string](#string) |  |  |
+| resources | [Resource](#aws.cloudtrail.Resource) |  |  |
+| cloudtrail_event | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="aws.cloudtrail.Resource"></a>
+
+### Resource
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| resource_type | [string](#string) |  |  |
+| resource_name | [string](#string) |  |  |
+
+
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+
+
+<a name="cloudtrail/service.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## cloudtrail/service.proto
+
+
+
+<a name="aws.cloudtrail.ListCloudTrailRequest"></a>
+
+### ListCloudTrailRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| project_id | [uint32](#uint32) |  |  |
+| aws_id | [uint32](#uint32) |  | CloudTrail lookup-events API parameters: https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html |
+| start_time | [int64](#int64) |  |  |
+| end_time | [int64](#int64) |  |  |
+| event_id | [string](#string) |  |  |
+| event_name | [string](#string) |  |  |
+| event_source | [string](#string) |  |  |
+| read_only | [string](#string) |  |  |
+| resource_name | [string](#string) |  |  |
+| resource_type | [string](#string) |  |  |
+| user_name | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="aws.cloudtrail.ListCloudTrailResponse"></a>
+
+### ListCloudTrailResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| cloudtrail | [CloudTrail](#aws.cloudtrail.CloudTrail) | repeated |  |
+
+
+
+
+
+ 
+
+ 
+
+ 
+
+
+<a name="aws.cloudtrail.AWSService"></a>
+
+### AWSService
+
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| ListCloudTrail | [ListCloudTrailRequest](#aws.cloudtrail.ListCloudTrailRequest) | [ListCloudTrailResponse](#aws.cloudtrail.ListCloudTrailResponse) | AWS |
 
  
 
