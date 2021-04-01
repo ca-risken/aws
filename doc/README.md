@@ -35,7 +35,7 @@
     - [ListCloudTrailRequest](#aws.cloudtrail.ListCloudTrailRequest)
     - [ListCloudTrailResponse](#aws.cloudtrail.ListCloudTrailResponse)
   
-    - [AWSService](#aws.cloudtrail.AWSService)
+    - [CloudTrailService](#aws.cloudtrail.CloudTrailService)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -415,7 +415,7 @@ https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#o
 | event_source | [string](#string) |  |  |
 | username | [string](#string) |  |  |
 | resources | [Resource](#aws.cloudtrail.Resource) |  |  |
-| cloudtrail_event | [string](#string) |  |  |
+| cloudtrail_event | [string](#string) |  | Raw data(JSON) |
 
 
 
@@ -500,14 +500,14 @@ https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#o
  
 
 
-<a name="aws.cloudtrail.AWSService"></a>
+<a name="aws.cloudtrail.CloudTrailService"></a>
 
-### AWSService
+### CloudTrailService
 
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| ListCloudTrail | [ListCloudTrailRequest](#aws.cloudtrail.ListCloudTrailRequest) | [ListCloudTrailResponse](#aws.cloudtrail.ListCloudTrailResponse) | AWS |
+| ListCloudTrail | [ListCloudTrailRequest](#aws.cloudtrail.ListCloudTrailRequest) | [ListCloudTrailResponse](#aws.cloudtrail.ListCloudTrailResponse) |  |
 
  
 
