@@ -58,6 +58,10 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			appLogger.Warnf("Invalid region in AccountID=%s", message.AccountID)
 			continue
 		}
+		if !supportedRegion(*region.RegionName) {
+			appLogger.Infof("Skip the %s region,Because AccessAnalyzer serveice is not supported", *region.RegionName)
+			continue
+		}
 		appLogger.Infof("Start %s region search...", *region.RegionName)
 		// AccessAnalyzer
 		accessAnalyzer, err = newAccessAnalyzerClient(*region.RegionName, message.AssumeRoleArn, message.ExternalID)
@@ -222,4 +226,17 @@ func scoreAccessAnalyzerFinding(status string, isPublic bool, actions []*string)
 		return 0.9 // Writable resource
 	}
 	return 1.0 // Both readable and writable
+}
+
+var unsupportedRegions = []string{
+	"ap-east-1",
+}
+
+func supportedRegion(region string) bool {
+	for _, unsupported := range unsupportedRegions {
+		if region == unsupported {
+			return false
+		}
+	}
+	return true
 }
