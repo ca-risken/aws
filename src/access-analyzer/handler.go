@@ -229,7 +229,7 @@ func scoreAccessAnalyzerFinding(status string, isPublic bool, actions []*string)
 }
 
 var unsupportedRegions = []string{
-	"ap-east-1",
+	// "ap-east-1",
 }
 
 func supportedRegion(region string) bool {
