@@ -85,7 +85,6 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 }
 
 var unsupportedRegions = []string{
-	"ap-northeast-3",
 	// "ap-east-1",
 }
 
