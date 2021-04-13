@@ -79,12 +79,12 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		}
 		findings, err := portscan.getResult(message, isFirstRegion)
 		if err != nil {
-			appLogger.Warnf("Faild to get findngs to AWS Portscan: AccountID=%+v, err=%+v", message.AccountID, err)
+			appLogger.Warnf("Faild to get findings to AWS Portscan: AccountID=%+v, err=%+v", message.AccountID, err)
 			continue
 		}
 		// Put finding to core
 		if err := s.putFindings(ctx, findings); err != nil {
-			appLogger.Errorf("Faild to put findngs: AccountID=%+v, err=%+v", message.AccountID, err)
+			appLogger.Errorf("Faild to put findings: AccountID=%+v, err=%+v", message.AccountID, err)
 			statusDetail = fmt.Sprintf("%v%v", statusDetail, err.Error())
 		}
 		isFirstRegion = false
