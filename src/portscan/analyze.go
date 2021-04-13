@@ -36,7 +36,6 @@ func analyzeHTTP(target string, port int) (map[string]interface{}, error) {
 	}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		fmt.Printf("%v", err)
 		return nil, err
 	}
 	transport := &http.Transport{
@@ -48,14 +47,10 @@ func analyzeHTTP(target string, port int) (map[string]interface{}, error) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("%v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
-	fmt.Printf("%v\n", map[string]interface{}{
-		"status": resp.Status,
-		"header": resp.Header,
-	})
+
 	ret := map[string]interface{}{
 		"status": resp.Status,
 		"header": resp.Header,
