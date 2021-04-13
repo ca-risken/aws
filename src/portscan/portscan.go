@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
+	"github.com/CyberAgent/mimosa-common/pkg/portscan"
 	"github.com/CyberAgent/mimosa-core/proto/finding"
-	"github.com/Ullaakut/nmap/v2"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -28,7 +28,7 @@ type portscanAPI interface {
 	listRDS() error
 	listLightsail() error
 	excludeScan() []*excludeResult
-	scan() ([]*nmapResult, error)
+	scan() ([]*portscan.NmapResult, error)
 }
 
 type portscanClient struct {
@@ -171,24 +171,24 @@ func (p *portscanClient) listSecurityGroup() error {
 		appLogger.Errorf("error occured when DescribeSecurityGroups: %v", err)
 		return err
 	}
-	for _, i := range result.SecurityGroups {
+	for _, securityGroup := range result.SecurityGroups {
 		fPort := 0
 		tPort := 65535
 		ipProtocol := "all"
-		for _, j := range i.IpPermissions {
-			if *j.IpProtocol == "tcp" || *j.IpProtocol == "udp" {
-				fPort = int(*j.FromPort)
-				tPort = int(*j.ToPort)
-				ipProtocol = *j.IpProtocol
+		for _, ipPermission := range securityGroup.IpPermissions {
+			if *ipPermission.IpProtocol == "tcp" || *ipPermission.IpProtocol == "udp" {
+				fPort = int(*ipPermission.FromPort)
+				tPort = int(*ipPermission.ToPort)
+				ipProtocol = *ipPermission.IpProtocol
 			}
-			for _, k := range j.IpRanges {
-				if *k.CidrIp == "0.0.0.0/0" {
+			for _, ipRange := range ipPermission.IpRanges {
+				if *ipRange.CidrIp == "0.0.0.0/0" {
 					retSG = append(retSG, &targetSG{
 						fromPort:  fPort,
 						toPort:    tPort,
 						protocol:  ipProtocol,
-						groupID:   *i.GroupId,
-						groupName: *i.GroupName,
+						groupID:   *securityGroup.GroupId,
+						groupName: *securityGroup.GroupName,
 					})
 				}
 			}
@@ -206,17 +206,17 @@ func (p *portscanClient) listEC2(accountID string) error {
 		appLogger.Errorf("error occured when DescribeInstances: %v", err)
 		return err
 	}
-	for _, r := range result.Reservations {
-		for _, i := range r.Instances {
-			for _, j := range i.NetworkInterfaces {
-				if j.Association != nil {
+	for _, reservation := range result.Reservations {
+		for _, instance := range reservation.Instances {
+			for _, networkInterface := range instance.NetworkInterfaces {
+				if networkInterface.Association != nil {
 					var securityGroups []*string
-					for _, k := range j.Groups {
-						securityGroups = append(securityGroups, k.GroupId)
+					for _, group := range networkInterface.Groups {
+						securityGroups = append(securityGroups, group.GroupId)
 					}
 					listEC2 = append(listEC2, &infoEC2{
-						InstanceID: *i.InstanceId,
-						PublicIP:   *j.Association.PublicIp,
+						InstanceID: *instance.InstanceId,
+						PublicIP:   *networkInterface.Association.PublicIp,
 						GroupID:    securityGroups,
 					})
 				}
@@ -443,26 +443,6 @@ func (p *portscanClient) excludeScan() []*excludeResult {
 	return excludeList
 }
 
-func (p *portscanClient) scan() ([]*nmapResult, error) {
-	var nmapResults []*nmapResult
-	for _, target := range p.target {
-		appLogger.Infof("target: %v", target)
-		results, err := run(target.Target, target.Protocol, target.FromPort, target.ToPort)
-		if err != nil {
-			appLogger.Warnf("error occured when scanning. error: %v", err)
-			continue
-		}
-		for _, result := range results {
-			result.Arn = target.Arn
-			result.SecurityGroup = target.SecurityGroup
-			result.ScanDetail = analyzeResult(result.Target, result.Status, result.Service, result.Protocol, result.Port)
-			nmapResults = append(nmapResults, result)
-		}
-	}
-
-	return nmapResults, nil
-}
-
 func (p *portscanClient) getMatchSecurityGroup(targetSecurityGroups []*string) []*targetSG {
 	var ret []*targetSG
 	for _, sg := range targetSecurityGroups {
@@ -475,62 +455,22 @@ func (p *portscanClient) getMatchSecurityGroup(targetSecurityGroups []*string) [
 	return ret
 }
 
-func run(target, protocol string, fPort, tPort int) ([]*nmapResult, error) {
-	var nmapResults []*nmapResult
-	scanner, err := getScanner(target, protocol, fPort, tPort)
-	if err != nil {
-		appLogger.Errorf("unable to create nmap scanner %v", err)
-		return []*nmapResult{}, err
-	}
-
-	result, warn, err := scanner.Run()
-	if err != nil {
-		appLogger.Errorf("nmap scan failed: %v", err)
-		appLogger.Warnf("nmap scan failed error detail: %v", warn)
-		return []*nmapResult{}, err
-	}
-	for _, host := range result.Hosts {
-		for _, port := range host.Ports {
-			nmapResults = append(nmapResults, &nmapResult{
-				Port:     int(port.ID),
-				Protocol: protocol,
-				Target:   target,
-				Status:   port.State.State,
-				Service:  port.Service.Name,
-			})
-		}
-	}
-	return nmapResults, nil
-}
-
-func getScanner(host, protocol string, fPort, tPort int) (*nmap.Scanner, error) {
-	if protocol == "tcp" {
-		scanner, err := nmap.NewScanner(
-			nmap.WithTargets(host),
-			nmap.WithPorts(fmt.Sprintf("%v", fPort)),
-			nmap.WithServiceInfo(),
-			nmap.WithSYNScan(),
-			nmap.WithTimingTemplate(nmap.TimingAggressive),
-		)
+func (p *portscanClient) scan() ([]*portscan.NmapResult, error) {
+	var nmapResults []*portscan.NmapResult
+	for _, target := range p.target {
+		appLogger.Infof("target: %v", target)
+		results, err := portscan.Scan(target.Target, target.Protocol, target.FromPort, target.ToPort)
 		if err != nil {
-			appLogger.Errorf("unable to create nmap scanner with TCP: %v", err)
-			return nil, err
+			appLogger.Warnf("Error occured when scanning. err: %v", err)
+			return nmapResults, nil
 		}
-		return scanner, nil
+		for _, result := range results {
+			result.ResourceName = target.Arn
+			nmapResults = append(nmapResults, result)
+		}
 	}
-	scanner, err := nmap.NewScanner(
-		nmap.WithTargets(host),
-		nmap.WithPorts(fmt.Sprintf("%v-%v", fPort, tPort)),
-		nmap.WithServiceInfo(),
-		nmap.WithUDPScan(),
-		nmap.WithTimingTemplate(nmap.TimingAggressive),
-	)
-	if err != nil {
-		appLogger.Errorf("unable to create nmap scanner with UDP: %v", err)
 
-		return nil, err
-	}
-	return scanner, nil
+	return nmapResults, nil
 }
 
 type targetSG struct {
@@ -574,17 +514,6 @@ type infoRDS struct {
 	PubliclyAccessible bool
 	Endpoint           string
 	GroupID            []*string
-}
-
-type nmapResult struct {
-	Port          int
-	Protocol      string
-	Target        string
-	Status        string
-	Service       string
-	Arn           string
-	SecurityGroup string
-	ScanDetail    map[string]interface{}
 }
 
 type excludeResult struct {

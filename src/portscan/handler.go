@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
@@ -52,16 +53,21 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			StatusDetail: "",
 		},
 	}
+	// check AccountID matches Arn for Scan
+	if !isMatchAccountIDArn(message.AccountID, message.AssumeRoleArn) {
+		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", message.AccountID, message.AssumeRoleArn)
+		return s.updateScanStatusError(ctx, &status, fmt.Sprintf("AssumeRoleArn for Portscan must be created in AWS AccountID: %v", message.AccountID))
+	}
 
 	// Get portscan
 	portscan, err := newPortscanClient("", message.AssumeRoleArn, message.ExternalID)
 	if err != nil {
-		appLogger.Errorf("Faild to create Portscan session: err=%+v", err)
+		appLogger.Errorf("Failed to create Portscan session: err=%+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
 	regions, err := portscan.listAvailableRegion()
 	if err != nil {
-		appLogger.Errorf("Faild to get available regions, err = %+v", err)
+		appLogger.Errorf("Failed to get available regions, err = %+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
 	statusDetail := ""
@@ -74,17 +80,17 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		appLogger.Infof("Start %s region search...", *region.RegionName)
 		portscan, err = newPortscanClient(*region.RegionName, message.AssumeRoleArn, message.ExternalID)
 		if err != nil {
-			appLogger.Warnf("Faild to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
+			appLogger.Warnf("Failed to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
 			continue
 		}
 		findings, err := portscan.getResult(message, isFirstRegion)
 		if err != nil {
-			appLogger.Warnf("Faild to get findings to AWS Portscan: AccountID=%+v, err=%+v", message.AccountID, err)
+			appLogger.Warnf("Failed to get findings to AWS Portscan: AccountID=%+v, err=%+v", message.AccountID, err)
 			continue
 		}
 		// Put finding to core
 		if err := s.putFindings(ctx, findings); err != nil {
-			appLogger.Errorf("Faild to put findings: AccountID=%+v, err=%+v", message.AccountID, err)
+			appLogger.Errorf("Failed to put findings: AccountID=%+v, err=%+v", message.AccountID, err)
 			statusDetail = fmt.Sprintf("%v%v", statusDetail, err.Error())
 		}
 		isFirstRegion = false
@@ -125,4 +131,12 @@ func (s *sqsHandler) analyzeAlert(ctx context.Context, projectID uint32) error {
 		ProjectId: projectID,
 	})
 	return err
+}
+
+func isMatchAccountIDArn(accountID, arn string) bool {
+	if strings.Index(arn, "::") < 0 {
+		return false
+	}
+	tmp := strings.Split(arn, "::")[1]
+	return strings.HasPrefix(tmp, accountID)
 }

@@ -6,9 +6,10 @@ require (
 	github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20210119103338-7c5487e6e896
 	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210119103338-7c5487e6e896
 	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210119103338-7c5487e6e896
+	github.com/CyberAgent/mimosa-common/pkg/portscan v0.0.0-20210408103002-05b0f15d6205
 	github.com/CyberAgent/mimosa-core/proto/alert v0.0.0-20210108063741-eceb6a32f58c
-	github.com/CyberAgent/mimosa-core/proto/finding v0.0.0-20210108063741-eceb6a32f58c
-	github.com/Ullaakut/nmap/v2 v2.0.3
+	github.com/CyberAgent/mimosa-core/proto/finding v0.0.0-20210324123727-e579ab181157
+	github.com/Ullaakut/nmap/v2 v2.1.1
 	github.com/aws/aws-sdk-go v1.37.10
 	github.com/gassara-kys/go-sqs-poller/worker/v4 v4.0.0-20210215110542-0be358599a2f
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
