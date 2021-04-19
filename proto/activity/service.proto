@@ -1,13 +1,12 @@
 syntax = "proto3";
 
-package aws.cloudtrail;
-option go_package = "github.com/CyberAgent/mimosa-aws/proto/cloudtrail";
+package aws.activity;
+option go_package = "github.com/CyberAgent/mimosa-aws/proto/activity";
 
-import "google/protobuf/empty.proto";
-import "cloudtrail/entity.proto";
+import "activity/entity.proto";
 import "validate/validate.proto";
 
-service CloudTrailService {
+service ActivityService {
   rpc ListCloudTrail(ListCloudTrailRequest) returns (ListCloudTrailResponse);
 }
 

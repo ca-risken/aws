@@ -1,7 +1,7 @@
 syntax = "proto3";
 
-package aws.cloudtrail;
-option go_package = "github.com/CyberAgent/mimosa-aws/proto/cloudtrail";
+package aws.activity;
+option go_package = "github.com/CyberAgent/mimosa-aws/proto/activity";
 
 /**
  * Entity
