@@ -123,6 +123,7 @@ https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#o
 | resource_name | [string](#string) |  |  |
 | resource_type | [string](#string) |  |  |
 | user_name | [string](#string) |  |  |
+| next_token | [string](#string) |  |  |
 
 
 
@@ -138,6 +139,7 @@ https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#o
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | cloudtrail | [CloudTrail](#aws.activity.CloudTrail) | repeated |  |
+| next_token | [string](#string) |  |  |
 
 
 

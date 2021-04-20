@@ -26,6 +26,10 @@ message ListCloudTrailRequest {
   string resource_name = 9;
   string resource_type = 10;
   string user_name = 11;
+  string next_token = 12;
 }
 
-message ListCloudTrailResponse { repeated CloudTrail cloudtrail = 1; }
+message ListCloudTrailResponse {
+  repeated CloudTrail cloudtrail = 1;
+  string next_token = 2;
+}
