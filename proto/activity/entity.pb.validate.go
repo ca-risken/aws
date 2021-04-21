@@ -54,14 +54,19 @@ func (m *CloudTrail) Validate() error {
 
 	// no validation rules for Username
 
-	if v, ok := interface{}(m.GetResources()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return CloudTrailValidationError{
-				field:  "Resources",
-				reason: "embedded message failed validation",
-				cause:  err,
+	for idx, item := range m.GetResources() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return CloudTrailValidationError{
+					field:  fmt.Sprintf("Resources[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
 			}
 		}
+
 	}
 
 	// no validation rules for CloudtrailEvent

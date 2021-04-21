@@ -64,7 +64,7 @@ https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#o
 | event_time | [int64](#int64) |  |  |
 | event_source | [string](#string) |  |  |
 | username | [string](#string) |  |  |
-| resources | [Resource](#aws.activity.Resource) |  |  |
+| resources | [Resource](#aws.activity.Resource) | repeated |  |
 | cloudtrail_event | [string](#string) |  | Raw data(JSON) |
 
 

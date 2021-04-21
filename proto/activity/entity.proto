@@ -17,7 +17,7 @@ message CloudTrail {
   int64 event_time = 5;
   string event_source = 6;
   string username = 7;
-  Resource resources = 8;
+  repeated Resource resources = 8;
   string cloudtrail_event = 9; // Raw data(JSON)
 }
 
