@@ -27,15 +27,15 @@ type CloudTrail struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	EventId         string    `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
-	EventName       string    `protobuf:"bytes,2,opt,name=event_name,json=eventName,proto3" json:"event_name,omitempty"`
-	ReadOnly        string    `protobuf:"bytes,3,opt,name=read_only,json=readOnly,proto3" json:"read_only,omitempty"`
-	AccessKeyId     string    `protobuf:"bytes,4,opt,name=access_key_id,json=accessKeyId,proto3" json:"access_key_id,omitempty"`
-	EventTime       int64     `protobuf:"varint,5,opt,name=event_time,json=eventTime,proto3" json:"event_time,omitempty"`
-	EventSource     string    `protobuf:"bytes,6,opt,name=event_source,json=eventSource,proto3" json:"event_source,omitempty"`
-	Username        string    `protobuf:"bytes,7,opt,name=username,proto3" json:"username,omitempty"`
-	Resources       *Resource `protobuf:"bytes,8,opt,name=resources,proto3" json:"resources,omitempty"`
-	CloudtrailEvent string    `protobuf:"bytes,9,opt,name=cloudtrail_event,json=cloudtrailEvent,proto3" json:"cloudtrail_event,omitempty"` // Raw data(JSON)
+	EventId         string      `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	EventName       string      `protobuf:"bytes,2,opt,name=event_name,json=eventName,proto3" json:"event_name,omitempty"`
+	ReadOnly        string      `protobuf:"bytes,3,opt,name=read_only,json=readOnly,proto3" json:"read_only,omitempty"`
+	AccessKeyId     string      `protobuf:"bytes,4,opt,name=access_key_id,json=accessKeyId,proto3" json:"access_key_id,omitempty"`
+	EventTime       int64       `protobuf:"varint,5,opt,name=event_time,json=eventTime,proto3" json:"event_time,omitempty"`
+	EventSource     string      `protobuf:"bytes,6,opt,name=event_source,json=eventSource,proto3" json:"event_source,omitempty"`
+	Username        string      `protobuf:"bytes,7,opt,name=username,proto3" json:"username,omitempty"`
+	Resources       []*Resource `protobuf:"bytes,8,rep,name=resources,proto3" json:"resources,omitempty"`
+	CloudtrailEvent string      `protobuf:"bytes,9,opt,name=cloudtrail_event,json=cloudtrailEvent,proto3" json:"cloudtrail_event,omitempty"` // Raw data(JSON)
 }
 
 func (x *CloudTrail) Reset() {
@@ -119,7 +119,7 @@ func (x *CloudTrail) GetUsername() string {
 	return ""
 }
 
-func (x *CloudTrail) GetResources() *Resource {
+func (x *CloudTrail) GetResources() []*Resource {
 	if x != nil {
 		return x.Resources
 	}
@@ -208,7 +208,7 @@ var file_activity_entity_proto_rawDesc = []byte{
 	0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x53, 0x6f, 0x75, 0x72, 0x63,
 	0x65, 0x12, 0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x07, 0x20,
 	0x01, 0x28, 0x09, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x34, 0x0a,
-	0x09, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x18, 0x08, 0x20, 0x01, 0x28, 0x0b,
+	0x09, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x18, 0x08, 0x20, 0x03, 0x28, 0x0b,
 	0x32, 0x16, 0x2e, 0x61, 0x77, 0x73, 0x2e, 0x61, 0x63, 0x74, 0x69, 0x76, 0x69, 0x74, 0x79, 0x2e,
 	0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x09, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72,
 	0x63, 0x65, 0x73, 0x12, 0x29, 0x0a, 0x10, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x74, 0x72, 0x61, 0x69,
