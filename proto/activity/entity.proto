@@ -7,7 +7,21 @@ option go_package = "github.com/CyberAgent/mimosa-aws/proto/activity";
  * Entity
  **/
 
-// CloudTrail:
+// ARN
+// https://docs.aws.amazon.com/sdk-for-go/api/aws/arn/#ARN
+message ARN {
+  string partition = 1;
+  string service = 2;
+  string region = 3;
+  string account_id = 4;
+  string resource = 5;
+  string resource_type =
+      6; // judge from service and resource,
+         // https://docs.aws.amazon.com/cli/latest/reference/configservice/get-resource-config-history.html#options
+  string resource_id = 7; // parse from resource
+}
+
+// CloudTrail
 // https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#output
 message CloudTrail {
   string event_id = 1;
@@ -24,4 +38,39 @@ message CloudTrail {
 message Resource {
   string resource_type = 1;
   string resource_name = 2;
+  string resource_id = 3;
+  string relationship_name = 4;
+}
+
+// Configuration
+// https://docs.aws.amazon.com/cli/latest/reference/configservice/get-resource-config-history.html#output
+message Configuration {
+  string version = 1;
+  string account_id = 2;
+  int64 configuration_item_capture_time = 3;
+  string configuration_item_status = 4;
+  string configuration_state_id = 5;
+  string configurationItemMD5Hash = 6;
+  string arn = 7;
+  string resource_type = 8;
+  string resource_id = 9;
+  string resource_name = 10;
+  string aws_region = 11;
+  string availability_zone = 12;
+  int64 resource_creation_time = 13;
+  repeated Tag tags = 14;
+  repeated string related_events = 15;
+  repeated Resource relationships = 16;
+  string configuration = 17;
+  SupplementaryConfiguration supplementary_configuration = 18;
+}
+
+message Tag {
+  string key = 1;
+  string value = 2;
+}
+
+message SupplementaryConfiguration {
+  string key = 1;
+  string value = 2;
 }
