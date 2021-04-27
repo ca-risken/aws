@@ -4,12 +4,20 @@
 ## Table of Contents
 
 - [activity/entity.proto](#activity/entity.proto)
+    - [ARN](#aws.activity.ARN)
     - [CloudTrail](#aws.activity.CloudTrail)
+    - [Configuration](#aws.activity.Configuration)
     - [Resource](#aws.activity.Resource)
+    - [SupplementaryConfiguration](#aws.activity.SupplementaryConfiguration)
+    - [Tag](#aws.activity.Tag)
   
 - [activity/service.proto](#activity/service.proto)
+    - [DescribeARNRequest](#aws.activity.DescribeARNRequest)
+    - [DescribeARNResponse](#aws.activity.DescribeARNResponse)
     - [ListCloudTrailRequest](#aws.activity.ListCloudTrailRequest)
     - [ListCloudTrailResponse](#aws.activity.ListCloudTrailResponse)
+    - [ListConfigHistoryRequest](#aws.activity.ListConfigHistoryRequest)
+    - [ListConfigHistoryResponse](#aws.activity.ListConfigHistoryResponse)
   
     - [ActivityService](#aws.activity.ActivityService)
   
@@ -48,10 +56,34 @@
 
 
 
+<a name="aws.activity.ARN"></a>
+
+### ARN
+ARN
+https://docs.aws.amazon.com/sdk-for-go/api/aws/arn/#ARN
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| partition | [string](#string) |  |  |
+| service | [string](#string) |  |  |
+| region | [string](#string) |  |  |
+| account_id | [string](#string) |  |  |
+| resource | [string](#string) |  |  |
+| resource_type | [string](#string) |  | judge from service and resource, |
+| resource_id | [string](#string) |  | https://docs.aws.amazon.com/cli/latest/reference/configservice/get-resource-config-history.html#options
+
+parse from resource |
+
+
+
+
+
+
 <a name="aws.activity.CloudTrail"></a>
 
 ### CloudTrail
-CloudTrail:
+CloudTrail
 https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#output
 
 
@@ -72,6 +104,39 @@ https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#o
 
 
 
+<a name="aws.activity.Configuration"></a>
+
+### Configuration
+Configuration
+https://docs.aws.amazon.com/cli/latest/reference/configservice/get-resource-config-history.html#output
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| version | [string](#string) |  |  |
+| account_id | [string](#string) |  |  |
+| configuration_item_capture_time | [int64](#int64) |  |  |
+| configuration_item_status | [string](#string) |  |  |
+| configuration_state_id | [string](#string) |  |  |
+| configurationItemMD5Hash | [string](#string) |  |  |
+| arn | [string](#string) |  |  |
+| resource_type | [string](#string) |  |  |
+| resource_id | [string](#string) |  |  |
+| resource_name | [string](#string) |  |  |
+| aws_region | [string](#string) |  |  |
+| availability_zone | [string](#string) |  |  |
+| resource_creation_time | [int64](#int64) |  |  |
+| tags | [Tag](#aws.activity.Tag) | repeated |  |
+| related_events | [string](#string) | repeated |  |
+| relationships | [Resource](#aws.activity.Resource) | repeated |  |
+| configuration | [string](#string) |  |  |
+| supplementary_configuration | [SupplementaryConfiguration](#aws.activity.SupplementaryConfiguration) |  |  |
+
+
+
+
+
+
 <a name="aws.activity.Resource"></a>
 
 ### Resource
@@ -82,6 +147,40 @@ https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#o
 | ----- | ---- | ----- | ----------- |
 | resource_type | [string](#string) |  |  |
 | resource_name | [string](#string) |  |  |
+| resource_id | [string](#string) |  |  |
+| relationship_name | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="aws.activity.SupplementaryConfiguration"></a>
+
+### SupplementaryConfiguration
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="aws.activity.Tag"></a>
+
+### Tag
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
 
 
 
@@ -104,6 +203,36 @@ https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#o
 
 
 
+<a name="aws.activity.DescribeARNRequest"></a>
+
+### DescribeARNRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| arn | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="aws.activity.DescribeARNResponse"></a>
+
+### DescribeARNResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| arn | [ARN](#aws.activity.ARN) |  |  |
+
+
+
+
+
+
 <a name="aws.activity.ListCloudTrailRequest"></a>
 
 ### ListCloudTrailRequest
@@ -113,7 +242,8 @@ https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#o
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | project_id | [uint32](#uint32) |  |  |
-| aws_id | [uint32](#uint32) |  | CloudTrail lookup-events API parameters: https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html |
+| aws_id | [uint32](#uint32) |  |  |
+| region | [string](#string) |  | CloudTrail lookup-events API parameters: https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html |
 | start_time | [int64](#int64) |  |  |
 | end_time | [int64](#int64) |  |  |
 | event_id | [string](#string) |  |  |
@@ -145,6 +275,45 @@ https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#o
 
 
 
+
+<a name="aws.activity.ListConfigHistoryRequest"></a>
+
+### ListConfigHistoryRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| project_id | [uint32](#uint32) |  |  |
+| aws_id | [uint32](#uint32) |  |  |
+| region | [string](#string) |  |  |
+| resource_type | [string](#string) |  | https://docs.aws.amazon.com/cli/latest/reference/configservice/get-resource-config-history.html#options |
+| resource_id | [string](#string) |  |  |
+| later_time | [int64](#int64) |  |  |
+| earlier_time | [int64](#int64) |  |  |
+| chronological_order | [string](#string) |  | default: Reverse |
+| starting_token | [string](#string) |  | A token to specify where to start paginating. |
+
+
+
+
+
+
+<a name="aws.activity.ListConfigHistoryResponse"></a>
+
+### ListConfigHistoryResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| configuration | [Configuration](#aws.activity.Configuration) | repeated |  |
+| next_token | [string](#string) |  |  |
+
+
+
+
+
  
 
  
@@ -159,7 +328,9 @@ https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#o
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
+| DescribeARN | [DescribeARNRequest](#aws.activity.DescribeARNRequest) | [DescribeARNResponse](#aws.activity.DescribeARNResponse) |  |
 | ListCloudTrail | [ListCloudTrailRequest](#aws.activity.ListCloudTrailRequest) | [ListCloudTrailResponse](#aws.activity.ListCloudTrailResponse) |  |
+| ListConfigHistory | [ListConfigHistoryRequest](#aws.activity.ListConfigHistoryRequest) | [ListConfigHistoryResponse](#aws.activity.ListConfigHistoryResponse) |  |
 
  
 
