@@ -309,24 +309,24 @@ type Configuration struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Version                      string                      `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
-	AccountId                    string                      `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	ConfigurationItemCaptureTime int64                       `protobuf:"varint,3,opt,name=configuration_item_capture_time,json=configurationItemCaptureTime,proto3" json:"configuration_item_capture_time,omitempty"`
-	ConfigurationItemStatus      string                      `protobuf:"bytes,4,opt,name=configuration_item_status,json=configurationItemStatus,proto3" json:"configuration_item_status,omitempty"`
-	ConfigurationStateId         string                      `protobuf:"bytes,5,opt,name=configuration_state_id,json=configurationStateId,proto3" json:"configuration_state_id,omitempty"`
-	ConfigurationItemMD5Hash     string                      `protobuf:"bytes,6,opt,name=configurationItemMD5Hash,proto3" json:"configurationItemMD5Hash,omitempty"`
-	Arn                          string                      `protobuf:"bytes,7,opt,name=arn,proto3" json:"arn,omitempty"`
-	ResourceType                 string                      `protobuf:"bytes,8,opt,name=resource_type,json=resourceType,proto3" json:"resource_type,omitempty"`
-	ResourceId                   string                      `protobuf:"bytes,9,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
-	ResourceName                 string                      `protobuf:"bytes,10,opt,name=resource_name,json=resourceName,proto3" json:"resource_name,omitempty"`
-	AwsRegion                    string                      `protobuf:"bytes,11,opt,name=aws_region,json=awsRegion,proto3" json:"aws_region,omitempty"`
-	AvailabilityZone             string                      `protobuf:"bytes,12,opt,name=availability_zone,json=availabilityZone,proto3" json:"availability_zone,omitempty"`
-	ResourceCreationTime         int64                       `protobuf:"varint,13,opt,name=resource_creation_time,json=resourceCreationTime,proto3" json:"resource_creation_time,omitempty"`
-	Tags                         []*Tag                      `protobuf:"bytes,14,rep,name=tags,proto3" json:"tags,omitempty"`
-	RelatedEvents                []string                    `protobuf:"bytes,15,rep,name=related_events,json=relatedEvents,proto3" json:"related_events,omitempty"`
-	Relationships                []*Resource                 `protobuf:"bytes,16,rep,name=relationships,proto3" json:"relationships,omitempty"`
-	Configuration                string                      `protobuf:"bytes,17,opt,name=configuration,proto3" json:"configuration,omitempty"`
-	SupplementaryConfiguration   *SupplementaryConfiguration `protobuf:"bytes,18,opt,name=supplementary_configuration,json=supplementaryConfiguration,proto3" json:"supplementary_configuration,omitempty"`
+	Version                      string                        `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	AccountId                    string                        `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	ConfigurationItemCaptureTime int64                         `protobuf:"varint,3,opt,name=configuration_item_capture_time,json=configurationItemCaptureTime,proto3" json:"configuration_item_capture_time,omitempty"`
+	ConfigurationItemStatus      string                        `protobuf:"bytes,4,opt,name=configuration_item_status,json=configurationItemStatus,proto3" json:"configuration_item_status,omitempty"`
+	ConfigurationStateId         string                        `protobuf:"bytes,5,opt,name=configuration_state_id,json=configurationStateId,proto3" json:"configuration_state_id,omitempty"`
+	ConfigurationItemMD5Hash     string                        `protobuf:"bytes,6,opt,name=configurationItemMD5Hash,proto3" json:"configurationItemMD5Hash,omitempty"`
+	Arn                          string                        `protobuf:"bytes,7,opt,name=arn,proto3" json:"arn,omitempty"`
+	ResourceType                 string                        `protobuf:"bytes,8,opt,name=resource_type,json=resourceType,proto3" json:"resource_type,omitempty"`
+	ResourceId                   string                        `protobuf:"bytes,9,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	ResourceName                 string                        `protobuf:"bytes,10,opt,name=resource_name,json=resourceName,proto3" json:"resource_name,omitempty"`
+	AwsRegion                    string                        `protobuf:"bytes,11,opt,name=aws_region,json=awsRegion,proto3" json:"aws_region,omitempty"`
+	AvailabilityZone             string                        `protobuf:"bytes,12,opt,name=availability_zone,json=availabilityZone,proto3" json:"availability_zone,omitempty"`
+	ResourceCreationTime         int64                         `protobuf:"varint,13,opt,name=resource_creation_time,json=resourceCreationTime,proto3" json:"resource_creation_time,omitempty"`
+	Tags                         []*Tag                        `protobuf:"bytes,14,rep,name=tags,proto3" json:"tags,omitempty"`
+	RelatedEvents                []string                      `protobuf:"bytes,15,rep,name=related_events,json=relatedEvents,proto3" json:"related_events,omitempty"`
+	Relationships                []*Resource                   `protobuf:"bytes,16,rep,name=relationships,proto3" json:"relationships,omitempty"`
+	Configuration                string                        `protobuf:"bytes,17,opt,name=configuration,proto3" json:"configuration,omitempty"`
+	SupplementaryConfiguration   []*SupplementaryConfiguration `protobuf:"bytes,18,rep,name=supplementary_configuration,json=supplementaryConfiguration,proto3" json:"supplementary_configuration,omitempty"`
 }
 
 func (x *Configuration) Reset() {
@@ -480,7 +480,7 @@ func (x *Configuration) GetConfiguration() string {
 	return ""
 }
 
-func (x *Configuration) GetSupplementaryConfiguration() *SupplementaryConfiguration {
+func (x *Configuration) GetSupplementaryConfiguration() []*SupplementaryConfiguration {
 	if x != nil {
 		return x.SupplementaryConfiguration
 	}
@@ -695,7 +695,7 @@ var file_activity_entity_proto_rawDesc = []byte{
 	0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x11, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0d,
 	0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x69, 0x0a,
 	0x1b, 0x73, 0x75, 0x70, 0x70, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x61, 0x72, 0x79, 0x5f, 0x63,
-	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x12, 0x20, 0x01,
+	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x12, 0x20, 0x03,
 	0x28, 0x0b, 0x32, 0x28, 0x2e, 0x61, 0x77, 0x73, 0x2e, 0x61, 0x63, 0x74, 0x69, 0x76, 0x69, 0x74,
 	0x79, 0x2e, 0x53, 0x75, 0x70, 0x70, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x61, 0x72, 0x79, 0x43,
 	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x1a, 0x73, 0x75,

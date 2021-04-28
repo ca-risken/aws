@@ -130,7 +130,7 @@ https://docs.aws.amazon.com/cli/latest/reference/configservice/get-resource-conf
 | related_events | [string](#string) | repeated |  |
 | relationships | [Resource](#aws.activity.Resource) | repeated |  |
 | configuration | [string](#string) |  |  |
-| supplementary_configuration | [SupplementaryConfiguration](#aws.activity.SupplementaryConfiguration) |  |  |
+| supplementary_configuration | [SupplementaryConfiguration](#aws.activity.SupplementaryConfiguration) | repeated |  |
 
 
 

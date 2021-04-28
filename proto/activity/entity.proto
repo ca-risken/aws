@@ -62,7 +62,7 @@ message Configuration {
   repeated string related_events = 15;
   repeated Resource relationships = 16;
   string configuration = 17;
-  SupplementaryConfiguration supplementary_configuration = 18;
+  repeated SupplementaryConfiguration supplementary_configuration = 18;
 }
 
 message Tag {

@@ -344,14 +344,19 @@ func (m *Configuration) Validate() error {
 
 	// no validation rules for Configuration
 
-	if v, ok := interface{}(m.GetSupplementaryConfiguration()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationValidationError{
-				field:  "SupplementaryConfiguration",
-				reason: "embedded message failed validation",
-				cause:  err,
+	for idx, item := range m.GetSupplementaryConfiguration() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ConfigurationValidationError{
+					field:  fmt.Sprintf("SupplementaryConfiguration[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
 			}
 		}
+
 	}
 
 	return nil
