@@ -20,6 +20,70 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type AttributeKey int32
+
+const (
+	AttributeKey_UNKNOWN       AttributeKey = 0
+	AttributeKey_RESOURCE_TYPE AttributeKey = 1
+	AttributeKey_RESOURCE_NAME AttributeKey = 2
+	AttributeKey_EVENT_ID      AttributeKey = 3
+	AttributeKey_EVENT_SOURCE  AttributeKey = 4
+	AttributeKey_EVENT_NAME    AttributeKey = 5
+	AttributeKey_USERNAME      AttributeKey = 6
+	AttributeKey_READ_ONLY     AttributeKey = 7
+)
+
+// Enum value maps for AttributeKey.
+var (
+	AttributeKey_name = map[int32]string{
+		0: "UNKNOWN",
+		1: "RESOURCE_TYPE",
+		2: "RESOURCE_NAME",
+		3: "EVENT_ID",
+		4: "EVENT_SOURCE",
+		5: "EVENT_NAME",
+		6: "USERNAME",
+		7: "READ_ONLY",
+	}
+	AttributeKey_value = map[string]int32{
+		"UNKNOWN":       0,
+		"RESOURCE_TYPE": 1,
+		"RESOURCE_NAME": 2,
+		"EVENT_ID":      3,
+		"EVENT_SOURCE":  4,
+		"EVENT_NAME":    5,
+		"USERNAME":      6,
+		"READ_ONLY":     7,
+	}
+)
+
+func (x AttributeKey) Enum() *AttributeKey {
+	p := new(AttributeKey)
+	*p = x
+	return p
+}
+
+func (x AttributeKey) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AttributeKey) Descriptor() protoreflect.EnumDescriptor {
+	return file_activity_entity_proto_enumTypes[0].Descriptor()
+}
+
+func (AttributeKey) Type() protoreflect.EnumType {
+	return &file_activity_entity_proto_enumTypes[0]
+}
+
+func (x AttributeKey) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AttributeKey.Descriptor instead.
+func (AttributeKey) EnumDescriptor() ([]byte, []int) {
+	return file_activity_entity_proto_rawDescGZIP(), []int{0}
+}
+
 // ARN
 // https://docs.aws.amazon.com/sdk-for-go/api/aws/arn/#ARN
 type ARN struct {
@@ -597,6 +661,61 @@ func (x *SupplementaryConfiguration) GetValue() string {
 	return ""
 }
 
+type CloudTrailAttribute struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Key   AttributeKey `protobuf:"varint,1,opt,name=key,proto3,enum=aws.activity.AttributeKey" json:"key,omitempty"`
+	Value string       `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *CloudTrailAttribute) Reset() {
+	*x = CloudTrailAttribute{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_activity_entity_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CloudTrailAttribute) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloudTrailAttribute) ProtoMessage() {}
+
+func (x *CloudTrailAttribute) ProtoReflect() protoreflect.Message {
+	mi := &file_activity_entity_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloudTrailAttribute.ProtoReflect.Descriptor instead.
+func (*CloudTrailAttribute) Descriptor() ([]byte, []int) {
+	return file_activity_entity_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *CloudTrailAttribute) GetKey() AttributeKey {
+	if x != nil {
+		return x.Key
+	}
+	return AttributeKey_UNKNOWN
+}
+
+func (x *CloudTrailAttribute) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 var File_activity_entity_proto protoreflect.FileDescriptor
 
 var file_activity_entity_proto_rawDesc = []byte{
@@ -707,11 +826,26 @@ var file_activity_entity_proto_rawDesc = []byte{
 	0x65, 0x6d, 0x65, 0x6e, 0x74, 0x61, 0x72, 0x79, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72,
 	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01,
 	0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x31, 0x5a,
-	0x2f, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x43, 0x79, 0x62, 0x65,
-	0x72, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x2f, 0x6d, 0x69, 0x6d, 0x6f, 0x73, 0x61, 0x2d, 0x61, 0x77,
-	0x73, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x61, 0x63, 0x74, 0x69, 0x76, 0x69, 0x74, 0x79,
-	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x59, 0x0a,
+	0x13, 0x43, 0x6c, 0x6f, 0x75, 0x64, 0x54, 0x72, 0x61, 0x69, 0x6c, 0x41, 0x74, 0x74, 0x72, 0x69,
+	0x62, 0x75, 0x74, 0x65, 0x12, 0x2c, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x0e, 0x32, 0x1a, 0x2e, 0x61, 0x77, 0x73, 0x2e, 0x61, 0x63, 0x74, 0x69, 0x76, 0x69, 0x74, 0x79,
+	0x2e, 0x41, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x4b, 0x65, 0x79, 0x52, 0x03, 0x6b,
+	0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x2a, 0x8e, 0x01, 0x0a, 0x0c, 0x41, 0x74, 0x74,
+	0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x4b, 0x65, 0x79, 0x12, 0x0b, 0x0a, 0x07, 0x55, 0x4e, 0x4b,
+	0x4e, 0x4f, 0x57, 0x4e, 0x10, 0x00, 0x12, 0x11, 0x0a, 0x0d, 0x52, 0x45, 0x53, 0x4f, 0x55, 0x52,
+	0x43, 0x45, 0x5f, 0x54, 0x59, 0x50, 0x45, 0x10, 0x01, 0x12, 0x11, 0x0a, 0x0d, 0x52, 0x45, 0x53,
+	0x4f, 0x55, 0x52, 0x43, 0x45, 0x5f, 0x4e, 0x41, 0x4d, 0x45, 0x10, 0x02, 0x12, 0x0c, 0x0a, 0x08,
+	0x45, 0x56, 0x45, 0x4e, 0x54, 0x5f, 0x49, 0x44, 0x10, 0x03, 0x12, 0x10, 0x0a, 0x0c, 0x45, 0x56,
+	0x45, 0x4e, 0x54, 0x5f, 0x53, 0x4f, 0x55, 0x52, 0x43, 0x45, 0x10, 0x04, 0x12, 0x0e, 0x0a, 0x0a,
+	0x45, 0x56, 0x45, 0x4e, 0x54, 0x5f, 0x4e, 0x41, 0x4d, 0x45, 0x10, 0x05, 0x12, 0x0c, 0x0a, 0x08,
+	0x55, 0x53, 0x45, 0x52, 0x4e, 0x41, 0x4d, 0x45, 0x10, 0x06, 0x12, 0x0d, 0x0a, 0x09, 0x52, 0x45,
+	0x41, 0x44, 0x5f, 0x4f, 0x4e, 0x4c, 0x59, 0x10, 0x07, 0x42, 0x31, 0x5a, 0x2f, 0x67, 0x69, 0x74,
+	0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x43, 0x79, 0x62, 0x65, 0x72, 0x41, 0x67, 0x65,
+	0x6e, 0x74, 0x2f, 0x6d, 0x69, 0x6d, 0x6f, 0x73, 0x61, 0x2d, 0x61, 0x77, 0x73, 0x2f, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x2f, 0x61, 0x63, 0x74, 0x69, 0x76, 0x69, 0x74, 0x79, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -726,25 +860,29 @@ func file_activity_entity_proto_rawDescGZIP() []byte {
 	return file_activity_entity_proto_rawDescData
 }
 
-var file_activity_entity_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_activity_entity_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_activity_entity_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_activity_entity_proto_goTypes = []interface{}{
-	(*ARN)(nil),                        // 0: aws.activity.ARN
-	(*CloudTrail)(nil),                 // 1: aws.activity.CloudTrail
-	(*Resource)(nil),                   // 2: aws.activity.Resource
-	(*Configuration)(nil),              // 3: aws.activity.Configuration
-	(*Tag)(nil),                        // 4: aws.activity.Tag
-	(*SupplementaryConfiguration)(nil), // 5: aws.activity.SupplementaryConfiguration
+	(AttributeKey)(0),                  // 0: aws.activity.AttributeKey
+	(*ARN)(nil),                        // 1: aws.activity.ARN
+	(*CloudTrail)(nil),                 // 2: aws.activity.CloudTrail
+	(*Resource)(nil),                   // 3: aws.activity.Resource
+	(*Configuration)(nil),              // 4: aws.activity.Configuration
+	(*Tag)(nil),                        // 5: aws.activity.Tag
+	(*SupplementaryConfiguration)(nil), // 6: aws.activity.SupplementaryConfiguration
+	(*CloudTrailAttribute)(nil),        // 7: aws.activity.CloudTrailAttribute
 }
 var file_activity_entity_proto_depIdxs = []int32{
-	2, // 0: aws.activity.CloudTrail.resources:type_name -> aws.activity.Resource
-	4, // 1: aws.activity.Configuration.tags:type_name -> aws.activity.Tag
-	2, // 2: aws.activity.Configuration.relationships:type_name -> aws.activity.Resource
-	5, // 3: aws.activity.Configuration.supplementary_configuration:type_name -> aws.activity.SupplementaryConfiguration
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	3, // 0: aws.activity.CloudTrail.resources:type_name -> aws.activity.Resource
+	5, // 1: aws.activity.Configuration.tags:type_name -> aws.activity.Tag
+	3, // 2: aws.activity.Configuration.relationships:type_name -> aws.activity.Resource
+	6, // 3: aws.activity.Configuration.supplementary_configuration:type_name -> aws.activity.SupplementaryConfiguration
+	0, // 4: aws.activity.CloudTrailAttribute.key:type_name -> aws.activity.AttributeKey
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_activity_entity_proto_init() }
@@ -825,19 +963,32 @@ func file_activity_entity_proto_init() {
 				return nil
 			}
 		}
+		file_activity_entity_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CloudTrailAttribute); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_activity_entity_proto_rawDesc,
-			NumEnums:      0,
-			NumMessages:   6,
+			NumEnums:      1,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_activity_entity_proto_goTypes,
 		DependencyIndexes: file_activity_entity_proto_depIdxs,
+		EnumInfos:         file_activity_entity_proto_enumTypes,
 		MessageInfos:      file_activity_entity_proto_msgTypes,
 	}.Build()
 	File_activity_entity_proto = out.File
