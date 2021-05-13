@@ -283,7 +283,8 @@ https://docs.aws.amazon.com/cli/latest/reference/configservice/get-resource-conf
 | region | [string](#string) |  | CloudTrail lookup-events API parameters: https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html |
 | start_time | [int64](#int64) |  |  |
 | end_time | [int64](#int64) |  |  |
-| attribute | [CloudTrailAttribute](#aws.activity.CloudTrailAttribute) |  |  |
+| attribute_key | [AttributeKey](#aws.activity.AttributeKey) |  |  |
+| attribute_value | [string](#string) |  |  |
 | next_token | [string](#string) |  |  |
 
 
