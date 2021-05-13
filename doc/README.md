@@ -6,10 +6,13 @@
 - [activity/entity.proto](#activity/entity.proto)
     - [ARN](#aws.activity.ARN)
     - [CloudTrail](#aws.activity.CloudTrail)
+    - [CloudTrailAttribute](#aws.activity.CloudTrailAttribute)
     - [Configuration](#aws.activity.Configuration)
     - [Resource](#aws.activity.Resource)
     - [SupplementaryConfiguration](#aws.activity.SupplementaryConfiguration)
     - [Tag](#aws.activity.Tag)
+  
+    - [AttributeKey](#aws.activity.AttributeKey)
   
 - [activity/service.proto](#activity/service.proto)
     - [DescribeARNRequest](#aws.activity.DescribeARNRequest)
@@ -104,6 +107,22 @@ https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#o
 
 
 
+<a name="aws.activity.CloudTrailAttribute"></a>
+
+### CloudTrailAttribute
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [AttributeKey](#aws.activity.AttributeKey) |  |  |
+| value | [string](#string) |  |  |
+
+
+
+
+
+
 <a name="aws.activity.Configuration"></a>
 
 ### Configuration
@@ -188,6 +207,24 @@ https://docs.aws.amazon.com/cli/latest/reference/configservice/get-resource-conf
 
  
 
+
+<a name="aws.activity.AttributeKey"></a>
+
+### AttributeKey
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| UNKNOWN | 0 |  |
+| RESOURCE_TYPE | 1 |  |
+| RESOURCE_NAME | 2 |  |
+| EVENT_ID | 3 |  |
+| EVENT_SOURCE | 4 |  |
+| EVENT_NAME | 5 |  |
+| USERNAME | 6 |  |
+| READ_ONLY | 7 |  |
+
+
  
 
  
@@ -246,13 +283,7 @@ https://docs.aws.amazon.com/cli/latest/reference/configservice/get-resource-conf
 | region | [string](#string) |  | CloudTrail lookup-events API parameters: https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html |
 | start_time | [int64](#int64) |  |  |
 | end_time | [int64](#int64) |  |  |
-| event_id | [string](#string) |  |  |
-| event_name | [string](#string) |  |  |
-| event_source | [string](#string) |  |  |
-| read_only | [string](#string) |  |  |
-| resource_name | [string](#string) |  |  |
-| resource_type | [string](#string) |  |  |
-| user_name | [string](#string) |  |  |
+| attribute | [CloudTrailAttribute](#aws.activity.CloudTrailAttribute) |  |  |
 | next_token | [string](#string) |  |  |
 
 

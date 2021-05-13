@@ -74,3 +74,20 @@ message SupplementaryConfiguration {
   string key = 1;
   string value = 2;
 }
+
+message CloudTrailAttribute {
+  AttributeKey key = 1;
+  string value = 2;
+}
+
+enum AttributeKey {
+  UNKNOWN = 0;
+
+  RESOURCE_TYPE = 1;
+  RESOURCE_NAME = 2;
+  EVENT_ID = 3;
+  EVENT_SOURCE = 4;
+  EVENT_NAME = 5;
+  USERNAME = 6;
+  READ_ONLY = 7;
+}
