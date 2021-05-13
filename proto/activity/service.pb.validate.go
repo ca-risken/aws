@@ -229,15 +229,9 @@ func (m *ListCloudTrailRequest) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetAttribute()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ListCloudTrailRequestValidationError{
-				field:  "Attribute",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
+	// no validation rules for AttributeKey
+
+	// no validation rules for AttributeValue
 
 	// no validation rules for NextToken
 

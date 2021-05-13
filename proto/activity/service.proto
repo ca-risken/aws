@@ -29,8 +29,9 @@ message ListCloudTrailRequest {
   int64 start_time = 4
       [ (validate.rules).int64 = {gte : 0, lte : 253402268399} ];
   int64 end_time = 5 [ (validate.rules).int64 = {gte : 0, lte : 253402268399} ];
-  CloudTrailAttribute attribute = 6;
-  string next_token = 7;
+  AttributeKey attribute_key = 6;
+  string attribute_value = 7;
+  string next_token = 8;
 }
 
 message ListCloudTrailResponse {
