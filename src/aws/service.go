@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	"github.com/CyberAgent/mimosa-aws/pkg/model"
 	"github.com/CyberAgent/mimosa-aws/proto/aws"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -229,6 +230,9 @@ func (a *awsService) InvokeScanAll(ctx context.Context, _ *empty.Empty) (*empty.
 		if zero.IsZeroVal(dataSource.ProjectID) || zero.IsZeroVal(dataSource.AWSID) || zero.IsZeroVal(dataSource.AWSDataSourceID) {
 			continue
 		}
+		if skipScanDataSource(dataSource.DataSource) {
+			continue
+		}
 		if _, err := a.InvokeScan(ctx, &aws.InvokeScanRequest{
 			ProjectId:       dataSource.ProjectID,
 			AwsId:           dataSource.AWSID,
@@ -240,4 +244,17 @@ func (a *awsService) InvokeScanAll(ctx context.Context, _ *empty.Empty) (*empty.
 		time.Sleep(time.Millisecond * 100) // jitter
 	}
 	return &empty.Empty{}, nil
+}
+
+var skipScanDataSourceList = []string{
+	message.ActivityDatasource,
+}
+
+func skipScanDataSource(ds string) bool {
+	for _, skipDS := range skipScanDataSourceList {
+		if ds == skipDS {
+			return true
+		}
+	}
+	return false
 }

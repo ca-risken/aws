@@ -23,7 +23,7 @@ doc: fmt
 		--doc_out=markdown,README.md:doc \
 		proto/**/*.proto;
 
-build: fmt doc
+build-without-validate: fmt doc
 	for svc in "aws"; do \
 		protoc \
 			--proto_path=proto \
@@ -34,7 +34,7 @@ build: fmt doc
 
 # build with protoc-gen-validate
 build-validate: fmt doc
-	for svc in "cloudtrail"; do \
+	for svc in "activity"; do \
 		protoc \
 			--proto_path=proto \
 			--error_format=gcc \
@@ -43,6 +43,8 @@ build-validate: fmt doc
 			--validate_out="lang=go,paths=source_relative:proto" \
 			proto/$$svc/*.proto; \
 	done
+
+build : build-without-validate build-validate
 
 go-test: build build-validate
 	cd proto/aws           && go test ./...
@@ -53,6 +55,7 @@ go-test: build build-validate
 	cd src/admin-checker   && go test ./...
 	cd src/cloudsploit     && go test ./...
 	cd src/portscan        && go test ./...
+	cd src/activity        && go test ./...
 
 go-mod-update:
 	cd src/aws \
@@ -74,6 +77,10 @@ go-mod-update:
 		&& go get -u \
 			github.com/CyberAgent/mimosa-core/... \
 			github.com/CyberAgent/mimosa-aws/...
+	cd src/activity \
+		&& go get -u \
+			github.com/CyberAgent/mimosa-core/... \
+			github.com/CyberAgent/mimosa-aws/...
 
 go-mod-tidy: build build-validate
 	cd proto/aws           && go mod tidy
@@ -84,16 +91,20 @@ go-mod-tidy: build build-validate
 	cd src/access-analyzer && go mod tidy
 	cd src/admin-checker   && go mod tidy
 	cd src/cloudsploit     && go mod tidy
+	cd src/activity        && go mod tidy
 
 # @see https://github.com/CyberAgent/mimosa-common/tree/master/local
 network:
 	@if [ -z "`docker network ls | grep local-shared`" ]; then docker network create local-shared; fi
 
 run: go-test network
-	source env.sh && docker-compose up -d --build
+	source env.sh && docker-compose up -d --build --remove-orphans
 
 log:
 	source env.sh && docker-compose logs -f
+
+log-activity:
+	source env.sh && docker-compose logs -f activity
 
 stop:
 	source env.sh && docker-compose down
