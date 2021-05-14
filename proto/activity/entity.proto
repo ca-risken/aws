@@ -75,11 +75,6 @@ message SupplementaryConfiguration {
   string value = 2;
 }
 
-message CloudTrailAttribute {
-  AttributeKey key = 1;
-  string value = 2;
-}
-
 enum AttributeKey {
   UNKNOWN = 0;
 

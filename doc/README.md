@@ -6,7 +6,6 @@
 - [activity/entity.proto](#activity/entity.proto)
     - [ARN](#aws.activity.ARN)
     - [CloudTrail](#aws.activity.CloudTrail)
-    - [CloudTrailAttribute](#aws.activity.CloudTrailAttribute)
     - [Configuration](#aws.activity.Configuration)
     - [Resource](#aws.activity.Resource)
     - [SupplementaryConfiguration](#aws.activity.SupplementaryConfiguration)
@@ -101,22 +100,6 @@ https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/lookup-events.html#o
 | username | [string](#string) |  |  |
 | resources | [Resource](#aws.activity.Resource) | repeated |  |
 | cloudtrail_event | [string](#string) |  | Raw data(JSON) |
-
-
-
-
-
-
-<a name="aws.activity.CloudTrailAttribute"></a>
-
-### CloudTrailAttribute
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| key | [AttributeKey](#aws.activity.AttributeKey) |  |  |
-| value | [string](#string) |  |  |
 
 
 

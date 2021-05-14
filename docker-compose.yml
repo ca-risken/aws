@@ -32,7 +32,7 @@ services:
       - CLOUDSPLOIT_QUEUE_URL=${CLOUDSPLOIT_QUEUE_URL}
       - PORTSCAN_QUEUE_URL=${PORTSCAN_QUEUE_URL}
     ports:
-      - "9001:9001" # 本来docker-compose外にexposeする必要はない（Debug用）
+      - "9001:9001"
 
   guard-duty:
     networks:
@@ -156,6 +156,25 @@ services:
       - AWS_SVC_ADDR=${AWS_SVC_ADDR}
     ports:
       - "9006"
+
+  activity:
+    networks:
+      - aws
+      - local-shared
+    build:
+      context: src/activity
+      args:
+        - GITHUB_USER=${GITHUB_USER}
+        - GITHUB_TOKEN=${GITHUB_TOKEN}
+    environment:
+      - PORT=9007
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      - AWS_SVC_ADDR=${AWS_SVC_ADDR}
+    ports:
+      - "9007:9007"
 
 networks:
   aws:
