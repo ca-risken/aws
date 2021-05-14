@@ -7,7 +7,8 @@ env:
     IMAGE_ACCESSANALYZER: "aws/accessanalyzer"    
     IMAGE_ADMINCHECKER: "aws/adminchecker"    
     IMAGE_CLOUDSPLOIT: "aws/cloudsploit"
-    IMAGE_PORTSCAN: "aws/portscan"    
+    IMAGE_PORTSCAN: "aws/portscan"
+    IMAGE_ACTIVITY: "aws/activity"
   parameter-store:
     GITHUB_USER: "/build/GITHUB_USER"
     GITHUB_TOKEN: "/build/GITHUB_TOKEN"
@@ -30,12 +31,13 @@ phases:
       - REGISTORY=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
 
       - echo Testing the sources...
-      - cd ${SRC}/aws        && go test ./...
-      - cd ${SRC}/guard-duty && go test ./...
+      - cd ${SRC}/aws             && go test ./...
+      - cd ${SRC}/guard-duty      && go test ./...
       - cd ${SRC}/access-analyzer && go test ./...
       - cd ${SRC}/admin-checker   && go test ./...
-      - cd ${SRC}/cloudsploit   && go test ./...
-      - cd ${SRC}/portscan   && go test ./...
+      - cd ${SRC}/cloudsploit     && go test ./...
+      - cd ${SRC}/portscan        && go test ./...
+      - cd ${SRC}/activity        && go test ./...
 
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region ${AWS_DEFAULT_REGION})
@@ -49,6 +51,7 @@ phases:
       - cd ${SRC}/admin-checker   && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_ADMINCHECKER}:${TAG} .
       - cd ${SRC}/cloudsploit     && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_CLOUDSPLOIT}:${TAG} .
       - cd ${SRC}/portscan        && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_PORTSCAN}:${TAG} .
+      - cd ${SRC}/activity        && docker build ${BUILD_OPT} --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -t ${IMAGE_ACTIVITY}:${TAG} .
 
       - echo Tagging the images...
       # tag the specific version
@@ -58,6 +61,7 @@ phases:
       - docker tag ${IMAGE_ADMINCHECKER}:${TAG}   ${REGISTORY}/${IMAGE_ADMINCHECKER}:${TAG}
       - docker tag ${IMAGE_CLOUDSPLOIT}:${TAG}    ${REGISTORY}/${IMAGE_CLOUDSPLOIT}:${TAG}
       - docker tag ${IMAGE_PORTSCAN}:${TAG}       ${REGISTORY}/${IMAGE_PORTSCAN}:${TAG}
+      - docker tag ${IMAGE_ACTIVITY}:${TAG}       ${REGISTORY}/${IMAGE_ACTIVITY}:${TAG}
 
       # update latest version 
       - docker tag ${IMAGE_AWS}:${TAG}            ${REGISTORY}/${IMAGE_AWS}:latest
@@ -66,6 +70,7 @@ phases:
       - docker tag ${IMAGE_ADMINCHECKER}:${TAG}   ${REGISTORY}/${IMAGE_ADMINCHECKER}:latest
       - docker tag ${IMAGE_CLOUDSPLOIT}:${TAG}    ${REGISTORY}/${IMAGE_CLOUDSPLOIT}:latest
       - docker tag ${IMAGE_PORTSCAN}:${TAG}       ${REGISTORY}/${IMAGE_PORTSCAN}:latest
+      - docker tag ${IMAGE_ACTIVITY}:${TAG}       ${REGISTORY}/${IMAGE_ACTIVITY}:latest
 
   post_build:
     commands:
@@ -79,6 +84,7 @@ phases:
       - docker push ${REGISTORY}/${IMAGE_ADMINCHECKER}:${TAG}
       - docker push ${REGISTORY}/${IMAGE_CLOUDSPLOIT}:${TAG}
       - docker push ${REGISTORY}/${IMAGE_PORTSCAN}:${TAG}
+      - docker push ${REGISTORY}/${IMAGE_ACTIVITY}:${TAG}
 
       # latest version
       - docker push ${REGISTORY}/${IMAGE_AWS}:latest
@@ -87,3 +93,4 @@ phases:
       - docker push ${REGISTORY}/${IMAGE_ADMINCHECKER}:latest
       - docker push ${REGISTORY}/${IMAGE_CLOUDSPLOIT}:latest
       - docker push ${REGISTORY}/${IMAGE_PORTSCAN}:latest
+      - docker push ${REGISTORY}/${IMAGE_ACTIVITY}:latest
