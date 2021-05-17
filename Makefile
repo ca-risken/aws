@@ -1,4 +1,4 @@
-.PHONY: all install clean network fmt build doc
+.PHONY: all install clean network fmt build doc proto proto-without-validate proto-validate
 all: run
 
 install:
@@ -23,7 +23,7 @@ doc: fmt
 		--doc_out=markdown,README.md:doc \
 		proto/**/*.proto;
 
-build-without-validate: fmt doc
+proto-without-validate: fmt doc
 	for svc in "aws"; do \
 		protoc \
 			--proto_path=proto \
@@ -33,7 +33,7 @@ build-without-validate: fmt doc
 	done
 
 # build with protoc-gen-validate
-build-validate: fmt doc
+proto-validate: fmt doc
 	for svc in "activity"; do \
 		protoc \
 			--proto_path=proto \
@@ -44,9 +44,9 @@ build-validate: fmt doc
 			proto/$$svc/*.proto; \
 	done
 
-build : build-without-validate build-validate
+proto : proto-without-validate proto-validate
 
-go-test: build build-validate
+go-test: proto
 	cd proto/aws           && go test ./...
 	cd pkg/message         && go test ./...
 	cd src/aws             && go test ./...
@@ -97,8 +97,11 @@ go-mod-tidy: build build-validate
 network:
 	@if [ -z "`docker network ls | grep local-shared`" ]; then docker network create local-shared; fi
 
-run: go-test network
-	source env.sh && docker-compose up -d --build --remove-orphans
+build: go-test network
+	source env.sh && docker-compose build
+
+run: build
+	source env.sh && docker-compose up -d --remove-orphans
 
 log:
 	source env.sh && docker-compose logs -f
