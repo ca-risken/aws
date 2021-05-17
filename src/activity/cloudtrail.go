@@ -146,9 +146,13 @@ func generateLookupEventInput(req *activity.ListCloudTrailRequest) *cloudtrail.L
 			AttributeValue: aws.String(req.AttributeValue),
 		})
 	case activity.AttributeKey_READ_ONLY:
+		attrValue := "true"
+		if req.AttributeValue != "true" {
+			attrValue = "false"
+		}
 		lookupAttributes = append(lookupAttributes, &cloudtrail.LookupAttribute{
 			AttributeKey:   aws.String(cloudtrail.LookupAttributeKeyReadOnly),
-			AttributeValue: aws.String(req.AttributeValue),
+			AttributeValue: aws.String(attrValue),
 		})
 	}
 	lookupInput.LookupAttributes = lookupAttributes
