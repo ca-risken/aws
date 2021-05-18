@@ -1,6 +1,7 @@
 package common
 
 import (
+	"strings"
 	"time"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
@@ -23,4 +24,12 @@ func InitScanStatus(message *message.AWSQueueMessage) aws.AttachDataSourceReques
 			StatusDetail: "",
 		},
 	}
+}
+
+func isMatchAccountIDArn(accountID, arn string) bool {
+	if strings.Index(arn, "::") < 0 {
+		return false
+	}
+	tmp := strings.Split(arn, "::")[1]
+	return strings.HasPrefix(tmp, accountID)
 }
