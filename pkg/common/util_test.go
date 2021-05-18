@@ -38,7 +38,7 @@ func TestIsMatchAccountIDArn(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := isMatchAccountIDArn(c.accountID, c.arn)
+			got := IsMatchAccountIDArn(c.accountID, c.arn)
 			if c.want != got {
 				t.Fatalf("Unexpected resource name: want=%v, got=%v", c.want, got)
 			}

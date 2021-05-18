@@ -26,7 +26,7 @@ func InitScanStatus(message *message.AWSQueueMessage) aws.AttachDataSourceReques
 	}
 }
 
-func isMatchAccountIDArn(accountID, arn string) bool {
+func IsMatchAccountIDArn(accountID, arn string) bool {
 	if strings.Index(arn, "::") < 0 {
 		return false
 	}
