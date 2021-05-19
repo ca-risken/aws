@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/common"
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
@@ -41,6 +42,15 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		appLogger.Errorf("Invalid message. message: %v, error: %v", message, err)
 		return err
 	}
+
+	ctx := context.Background()
+	status := common.InitScanStatus(message)
+	// check AccountID matches Arn for Scan
+	if !common.IsMatchAccountIDArn(message.AccountID, message.AssumeRoleArn) {
+		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", message.AccountID, message.AssumeRoleArn)
+		return s.updateScanStatusError(ctx, &status, fmt.Sprintf("AssumeRoleArn for Portscan must be created in AWS AccountID: %v", message.AccountID))
+	}
+
 	cloudsploitConfig, err := newcloudsploitConfig(message.AssumeRoleArn, message.ExternalID, message.AWSID, message.AccountID)
 	if err != nil {
 		appLogger.Errorf("Error occured when configure: %v, error: %v", message, err)
@@ -48,8 +58,6 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	}
 	appLogger.Info("Start cloudsploit Client")
 
-	ctx := context.Background()
-	status := common.InitScanStatus(message)
 	// Run cloudsploit
 	cloudsploitResult, err := cloudsploitConfig.run(message.AccountID)
 	//cloudsploitResult, err := cloudsploitConfig.tmpRun(message.AccountID)

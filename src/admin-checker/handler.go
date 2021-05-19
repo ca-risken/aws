@@ -39,6 +39,11 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 
 	ctx := context.Background()
 	status := common.InitScanStatus(message)
+	// check AccountID matches Arn for Scan
+	if !common.IsMatchAccountIDArn(message.AccountID, message.AssumeRoleArn) {
+		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", message.AccountID, message.AssumeRoleArn)
+		return s.updateScanStatusError(ctx, &status, fmt.Sprintf("AssumeRoleArn for Portscan must be created in AWS AccountID: %v", message.AccountID))
+	}
 	// IAM Admin Checker
 	adminChecker, err := newAdminCheckerClient(message.AssumeRoleArn, message.ExternalID)
 	if err != nil {
