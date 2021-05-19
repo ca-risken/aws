@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
+	"github.com/CyberAgent/mimosa-aws/pkg/common"
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	awsClient "github.com/CyberAgent/mimosa-aws/proto/aws"
 	"github.com/CyberAgent/mimosa-core/proto/alert"
@@ -54,7 +54,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		},
 	}
 	// check AccountID matches Arn for Scan
-	if !isMatchAccountIDArn(message.AccountID, message.AssumeRoleArn) {
+	if !common.IsMatchAccountIDArn(message.AccountID, message.AssumeRoleArn) {
 		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", message.AccountID, message.AssumeRoleArn)
 		return s.updateScanStatusError(ctx, &status, fmt.Sprintf("AssumeRoleArn for Portscan must be created in AWS AccountID: %v", message.AccountID))
 	}
@@ -131,12 +131,4 @@ func (s *sqsHandler) analyzeAlert(ctx context.Context, projectID uint32) error {
 		ProjectId: projectID,
 	})
 	return err
-}
-
-func isMatchAccountIDArn(accountID, arn string) bool {
-	if strings.Index(arn, "::") < 0 {
-		return false
-	}
-	tmp := strings.Split(arn, "::")[1]
-	return strings.HasPrefix(tmp, accountID)
 }

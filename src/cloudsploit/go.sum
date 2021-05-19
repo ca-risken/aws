@@ -20,6 +20,8 @@ github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20210513074107-4c7dc299f6c4 h
 github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20210513074107-4c7dc299f6c4/go.mod h1:HOfDk6fM0vcc5AeBshCyM3LRanz3kHtERvRn2Jx5LHs=
 github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20210513125830-6ca7eee6d00d h1:PepWy8mwRFXc+o4scQemplXj/PKtj4HjBdWFd/woBzw=
 github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20210513125830-6ca7eee6d00d/go.mod h1:HOfDk6fM0vcc5AeBshCyM3LRanz3kHtERvRn2Jx5LHs=
+github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20210518111940-64531f94e9b8 h1:M2Km5KaTPrA6mSPjDgHbdWw/r/lJ0M1SVE03vlXGHrU=
+github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20210518111940-64531f94e9b8/go.mod h1:HOfDk6fM0vcc5AeBshCyM3LRanz3kHtERvRn2Jx5LHs=
 github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210125022408-c3af4b06cf07/go.mod h1:63kdv0bYpeuoHCveNAeQEVomuX6JmdaGOk9gQvOfT0w=
 github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210126093719-e0c2d78c64c2 h1:YDor3bcSO6VsnMncGvhtptN2Zd5xyQA2R4PKP+vaIGA=
 github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210126093719-e0c2d78c64c2/go.mod h1:63kdv0bYpeuoHCveNAeQEVomuX6JmdaGOk9gQvOfT0w=
@@ -41,6 +43,8 @@ github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210513074107-4c7dc299f6c4 
 github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210513074107-4c7dc299f6c4/go.mod h1:63kdv0bYpeuoHCveNAeQEVomuX6JmdaGOk9gQvOfT0w=
 github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210513125830-6ca7eee6d00d h1:3T3e34UJ/O/SDSeILCPK6wnD+7H3FEXz8V6kWrg52FI=
 github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210513125830-6ca7eee6d00d/go.mod h1:63kdv0bYpeuoHCveNAeQEVomuX6JmdaGOk9gQvOfT0w=
+github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210518111940-64531f94e9b8 h1:S6s++iZj+ikxIMUXm9gnIdQGlLkNyOivPyLGHhD1QEc=
+github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210518111940-64531f94e9b8/go.mod h1:63kdv0bYpeuoHCveNAeQEVomuX6JmdaGOk9gQvOfT0w=
 github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210125022408-c3af4b06cf07/go.mod h1:ht8yad4dQ4gdCSdwohK5GKxfY62peymhuY7SivEeYH8=
 github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210126093719-e0c2d78c64c2 h1:zDSqZCxF8cuLN7J70yRf9Ua22DeuDetx6zGDHaVYy6g=
 github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210126093719-e0c2d78c64c2/go.mod h1:ht8yad4dQ4gdCSdwohK5GKxfY62peymhuY7SivEeYH8=
@@ -62,6 +66,8 @@ github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210513074107-4c7dc299f6c4 h1
 github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210513074107-4c7dc299f6c4/go.mod h1:YZ3ji9lxFv6wDjtQhmpy+RZ+anQAfABQwtGcfzI+Q04=
 github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210513125830-6ca7eee6d00d h1:F38/LkJPM3S2X+q/5VyPmTD3QFi5vKJwp0LSUfUGibE=
 github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210513125830-6ca7eee6d00d/go.mod h1:YZ3ji9lxFv6wDjtQhmpy+RZ+anQAfABQwtGcfzI+Q04=
+github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210518111940-64531f94e9b8 h1:6k06ncTk+YOqFJkPD+z+gd8S0qMUJV8Eb5cCERBT7Lw=
+github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210518111940-64531f94e9b8/go.mod h1:YZ3ji9lxFv6wDjtQhmpy+RZ+anQAfABQwtGcfzI+Q04=
 github.com/CyberAgent/mimosa-core/proto/alert v0.0.0-20210108063741-eceb6a32f58c h1:raXuJqTxyKwOXtXyvZ5so1jv323sWUwI9s+ieH5mbhQ=
 github.com/CyberAgent/mimosa-core/proto/alert v0.0.0-20210108063741-eceb6a32f58c/go.mod h1:SoIakGpoIi9IY2qrHp4h3MPG1NZBiIyZRq3bZYvKcqE=
 github.com/CyberAgent/mimosa-core/proto/alert v0.0.0-20210218135922-8cb0b0d8730e h1:0WQTOma3HaA2UAsgKo7obGRyZ2TbgIpIJRU+o6+RyAs=
@@ -103,6 +109,8 @@ github.com/aws/aws-sdk-go v1.38.26 h1:xHABHMEb/00NydXFy/2Lo+7yIgxGxN/6Fvll3l1Nwn
 github.com/aws/aws-sdk-go v1.38.26/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
 github.com/aws/aws-sdk-go v1.38.39 h1:n4jkKlE3DfZBN800njuHmOEQlDht4aO/kE2VNk0/6T4=
 github.com/aws/aws-sdk-go v1.38.39/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
+github.com/aws/aws-sdk-go v1.38.41 h1:2Q3XaEPmP2cxUB9D9w8kytQh2CSpbJtMKzMN42HMwEk=
+github.com/aws/aws-sdk-go v1.38.41/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
@@ -252,6 +260,8 @@ golang.org/x/sys v0.0.0-20210426230700-d19ff857e887 h1:dXfMednGJh/SUUFjTLsWJz3P+
 golang.org/x/sys v0.0.0-20210426230700-d19ff857e887/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210511113859-b0526f3d8744 h1:yhBbb4IRs2HS9PPlAg6DMC6mUOKexJBNsLf4Z+6En1Q=
 golang.org/x/sys v0.0.0-20210511113859-b0526f3d8744/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20210514084401-e8d321eab015 h1:hZR0X1kPW+nwyJ9xRxqZk1vx5RUObAPBdKVvXPDUH/E=
+golang.org/x/sys v0.0.0-20210514084401-e8d321eab015/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.3 h1:cokOdA+Jmi5PJGXLlLllQSgYigAEfHXJAERHVMaCc2k=
@@ -295,6 +305,8 @@ google.golang.org/genproto v0.0.0-20210426193834-eac7f76ac494 h1:KMgpo2lWy1vfrYj
 google.golang.org/genproto v0.0.0-20210426193834-eac7f76ac494/go.mod h1:P3QM42oQyzQSnHPnZ/vqoCdDmzH28fzWByN9asMeM8A=
 google.golang.org/genproto v0.0.0-20210510173355-fb37daa5cd7a h1:tzkHckzMzgPr8SC4taTC3AldLr4+oJivSoq1xf/nhsc=
 google.golang.org/genproto v0.0.0-20210510173355-fb37daa5cd7a/go.mod h1:P3QM42oQyzQSnHPnZ/vqoCdDmzH28fzWByN9asMeM8A=
+google.golang.org/genproto v0.0.0-20210517163617-5e0236093d7a h1:VA0wtJaR+W1I11P2f535J7D/YxyvEFMTMvcmyeZ9FBE=
+google.golang.org/genproto v0.0.0-20210517163617-5e0236093d7a/go.mod h1:P3QM42oQyzQSnHPnZ/vqoCdDmzH28fzWByN9asMeM8A=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
 google.golang.org/grpc v1.23.0/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
 google.golang.org/grpc v1.25.1/go.mod h1:c3i+UQWmh7LiEpx4sFZnkU36qjEYZ0imhYfXVyQciAY=
