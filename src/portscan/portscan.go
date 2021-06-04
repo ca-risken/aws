@@ -224,7 +224,6 @@ func (p *portscanClient) listEC2(accountID string) error {
 		}
 	}
 	for _, ec2 := range listEC2 {
-		appLogger.Infof("Instance Info: %v", listEC2)
 		securityGroups := p.getMatchSecurityGroup(ec2.GroupID)
 		if zero.IsZeroVal(securityGroups) {
 			continue
@@ -239,7 +238,6 @@ func (p *portscanClient) listEC2(accountID string) error {
 				SecurityGroup: securityGroup.groupID,
 				Category:      "ec2",
 			}
-			appLogger.Infof("TargetEC2 Info: %v", targetEC2)
 			p.target = append(p.target, targetEC2)
 		}
 	}
@@ -458,7 +456,6 @@ func (p *portscanClient) getMatchSecurityGroup(targetSecurityGroups []*string) [
 func (p *portscanClient) scan() ([]*portscan.NmapResult, error) {
 	var nmapResults []*portscan.NmapResult
 	for _, target := range p.target {
-		appLogger.Infof("target: %v", target)
 		results, err := portscan.Scan(target.Target, target.Protocol, target.FromPort, target.ToPort)
 		if err != nil {
 			appLogger.Warnf("Error occured when scanning. err: %v", err)
