@@ -53,6 +53,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
 
+	analyzerEnabled := false
 	for _, region := range regions {
 		if region == nil || *region.RegionName == "" {
 			appLogger.Warnf("Invalid region in AccountID=%s", message.AccountID)
@@ -69,10 +70,14 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			appLogger.Errorf("Faild to create AccessAnalyzer session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
 		}
-		findings, err := accessAnalyzer.getAccessAnalyzer(message)
+
+		findings, analyzerArns, err := accessAnalyzer.getAccessAnalyzer(message)
 		if err != nil {
 			appLogger.Errorf("Faild to get findngs to AWS AccessAnalyzer: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
+		}
+		if analyzerArns != nil && len(*analyzerArns) > 0 {
+			analyzerEnabled = true
 		}
 		// Put finding to core
 		if err := s.putFindings(ctx, findings); err != nil {
@@ -83,15 +88,20 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			return err
 		}
 	}
+	if !analyzerEnabled {
+		if err := s.updateScanStatusError(ctx, &status, "AccessAnalyzer is disabled in all regions"); err != nil {
+			return err
+		}
+	}
 	return s.analyzeAlert(ctx, message.ProjectID)
 }
 
-func (a *accessAnalyzerClient) getAccessAnalyzer(msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
+func (a *accessAnalyzerClient) getAccessAnalyzer(msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
 	putData := []*finding.FindingForUpsert{}
 	analyzerArns, err := a.listAnalyzers()
 	if err != nil {
 		appLogger.Errorf("AccessAnalyzer.ListAnalyzers error: err=%+v", err)
-		return nil, err
+		return nil, &[]string{}, err
 	}
 
 	for _, arn := range *analyzerArns {
@@ -111,7 +121,7 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(msg *message.AWSQueueMessage) (
 			buf, err := json.Marshal(data)
 			if err != nil {
 				appLogger.Errorf("Failed to json encoding error: err=%+v", err)
-				return nil, err
+				return nil, &[]string{}, err
 			}
 			isPublic := false
 			if data.IsPublic != nil {
@@ -130,7 +140,7 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(msg *message.AWSQueueMessage) (
 			})
 		}
 	}
-	return putData, nil
+	return putData, analyzerArns, nil
 }
 
 func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.FindingForUpsert) error {

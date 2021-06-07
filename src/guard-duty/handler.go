@@ -51,6 +51,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
 
+	guardDutyEnabled := false
 	for _, region := range regions {
 		if region == nil || *region.RegionName == "" {
 			appLogger.Warnf("Invalid region in AccountID=%s", message.AccountID)
@@ -67,10 +68,14 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			return s.updateScanStatusError(ctx, &status, err.Error())
 		}
 		// Get guardduty
-		findings, err := guardduty.getGuardDuty(message)
+		findings, detecterIDs, err := guardduty.getGuardDuty(message)
 		if err != nil {
 			appLogger.Errorf("Faild to get findngs to AWS GuardDuty: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
+		}
+		appLogger.Infof("detecterIDs: %+v, length: %d", *detecterIDs, len(*detecterIDs))
+		if detecterIDs != nil && len(*detecterIDs) > 0 {
+			guardDutyEnabled = true
 		}
 		// Put finding to core
 		if err := s.putFindings(ctx, findings); err != nil {
@@ -78,6 +83,11 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			return s.updateScanStatusError(ctx, &status, err.Error())
 		}
 		if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
+			return err
+		}
+	}
+	if !guardDutyEnabled {
+		if err := s.updateScanStatusError(ctx, &status, "GuardDuty is disabled in all regions"); err != nil {
 			return err
 		}
 	}
@@ -97,12 +107,15 @@ func supportedRegion(region string) bool {
 	return true
 }
 
-func (g *guardDutyClient) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
+func (g *guardDutyClient) getGuardDuty(message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
 	putData := []*finding.FindingForUpsert{}
 	detecterIDs, err := g.listDetectors()
 	if err != nil {
 		appLogger.Errorf("GuardDuty.ListDetectors error: err=%+v", err)
-		return nil, err
+		return nil, &[]string{}, err
+	}
+	if detecterIDs == nil || len(*detecterIDs) == 0 {
+		return nil, &[]string{}, nil // guardduty not enabled
 	}
 	for _, id := range *detecterIDs {
 		fmt.Printf("detecterId: %s\n", id)
@@ -126,7 +139,7 @@ func (g *guardDutyClient) getGuardDuty(message *message.AWSQueueMessage) ([]*fin
 			buf, err := json.Marshal(data)
 			if err != nil {
 				appLogger.Errorf("Failed to json encoding error: err=%+v", err)
-				return nil, err
+				return nil, detecterIDs, err
 			}
 			var score float32
 			if *data.Service.Archived {
@@ -146,7 +159,7 @@ func (g *guardDutyClient) getGuardDuty(message *message.AWSQueueMessage) ([]*fin
 			})
 		}
 	}
-	return putData, nil
+	return putData, detecterIDs, nil
 }
 
 func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.FindingForUpsert) error {
