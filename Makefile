@@ -2,11 +2,12 @@
 all: run
 
 install:
-	go get \
-		google.golang.org/grpc \
-		github.com/golang/protobuf/protoc-gen-go \
-		github.com/envoyproxy/protoc-gen-validate \
-		github.com/grpc-ecosystem/go-grpc-middleware
+	brew install protobuf clang-format && \
+	go get google.golang.org/grpc@v1.38.0 && \
+	go get github.com/golang/protobuf@v1.5.2 && \
+	go get -u github.com/golang/protobuf/protoc-gen-go && \
+	go install github.com/envoyproxy/protoc-gen-validate@v0.6.1 && \
+	go get github.com/grpc-ecosystem/go-grpc-middleware@latest
 
 clean:
 	rm -f proto/**/*.pb.go
@@ -15,15 +16,15 @@ clean:
 fmt: proto/**/*.proto
 	clang-format -i proto/**/*.proto
 
-doc: fmt
-	protoc \
-		--proto_path=proto \
-		--error_format=gcc \
-		-I $(GOPATH)/src/github.com/envoyproxy/protoc-gen-validate \
-		--doc_out=markdown,README.md:doc \
-		proto/**/*.proto;
+# doc: fmt
+# 	protoc \
+# 		--proto_path=proto \
+# 		--error_format=gcc \
+# 		-I $(shell go env GOPATH)/pkg/mod/github.com/envoyproxy/protoc-gen-validate@v0.6.1 \
+# 		--doc_out=markdown,README.md:doc \
+# 		proto/**/*.proto;
 
-proto-without-validate: fmt doc
+proto-without-validate: fmt
 	for svc in "aws"; do \
 		protoc \
 			--proto_path=proto \
@@ -32,13 +33,13 @@ proto-without-validate: fmt doc
 			proto/$$svc/*.proto; \
 	done
 
-# build with protoc-gen-validate
-proto-validate: fmt doc
+# build with protoc-gen-validate``
+proto-validate: fmt
 	for svc in "activity"; do \
 		protoc \
 			--proto_path=proto \
 			--error_format=gcc \
-			-I $(GOPATH)/src/github.com/envoyproxy/protoc-gen-validate \
+			-I $(shell go env GOPATH)/pkg/mod/github.com/envoyproxy/protoc-gen-validate@v0.6.1 \
 			--go_out=plugins=grpc,paths=source_relative:proto \
 			--validate_out="lang=go,paths=source_relative:proto" \
 			proto/$$svc/*.proto; \
