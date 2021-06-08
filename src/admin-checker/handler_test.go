@@ -56,3 +56,48 @@ func TestScoreAdminUser(t *testing.T) {
 		})
 	}
 }
+
+func TestScoreAccessReport(t *testing.T) {
+	cases := []struct {
+		name  string
+		input *serviceAccessedReport
+		want  float32
+	}{
+		{
+			name: "Too many policies",
+			input: &serviceAccessedReport{
+				AccessRate: 0.3,
+			},
+			want: 0.7,
+		},
+		{
+			name: "Many policies",
+			input: &serviceAccessedReport{
+				AccessRate: 0.5,
+			},
+			want: 0.5,
+		},
+		{
+			name: "Many policies",
+			input: &serviceAccessedReport{
+				AccessRate: 0.7,
+			},
+			want: 0.3,
+		},
+		{
+			name: "Many policies",
+			input: &serviceAccessedReport{
+				AccessRate: 1.0,
+			},
+			want: 0.1,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := scoreAccessReport(c.input)
+			if c.want != got {
+				t.Fatalf("Unexpected resource name: want=%v, got=%v", c.want, got)
+			}
+		})
+	}
+}
