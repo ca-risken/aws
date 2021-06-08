@@ -28,62 +28,72 @@ func newHandler() *sqsHandler {
 	}
 }
 
-func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
-	msgBody := aws.StringValue(msg.Body)
+func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
+	msgBody := aws.StringValue(sqsMsg.Body)
 	appLogger.Infof("got message: %s", msgBody)
-	message, err := message.ParseMessage(msgBody)
+	msg, err := message.ParseMessage(msgBody)
 	if err != nil {
-		appLogger.Errorf("Invalid message: SQS_msg=%+v, err=%+v", msg, err)
+		appLogger.Errorf("Invalid message: SQS_msg=%+v, err=%+v", sqsMsg, err)
 		return err
 	}
 
 	ctx := context.Background()
-	status := common.InitScanStatus(message)
+	status := common.InitScanStatus(msg)
 	// check AccountID matches Arn for Scan
-	if !common.IsMatchAccountIDArn(message.AccountID, message.AssumeRoleArn) {
-		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", message.AccountID, message.AssumeRoleArn)
-		return s.updateScanStatusError(ctx, &status, fmt.Sprintf("AssumeRoleArn for Portscan must be created in AWS AccountID: %v", message.AccountID))
+	if !common.IsMatchAccountIDArn(msg.AccountID, msg.AssumeRoleArn) {
+		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", msg.AccountID, msg.AssumeRoleArn)
+		return s.updateScanStatusError(ctx, &status, fmt.Sprintf("AssumeRoleArn for Portscan must be created in AWS AccountID: %v", msg.AccountID))
 	}
 	// IAM Admin Checker
-	adminChecker, err := newAdminCheckerClient(message.AssumeRoleArn, message.ExternalID)
+	adminChecker, err := newAdminCheckerClient(msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create AdminChecker session: err=%+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
-	findings, err := adminChecker.getAdminUser(message)
+
+	// IAM User
+	userFindings, err := adminChecker.listUserFinding(msg)
 	if err != nil {
-		appLogger.Errorf("Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", message.AccountID, err)
-		return s.updateScanStatusError(ctx, &status, err.Error())
-
-	}
-
-	// Put finding to core
-	if err := s.putFindings(ctx, findings); err != nil {
-		appLogger.Errorf("Faild to put findngs: AccountID=%+v, err=%+v", message.AccountID, err)
+		appLogger.Errorf("Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", msg.AccountID, err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
+	if err := s.putUserFindings(ctx, msg, userFindings); err != nil {
+		return s.updateScanStatusError(ctx, &status, err.Error())
+	}
+
+	// IAM Role
+	roleFindings, err := adminChecker.listRoleFinding(msg)
+	if err != nil {
+		appLogger.Errorf("Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", msg.AccountID, err)
+		return s.updateScanStatusError(ctx, &status, err.Error())
+	}
+	if err := s.putRoleFindings(ctx, msg, roleFindings); err != nil {
+		return s.updateScanStatusError(ctx, &status, err.Error())
+	}
+
+	// finish
 	if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
 		return err
 	}
-	return s.analyzeAlert(ctx, message.ProjectID)
+	return s.analyzeAlert(ctx, msg.ProjectID)
 }
 
-func (a *adminCheckerClient) getAdminUser(msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
-	putData := []*finding.FindingForUpsert{}
-	iamUsers, err := a.listUser()
-	if err != nil {
-		appLogger.Errorf("IAM.ListUser error: err=%+v", err)
-		return nil, err
-	}
+const (
+	typeAdmin          = "admin"
+	typeAccessReport   = "access-report"
+	prefixAccessReport = "AccessReport/"
+)
 
-	for _, user := range *iamUsers {
+func (s *sqsHandler) putUserFindings(ctx context.Context, msg *message.AWSQueueMessage, userFindings *[]iamUser) error {
+	for _, user := range *userFindings {
 		appLogger.Infof("Detect IAM user: %+v", user)
 		buf, err := json.Marshal(user)
 		if err != nil {
 			appLogger.Errorf("Failed to marshal user data, userArn=%s, err=%+v", user.UserArn, err)
-			return nil, err
+			return err
 		}
-		putData = append(putData, &finding.FindingForUpsert{
+		// Put finding to core
+		if err := s.putFindings(ctx, typeAdmin, &finding.FindingForUpsert{
 			Description:      fmt.Sprintf("AdminChekcer: %s(admin=%t)", user.UserName, (user.IsUserAdmin || user.IsGroupAdmin)),
 			DataSource:       msg.DataSource,
 			DataSourceId:     user.UserArn,
@@ -92,27 +102,68 @@ func (a *adminCheckerClient) getAdminUser(msg *message.AWSQueueMessage) ([]*find
 			OriginalScore:    scoreAdminUser(&user),
 			OriginalMaxScore: 1.0,
 			Data:             string(buf),
-		})
-	}
-	return putData, nil
-}
-
-func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.FindingForUpsert) error {
-	for _, f := range findings {
-		// finding
-		resp, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
-		if err != nil {
+		}); err != nil {
+			appLogger.Errorf("Faild to put findngs: AccountID=%+v, err=%+v", msg.AccountID, err)
 			return err
 		}
-		// finding-tag
-		s.tagFinding(ctx, common.TagAWS, resp.Finding.FindingId, resp.Finding.ProjectId)
-		s.tagFinding(ctx, common.TagAdminChecker, resp.Finding.FindingId, resp.Finding.ProjectId)
-		awsServiceTag := common.GetAWSServiceTagByARN(resp.Finding.ResourceName)
-		if awsServiceTag != common.TagUnknown {
-			s.tagFinding(ctx, awsServiceTag, resp.Finding.FindingId, resp.Finding.ProjectId)
+		if err := s.putFindings(ctx, typeAccessReport, &finding.FindingForUpsert{
+			Description:      fmt.Sprintf("AccessReport: %.1f%% unused service(%s)", (1-user.ServiceAccessedReport.AccessRate)*100, user.UserName),
+			DataSource:       msg.DataSource,
+			DataSourceId:     prefixAccessReport + user.UserArn,
+			ResourceName:     user.UserArn,
+			ProjectId:        msg.ProjectID,
+			OriginalScore:    scoreAccessReport(&user.ServiceAccessedReport),
+			OriginalMaxScore: 1.0,
+			Data:             string(buf),
+		}); err != nil {
+			appLogger.Errorf("Faild to put findngs: AccountID=%+v, err=%+v", msg.AccountID, err)
+			return err
 		}
-		appLogger.Infof("Success to PutFinding, finding_id=%d", resp.Finding.FindingId)
 	}
+	return nil
+}
+
+func (s *sqsHandler) putRoleFindings(ctx context.Context, msg *message.AWSQueueMessage, roleFindings *[]iamRole) error {
+	for _, role := range *roleFindings {
+		appLogger.Infof("Detect IAM role: %+v", role)
+		buf, err := json.Marshal(role)
+		if err != nil {
+			appLogger.Errorf("Failed to marshal user data, userArn=%s, err=%+v", role.RoleArn, err)
+			return err
+		}
+		// Put finding to core
+		if err := s.putFindings(ctx, typeAccessReport, &finding.FindingForUpsert{
+			Description:      fmt.Sprintf("AccessReport: %.1f%% unused service(%s)", (1-role.ServiceAccessedReport.AccessRate)*100, role.RoleName),
+			DataSource:       msg.DataSource,
+			DataSourceId:     prefixAccessReport + role.RoleArn,
+			ResourceName:     role.RoleArn,
+			ProjectId:        msg.ProjectID,
+			OriginalScore:    scoreAccessReport(&role.ServiceAccessedReport),
+			OriginalMaxScore: 1.0,
+			Data:             string(buf),
+		}); err != nil {
+			appLogger.Errorf("Faild to put findngs: AccountID=%+v, err=%+v", msg.AccountID, err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *sqsHandler) putFindings(ctx context.Context, findingType string, f *finding.FindingForUpsert) error {
+	// finding
+	resp, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
+	if err != nil {
+		return err
+	}
+	// finding-tag
+	s.tagFinding(ctx, common.TagAWS, resp.Finding.FindingId, resp.Finding.ProjectId)
+	s.tagFinding(ctx, common.TagAdminChecker, resp.Finding.FindingId, resp.Finding.ProjectId)
+	s.tagFinding(ctx, findingType, resp.Finding.FindingId, resp.Finding.ProjectId)
+	awsServiceTag := common.GetAWSServiceTagByARN(resp.Finding.ResourceName)
+	if awsServiceTag != common.TagUnknown {
+		s.tagFinding(ctx, awsServiceTag, resp.Finding.FindingId, resp.Finding.ProjectId)
+	}
+	appLogger.Infof("Success to PutFinding, finding_id=%d", resp.Finding.FindingId)
 	return nil
 }
 
@@ -174,4 +225,17 @@ func scoreAdminUser(user *iamUser) float32 {
 		return 0.7
 	}
 	return 0.9
+}
+
+func scoreAccessReport(accessedReport *serviceAccessedReport) float32 {
+	if accessedReport.AccessRate > 0.7 {
+		return 0.1
+	}
+	if accessedReport.AccessRate > 0.5 {
+		return 0.3
+	}
+	if accessedReport.AccessRate > 0.3 {
+		return 0.5
+	}
+	return 0.7
 }

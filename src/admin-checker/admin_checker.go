@@ -2,6 +2,10 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"math"
+	"strings"
+	"time"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	"github.com/CyberAgent/mimosa-core/proto/finding"
@@ -14,8 +18,8 @@ import (
 )
 
 type adminCheckerAPI interface {
-	getAdminUser(*message.AWSQueueMessage) ([]*finding.FindingForUpsert, error)
-	listUser() (*[]iamUser, error)
+	listUserFinding(msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error)
+	listRoleFinding(msg *message.AWSQueueMessage) (*[]iamRole, error)
 }
 
 type adminCheckerClient struct {
@@ -68,30 +72,48 @@ func (a *adminCheckerClient) newAWSSession(region, assumeRole, externalID string
 }
 
 type iamUser struct {
-	UserArn  string `json:"user_arn"`
-	UserName string `json:"user_name"`
+	UserArn                   string                `json:"user_arn"`
+	UserName                  string                `json:"user_name"`
+	ActiveAccessKeyID         []string              `json:"active_access_key_id"`
+	EnabledPermissionBoundory bool                  `json:"enabled_permission_boundory"`
+	PermissionBoundoryName    string                `json:"permission_boundory_name"`
+	IsUserAdmin               bool                  `json:"is_user_admin"`
+	UserAdminPolicy           []string              `json:"user_admin_policy"`
+	IsGroupAdmin              bool                  `json:"is_grorup_admin"`
+	GroupAdminPolicy          []string              `json:"group_admin_policy"`
+	ServiceAccessedReport     serviceAccessedReport `json:"service_accessed_report"`
+}
 
-	ActiveAccessKeyID []string `json:"active_access_key_id"`
+type serviceAccessedReport struct {
+	JobID            string  `json:"job_id"`
+	JobStatus        string  `json:"job_status"`
+	AllowedServices  int     `json:"allowed_services"`
+	AccessedServices int     `json:"accessed_services"`
+	AccessRate       float32 `json:"access_rate"`
+}
 
-	EnabledPermissionBoundory bool   `json:"enabled_permission_boundory"`
-	PermissionBoundoryName    string `json:"permission_boundory_name"`
-
-	IsUserAdmin     bool     `json:"is_user_admin"`
-	UserAdminPolicy []string `json:"user_admin_policy"`
-
-	IsGroupAdmin     bool     `json:"is_grorup_admin"`
-	GroupAdminPolicy []string `json:"group_admin_policy"`
+func (a *adminCheckerClient) listUserFinding(msg *message.AWSQueueMessage) (*[]iamUser, error) {
+	iamUsers, err := a.listUser()
+	if err != nil {
+		appLogger.Errorf("IAM.ListUser error: err=%+v", err)
+		return nil, err
+	}
+	return iamUsers, nil
 }
 
 func (a *adminCheckerClient) listUser() (*[]iamUser, error) {
-	result, err := a.Svc.ListUsers(&iam.ListUsersInput{})
+	users, err := a.Svc.ListUsers(&iam.ListUsersInput{})
 	if err != nil {
 		return nil, err
 	}
 	var iamUsers []iamUser
-	for _, user := range result.Users {
+	for _, user := range users.Users {
 		if user == nil {
 			continue
+		}
+		jobID, err := a.generateServiceLastAccessedDetails(*user.Arn)
+		if err != nil {
+			return nil, err
 		}
 		accessKeys, err := a.listActiveAccessKeyID(user.UserName)
 		if err != nil {
@@ -119,9 +141,82 @@ func (a *adminCheckerClient) listUser() (*[]iamUser, error) {
 			UserAdminPolicy:           *userAdminPolicy,
 			IsGroupAdmin:              len(*groupAdminPolicy) > 0,
 			GroupAdminPolicy:          *groupAdminPolicy,
+			ServiceAccessedReport: serviceAccessedReport{
+				JobID: jobID,
+			},
 		})
 	}
+	for idx, user := range iamUsers {
+		jobID := user.ServiceAccessedReport.JobID
+		accessedDetail, err := a.analyzeServiceLastAccessedDetails(jobID)
+		if err != nil {
+			appLogger.Warnf("Failed to analyzServiceAccessedDetails Job, err=%+v", err.Error())
+			continue
+		}
+		iamUsers[idx].ServiceAccessedReport = *accessedDetail
+	}
 	return &iamUsers, nil
+}
+
+func (a *adminCheckerClient) generateServiceLastAccessedDetails(arn string) (string, error) {
+	out, err := a.Svc.GenerateServiceLastAccessedDetails(&iam.GenerateServiceLastAccessedDetailsInput{
+		Arn:         &arn,
+		Granularity: aws.String("SERVICE_LEVEL"), // or ACTION_LEVEL
+	})
+	if err != nil {
+		return "", err
+	}
+	return *out.JobId, nil
+}
+
+const maxRetry = 3
+
+func (a *adminCheckerClient) analyzeServiceLastAccessedDetails(jobID string) (*serviceAccessedReport, error) {
+	resp := serviceAccessedReport{
+		JobID: jobID,
+	}
+	retry := 0
+BREAK:
+	for {
+		out, err := a.Svc.GetServiceLastAccessedDetails(&iam.GetServiceLastAccessedDetailsInput{
+			JobId: &jobID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		switch *out.JobStatus {
+		case iam.JobStatusTypeFailed:
+			errMsg := fmt.Sprintf("Failed to GetServiceLastAccessedDetails, jobID=%s", jobID)
+			if out.Error != nil {
+				errMsg += fmt.Sprintf(" error_code=%s, message=%s", *out.Error.Code, *out.Error.Message)
+			}
+			return nil, errors.New(errMsg)
+		case iam.JobStatusTypeInProgress:
+			retry++
+			if retry > maxRetry {
+				resp.JobStatus = "TIMEOUT"
+				break BREAK
+			}
+			time.Sleep(time.Millisecond * 1000)
+			continue
+		case iam.JobStatusTypeCompleted:
+			resp.JobStatus = iam.JobStatusTypeCompleted
+			resp.AllowedServices = len(out.ServicesLastAccessed)
+			for _, accessed := range out.ServicesLastAccessed {
+				//appLogger.Debugf("ServicesLastAccessed: %+v", accessed)
+				if accessed.LastAuthenticated != nil {
+					resp.AccessedServices++
+				}
+			}
+			rate := float64(resp.AccessedServices) / float64(resp.AllowedServices)
+			resp.AccessRate = float32(math.Floor(rate*100) / 100)
+			appLogger.Debugf("serviceAccessedReport: %+v", resp)
+			break BREAK
+		default:
+			return nil, fmt.Errorf("Unknown Job Status for GetServiceLastAccessedDetails: jobID=%s, status=%s", jobID, *out.JobStatus)
+		}
+	}
+	return &resp, nil
 }
 
 func (a *adminCheckerClient) listActiveAccessKeyID(userName *string) (*[]string, error) {
@@ -335,4 +430,60 @@ func (a *adminCheckerClient) isAdminGroupInlinePolicy(group, policy *string) (bo
 		return false, err
 	}
 	return a.isAdminPolicyDoc(*doc), nil
+}
+
+type iamRole struct {
+	RoleArn               string                `json:"role_arn"`
+	RoleID                string                `json:"role_id"`
+	RoleName              string                `json:"role_name"`
+	Path                  string                `json:"path"`
+	MaxSessionDuration    string                `json:"max_session_duration"`
+	CreateDate            time.Time             `json:"create_date"`
+	ServiceAccessedReport serviceAccessedReport `json:"service_accessed_report"`
+}
+
+func (a *adminCheckerClient) listRoleFinding(msg *message.AWSQueueMessage) (*[]iamRole, error) {
+	iamRoles, err := a.listRole()
+	if err != nil {
+		appLogger.Errorf("IAM.ListRole error: err=%+v", err)
+		return nil, err
+	}
+	return iamRoles, nil
+}
+
+func (a *adminCheckerClient) listRole() (*[]iamRole, error) {
+	roles, err := a.Svc.ListRoles(&iam.ListRolesInput{})
+	if err != nil {
+		return nil, err
+	}
+	var iamRoles []iamRole
+	for _, role := range roles.Roles {
+		if role == nil || strings.HasPrefix(*role.Path, "/aws-service-role/") {
+			continue
+		}
+		jobID, err := a.generateServiceLastAccessedDetails(*role.Arn)
+		if err != nil {
+			return nil, err
+		}
+		iamRoles = append(iamRoles, iamRole{
+			RoleArn:    *role.Arn,
+			RoleID:     *role.RoleId,
+			RoleName:   *role.RoleName,
+			Path:       *role.Path,
+			CreateDate: *role.CreateDate,
+			ServiceAccessedReport: serviceAccessedReport{
+				JobID: jobID,
+			},
+		})
+	}
+	for idx, role := range iamRoles {
+		jobID := role.ServiceAccessedReport.JobID
+		accessedDetail, err := a.analyzeServiceLastAccessedDetails(jobID)
+		if err != nil {
+			appLogger.Warnf("Failed to analyzServiceAccessedDetails Job, err=%+v", err.Error())
+			continue
+		}
+		iamRoles[idx].ServiceAccessedReport = *accessedDetail
+	}
+	return &iamRoles, nil
 }
