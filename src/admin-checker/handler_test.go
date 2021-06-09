@@ -66,16 +66,23 @@ func TestScoreAccessReport(t *testing.T) {
 		{
 			name: "Too many policies",
 			input: &serviceAccessedReport{
+				AccessRate: 0.1,
+			},
+			want: 0.6,
+		},
+		{
+			name: "Many many policies",
+			input: &serviceAccessedReport{
 				AccessRate: 0.3,
 			},
-			want: 0.7,
+			want: 0.5,
 		},
 		{
 			name: "Many policies",
 			input: &serviceAccessedReport{
 				AccessRate: 0.5,
 			},
-			want: 0.5,
+			want: 0.4,
 		},
 		{
 			name: "Many policies",

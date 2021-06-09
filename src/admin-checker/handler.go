@@ -235,7 +235,10 @@ func scoreAccessReport(accessedReport *serviceAccessedReport) float32 {
 		return 0.3
 	}
 	if accessedReport.AccessRate > 0.3 {
+		return 0.4
+	}
+	if accessedReport.AccessRate > 0.1 {
 		return 0.5
 	}
-	return 0.7
+	return 0.6
 }
