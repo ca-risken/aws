@@ -203,13 +203,17 @@ BREAK:
 			resp.JobStatus = iam.JobStatusTypeCompleted
 			resp.AllowedServices = len(out.ServicesLastAccessed)
 			for _, accessed := range out.ServicesLastAccessed {
-				//appLogger.Debugf("ServicesLastAccessed: %+v", accessed)
+				appLogger.Debugf("ServicesLastAccessed: %+v", accessed)
 				if accessed.LastAuthenticated != nil {
 					resp.AccessedServices++
 				}
 			}
 			rate := float64(resp.AccessedServices) / float64(resp.AllowedServices)
-			resp.AccessRate = float32(math.Floor(rate*100) / 100)
+			if math.IsNaN(rate) {
+				resp.AccessRate = 1.0
+			} else {
+				resp.AccessRate = float32(math.Floor(rate*100) / 100)
+			}
 			appLogger.Debugf("serviceAccessedReport: %+v", resp)
 			break BREAK
 		default:
