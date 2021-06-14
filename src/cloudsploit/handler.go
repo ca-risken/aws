@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/common"
@@ -21,81 +20,69 @@ type sqsHandler struct {
 }
 
 func newHandler() *sqsHandler {
-	h := &sqsHandler{}
-	//	h.cloudsploitConfig = newcloudsploitConfig()
-	//	appLogger.Info("Start cloudsploit Client")
-	h.findingClient = newFindingClient()
-	appLogger.Info("Start Finding Client")
-	h.alertClient = newAlertClient()
-	appLogger.Info("Start Alert Client")
-	h.awsClient = newAWSClient()
-	appLogger.Info("Start AWS Client")
-	return h
+	return &sqsHandler{
+		findingClient: newFindingClient(),
+		alertClient:   newAlertClient(),
+		awsClient:     newAWSClient(),
+	}
 }
 
-func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
-	msgBody := aws.StringValue(msg.Body)
+func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
+	msgBody := aws.StringValue(sqsMsg.Body)
 	appLogger.Infof("got message. message: %v", msgBody)
 	// Parse message
-	message, err := parseMessage(msgBody)
+	msg, err := message.ParseMessage(msgBody)
 	if err != nil {
-		appLogger.Errorf("Invalid message. message: %v, error: %v", message, err)
+		appLogger.Errorf("Invalid message. message: %v, error: %v", msg, err)
 		return err
 	}
 
 	ctx := context.Background()
-	status := common.InitScanStatus(message)
+	status := common.InitScanStatus(msg)
 	// check AccountID matches Arn for Scan
-	if !common.IsMatchAccountIDArn(message.AccountID, message.AssumeRoleArn) {
-		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", message.AccountID, message.AssumeRoleArn)
-		return s.updateScanStatusError(ctx, &status, fmt.Sprintf("AssumeRoleArn for Portscan must be created in AWS AccountID: %v", message.AccountID))
+	if !common.IsMatchAccountIDArn(msg.AccountID, msg.AssumeRoleArn) {
+		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", msg.AccountID, msg.AssumeRoleArn)
+		return s.updateScanStatusError(ctx, &status, fmt.Sprintf("AssumeRoleArn for Portscan must be created in AWS AccountID: %v", msg.AccountID))
 	}
 
-	cloudsploitConfig, err := newcloudsploitConfig(message.AssumeRoleArn, message.ExternalID, message.AWSID, message.AccountID)
+	cloudsploitConfig, err := newcloudsploitConfig(msg.AssumeRoleArn, msg.ExternalID, msg.AWSID, msg.AccountID)
 	if err != nil {
-		appLogger.Errorf("Error occured when configure: %v, error: %v", message, err)
+		appLogger.Errorf("Error occured when configure: %v, error: %v", msg, err)
 		return err
 	}
 	appLogger.Info("Start cloudsploit Client")
 
 	// Run cloudsploit
-	cloudsploitResult, err := cloudsploitConfig.run(message.AccountID)
-	//cloudsploitResult, err := cloudsploitConfig.tmpRun(message.AccountID)
+	cloudsploitResult, err := cloudsploitConfig.run(msg.AccountID)
 	if err != nil {
 		appLogger.Errorf("Failed exec cloudsploit, error: %v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
 
-	// Put Finding and Tag Finding
-	if err := s.putFindings(ctx, cloudsploitResult, message); err != nil {
-		appLogger.Errorf("Faild to put findings. AWSID: %v, error: %v", message.AWSID, err)
-		return err
+	// Clear finding score
+	if err := s.clearFindingScore(ctx, msg); err != nil {
+		appLogger.Errorf("Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
+		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
 
-	// Put RelOsintDataSource
+	// Put Finding and Tag Finding
+	if err := s.putFindings(ctx, cloudsploitResult, msg); err != nil {
+		appLogger.Errorf("Faild to put findings. AWSID: %v, error: %v", msg.AWSID, err)
+		return s.updateScanStatusError(ctx, &status, err.Error())
+	}
+
+	// Update status
 	if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
-		appLogger.Errorf("Faild to put rel_osint_data_source. AWSID: %v, error: %v", message.AWSID, err)
+		appLogger.Errorf("Faild to update scan status. AWSID: %v, error: %v", msg.AWSID, err)
 		return err
 	}
 
 	// Call AnalyzeAlert
-	if err := s.CallAnalyzeAlert(ctx, message.ProjectID); err != nil {
-		appLogger.Errorf("Faild to analyze alert. AWSID: %v, error: %v", message.AWSID, err)
+	if err := s.CallAnalyzeAlert(ctx, msg.ProjectID); err != nil {
+		appLogger.Errorf("Faild to analyze alert. AWSID: %v, error: %v", msg.AWSID, err)
 		return err
 	}
 	return nil
-
-}
-
-func parseMessage(msg string) (*message.AWSQueueMessage, error) {
-	message := &message.AWSQueueMessage{}
-	if err := json.Unmarshal([]byte(msg), message); err != nil {
-		return nil, err
-	}
-	//	if err := message.Validate(); err != nil {
-	//		return nil, err
-	//	}
-	return message, nil
 }
 
 func (s *sqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {

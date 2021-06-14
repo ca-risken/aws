@@ -27,6 +27,7 @@ func newFindingClient() finding.FindingServiceClient {
 	if err != nil {
 		appLogger.Fatalf("Faild to get GRPC connection: err=%+v", err)
 	}
+	appLogger.Info("Start Finding Client")
 	return finding.NewFindingServiceClient(conn)
 }
 
@@ -46,6 +47,7 @@ func newAlertClient() alert.AlertServiceClient {
 	if err != nil {
 		appLogger.Fatalf("Faild to get GRPC connection: err=%+v", err)
 	}
+	appLogger.Info("Start Alert Client")
 	return alert.NewAlertServiceClient(conn)
 }
 
@@ -65,6 +67,7 @@ func newAWSClient() aws.AWSServiceClient {
 	if err != nil {
 		appLogger.Fatalf("Faild to get GRPC connection: err=%+v", err)
 	}
+	appLogger.Info("Start AWS Client")
 	return aws.NewAWSServiceClient(conn)
 }
 

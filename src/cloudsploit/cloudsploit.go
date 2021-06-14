@@ -66,20 +66,6 @@ func (c *cloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) 
 	return &results, nil
 }
 
-func (c *cloudsploitConfig) tmpRun(accountID string) (*[]cloudSploitResult, error) {
-	bytes, err := readFile("/tmp/hogehoge.json")
-	if err != nil {
-		return nil, err
-	}
-	var results []cloudSploitResult
-	if err := json.Unmarshal(bytes, &results); err != nil {
-		appLogger.Errorf("Failed to parse scan results. error: %v", err)
-		return nil, err
-	}
-
-	return &results, nil
-}
-
 func readFile(fileName string) ([]byte, error) {
 	bytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
