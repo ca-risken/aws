@@ -78,7 +78,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			guardDutyEnabled = true
 		}
 		// Put finding to core
-		if err := s.putFindings(ctx, findings); err != nil {
+		if err := s.putFindings(ctx, message, findings); err != nil {
 			appLogger.Errorf("Faild to put findngs: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
 		}
@@ -162,7 +162,7 @@ func (g *guardDutyClient) getGuardDuty(message *message.AWSQueueMessage) ([]*fin
 	return putData, detecterIDs, nil
 }
 
-func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.FindingForUpsert) error {
+func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessage, findings []*finding.FindingForUpsert) error {
 	for _, f := range findings {
 		resp, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
 		if err != nil {
@@ -173,6 +173,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.Findin
 		// tag
 		s.tagFinding(ctx, common.TagAWS, resp.Finding.FindingId, resp.Finding.ProjectId)
 		s.tagFinding(ctx, common.TagGuardduty, resp.Finding.FindingId, resp.Finding.ProjectId)
+		s.tagFinding(ctx, msg.AccountID, resp.Finding.FindingId, resp.Finding.ProjectId)
 		awsServiceTag := common.GetAWSServiceTagByARN(resp.Finding.ResourceName)
 		if awsServiceTag != common.TagUnknown {
 			s.tagFinding(ctx, awsServiceTag, resp.Finding.FindingId, resp.Finding.ProjectId)
