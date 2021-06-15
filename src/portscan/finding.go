@@ -47,7 +47,7 @@ func makeExcludeFindings(results []*excludeResult, message *message.AWSQueueMess
 	return findings, nil
 }
 
-func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.FindingForUpsert) error {
+func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessage, findings []*finding.FindingForUpsert) error {
 	for _, f := range findings {
 
 		res, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
@@ -56,6 +56,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.Findin
 		}
 		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS)
 		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagPortscan)
+		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, msg.AccountID)
 		tagService := common.GetAWSServiceTagByARN(res.Finding.ResourceName)
 		if !zero.IsZeroVal(tagService) {
 			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, tagService)

@@ -89,7 +89,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			continue
 		}
 		// Put finding to core
-		if err := s.putFindings(ctx, findings); err != nil {
+		if err := s.putFindings(ctx, message, findings); err != nil {
 			appLogger.Errorf("Failed to put findings: AccountID=%+v, err=%+v", message.AccountID, err)
 			statusDetail = fmt.Sprintf("%v%v", statusDetail, err.Error())
 		}

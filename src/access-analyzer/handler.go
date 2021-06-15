@@ -80,7 +80,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			analyzerEnabled = true
 		}
 		// Put finding to core
-		if err := s.putFindings(ctx, findings); err != nil {
+		if err := s.putFindings(ctx, message, findings); err != nil {
 			appLogger.Errorf("Faild to put findngs: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
 		}
@@ -143,7 +143,7 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(msg *message.AWSQueueMessage) (
 	return putData, analyzerArns, nil
 }
 
-func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.FindingForUpsert) error {
+func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessage, findings []*finding.FindingForUpsert) error {
 	for _, f := range findings {
 		// finding
 		resp, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
@@ -153,6 +153,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, findings []*finding.Findin
 		// finding-tag
 		s.tagFinding(ctx, common.TagAWS, resp.Finding.FindingId, resp.Finding.ProjectId)
 		s.tagFinding(ctx, common.TagAccessAnalyzer, resp.Finding.FindingId, resp.Finding.ProjectId)
+		s.tagFinding(ctx, msg.AccountID, resp.Finding.FindingId, resp.Finding.ProjectId)
 		awsServiceTag := common.GetAWSServiceTagByARN(resp.Finding.ResourceName)
 		if awsServiceTag != common.TagUnknown {
 			s.tagFinding(ctx, awsServiceTag, resp.Finding.FindingId, resp.Finding.ProjectId)

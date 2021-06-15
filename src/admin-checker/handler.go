@@ -93,7 +93,7 @@ func (s *sqsHandler) putUserFindings(ctx context.Context, msg *message.AWSQueueM
 			return err
 		}
 		// Put finding to core
-		if err := s.putFindings(ctx, typeAdmin, &finding.FindingForUpsert{
+		if err := s.putFindings(ctx, typeAdmin, msg, &finding.FindingForUpsert{
 			Description:      fmt.Sprintf("AdminChekcer: %s(admin=%t)", user.UserName, (user.IsUserAdmin || user.IsGroupAdmin)),
 			DataSource:       msg.DataSource,
 			DataSourceId:     user.UserArn,
@@ -106,7 +106,7 @@ func (s *sqsHandler) putUserFindings(ctx context.Context, msg *message.AWSQueueM
 			appLogger.Errorf("Faild to put findngs: AccountID=%+v, err=%+v", msg.AccountID, err)
 			return err
 		}
-		if err := s.putFindings(ctx, typeAccessReport, &finding.FindingForUpsert{
+		if err := s.putFindings(ctx, typeAccessReport, msg, &finding.FindingForUpsert{
 			Description:      fmt.Sprintf("AccessReport: %.1f%% unused service(%s)", (1-user.ServiceAccessedReport.AccessRate)*100, user.UserName),
 			DataSource:       msg.DataSource,
 			DataSourceId:     prefixAccessReport + user.UserArn,
@@ -132,7 +132,7 @@ func (s *sqsHandler) putRoleFindings(ctx context.Context, msg *message.AWSQueueM
 			return err
 		}
 		// Put finding to core
-		if err := s.putFindings(ctx, typeAccessReport, &finding.FindingForUpsert{
+		if err := s.putFindings(ctx, typeAccessReport, msg, &finding.FindingForUpsert{
 			Description:      fmt.Sprintf("AccessReport: %.1f%% unused service(%s)", (1-role.ServiceAccessedReport.AccessRate)*100, role.RoleName),
 			DataSource:       msg.DataSource,
 			DataSourceId:     prefixAccessReport + role.RoleArn,
@@ -149,7 +149,7 @@ func (s *sqsHandler) putRoleFindings(ctx context.Context, msg *message.AWSQueueM
 	return nil
 }
 
-func (s *sqsHandler) putFindings(ctx context.Context, findingType string, f *finding.FindingForUpsert) error {
+func (s *sqsHandler) putFindings(ctx context.Context, findingType string, msg *message.AWSQueueMessage, f *finding.FindingForUpsert) error {
 	// finding
 	resp, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
 	if err != nil {
@@ -159,6 +159,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, findingType string, f *fin
 	s.tagFinding(ctx, common.TagAWS, resp.Finding.FindingId, resp.Finding.ProjectId)
 	s.tagFinding(ctx, common.TagAdminChecker, resp.Finding.FindingId, resp.Finding.ProjectId)
 	s.tagFinding(ctx, findingType, resp.Finding.FindingId, resp.Finding.ProjectId)
+	s.tagFinding(ctx, msg.AccountID, resp.Finding.FindingId, resp.Finding.ProjectId)
 	awsServiceTag := common.GetAWSServiceTagByARN(resp.Finding.ResourceName)
 	if awsServiceTag != common.TagUnknown {
 		s.tagFinding(ctx, awsServiceTag, resp.Finding.FindingId, resp.Finding.ProjectId)
