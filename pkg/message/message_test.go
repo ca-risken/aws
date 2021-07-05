@@ -97,6 +97,11 @@ func TestParseMessage(t *testing.T) {
 			want:  &AWSQueueMessage{AWSID: 1, AWSDataSourceID: 1, DataSource: "aws:guard-duty", ProjectID: 1, AccountID: "123456789012", AssumeRoleArn: "", ExternalID: ""},
 		},
 		{
+			name:  "OK(scan_only)",
+			input: `{"aws_id":1, "aws_data_source_id":1, "data_source":"aws:guard-duty", "project_id":1, "account_id":"123456789012", "assume_role_arn":"", "external_id":"", "scan_only":"true"}`,
+			want:  &AWSQueueMessage{AWSID: 1, AWSDataSourceID: 1, DataSource: "aws:guard-duty", ProjectID: 1, AccountID: "123456789012", AssumeRoleArn: "", ExternalID: "", ScanOnly: true},
+		},
+		{
 			name:    "NG Json parse erroro",
 			input:   `{"parse...: error`,
 			wantErr: true,
