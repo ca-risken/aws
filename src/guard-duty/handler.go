@@ -28,19 +28,19 @@ func newHandler() *sqsHandler {
 	}
 }
 
-func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
-	msgBody := aws.StringValue(msg.Body)
+func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
+	msgBody := aws.StringValue(sqsMsg.Body)
 	appLogger.Infof("got message: %s", msgBody)
 	// Parse message
-	message, err := message.ParseMessage(msgBody)
+	msg, err := message.ParseMessage(msgBody)
 	if err != nil {
 		appLogger.Errorf("Invalid message: SQS_msg=%+v, err=%+v", msg, err)
 		return err
 	}
 
 	ctx := context.Background()
-	status := common.InitScanStatus(message)
-	guardduty, err := newGuardDutyClient("", message.AssumeRoleArn, message.ExternalID)
+	status := common.InitScanStatus(msg)
+	guardduty, err := newGuardDutyClient("", msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create GuardDuty session: err=%+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
@@ -54,7 +54,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	guardDutyEnabled := false
 	for _, region := range regions {
 		if region == nil || *region.RegionName == "" {
-			appLogger.Warnf("Invalid region in AccountID=%s", message.AccountID)
+			appLogger.Warnf("Invalid region in AccountID=%s", msg.AccountID)
 			continue
 		}
 		if !supportedRegion(*region.RegionName) {
@@ -62,15 +62,15 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			continue
 		}
 		appLogger.Infof("Start %s region search...", *region.RegionName)
-		guardduty, err = newGuardDutyClient(*region.RegionName, message.AssumeRoleArn, message.ExternalID)
+		guardduty, err = newGuardDutyClient(*region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
 		if err != nil {
-			appLogger.Errorf("Faild to create GuardDuty session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
+			appLogger.Errorf("Faild to create GuardDuty session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
 		}
 		// Get guardduty
-		findings, detecterIDs, err := guardduty.getGuardDuty(message)
+		findings, detecterIDs, err := guardduty.getGuardDuty(msg)
 		if err != nil {
-			appLogger.Errorf("Faild to get findngs to AWS GuardDuty: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
+			appLogger.Errorf("Faild to get findngs to AWS GuardDuty: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
 		}
 		appLogger.Infof("detecterIDs: %+v, length: %d", *detecterIDs, len(*detecterIDs))
@@ -78,8 +78,8 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			guardDutyEnabled = true
 		}
 		// Put finding to core
-		if err := s.putFindings(ctx, message, findings); err != nil {
-			appLogger.Errorf("Faild to put findngs: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
+		if err := s.putFindings(ctx, msg, findings); err != nil {
+			appLogger.Errorf("Faild to put findngs: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
 		}
 		if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
@@ -91,7 +91,10 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			return err
 		}
 	}
-	return s.analyzeAlert(ctx, message.ProjectID)
+	if msg.ScanOnly {
+		return nil
+	}
+	return s.analyzeAlert(ctx, msg.ProjectID)
 }
 
 var unsupportedRegions = []string{

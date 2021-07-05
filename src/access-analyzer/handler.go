@@ -30,19 +30,19 @@ func newHandler() *sqsHandler {
 	}
 }
 
-func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
-	msgBody := aws.StringValue(msg.Body)
+func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
+	msgBody := aws.StringValue(sqsMsg.Body)
 	appLogger.Infof("got message: %s", msgBody)
 	// Parse message
-	message, err := message.ParseMessage(msgBody)
+	msg, err := message.ParseMessage(msgBody)
 	if err != nil {
 		appLogger.Errorf("Invalid message: SQS_msg=%+v, err=%+v", msg, err)
 		return err
 	}
 
 	ctx := context.Background()
-	status := common.InitScanStatus(message)
-	accessAnalyzer, err := newAccessAnalyzerClient("", message.AssumeRoleArn, message.ExternalID)
+	status := common.InitScanStatus(msg)
+	accessAnalyzer, err := newAccessAnalyzerClient("", msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create AccessAnalyzer session: err=%+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
@@ -56,7 +56,7 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	analyzerEnabled := false
 	for _, region := range regions {
 		if region == nil || *region.RegionName == "" {
-			appLogger.Warnf("Invalid region in AccountID=%s", message.AccountID)
+			appLogger.Warnf("Invalid region in AccountID=%s", msg.AccountID)
 			continue
 		}
 		if !supportedRegion(*region.RegionName) {
@@ -65,23 +65,23 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		}
 		appLogger.Infof("Start %s region search...", *region.RegionName)
 		// AccessAnalyzer
-		accessAnalyzer, err = newAccessAnalyzerClient(*region.RegionName, message.AssumeRoleArn, message.ExternalID)
+		accessAnalyzer, err = newAccessAnalyzerClient(*region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
 		if err != nil {
-			appLogger.Errorf("Faild to create AccessAnalyzer session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
+			appLogger.Errorf("Faild to create AccessAnalyzer session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
 		}
 
-		findings, analyzerArns, err := accessAnalyzer.getAccessAnalyzer(message)
+		findings, analyzerArns, err := accessAnalyzer.getAccessAnalyzer(msg)
 		if err != nil {
-			appLogger.Errorf("Faild to get findngs to AWS AccessAnalyzer: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
+			appLogger.Errorf("Faild to get findngs to AWS AccessAnalyzer: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
 		}
 		if analyzerArns != nil && len(*analyzerArns) > 0 {
 			analyzerEnabled = true
 		}
 		// Put finding to core
-		if err := s.putFindings(ctx, message, findings); err != nil {
-			appLogger.Errorf("Faild to put findngs: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
+		if err := s.putFindings(ctx, msg, findings); err != nil {
+			appLogger.Errorf("Faild to put findngs: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
 		}
 		if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
@@ -93,7 +93,10 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 			return err
 		}
 	}
-	return s.analyzeAlert(ctx, message.ProjectID)
+	if msg.ScanOnly {
+		return nil
+	}
+	return s.analyzeAlert(ctx, msg.ProjectID)
 }
 
 func (a *accessAnalyzerClient) getAccessAnalyzer(msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {

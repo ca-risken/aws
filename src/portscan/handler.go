@@ -28,11 +28,11 @@ func newHandler() *sqsHandler {
 	}
 }
 
-func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
-	msgBody := aws.StringValue(msg.Body)
+func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
+	msgBody := aws.StringValue(sqsMsg.Body)
 	appLogger.Infof("got message: %s", msgBody)
 	// Parse message
-	message, err := message.ParseMessage(msgBody)
+	msg, err := message.ParseMessage(msgBody)
 	if err != nil {
 		appLogger.Errorf("Invalid message: SQS_msg=%+v, err=%+v", msg, err)
 		return err
@@ -40,13 +40,13 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 
 	ctx := context.Background()
 	status := awsClient.AttachDataSourceRequest{
-		ProjectId: message.ProjectID,
+		ProjectId: msg.ProjectID,
 		AttachDataSource: &awsClient.DataSourceForAttach{
-			AwsId:           message.AWSID,
-			AwsDataSourceId: message.AWSDataSourceID,
-			ProjectId:       message.ProjectID,
-			AssumeRoleArn:   message.AssumeRoleArn,
-			ExternalId:      message.ExternalID,
+			AwsId:           msg.AWSID,
+			AwsDataSourceId: msg.AWSDataSourceID,
+			ProjectId:       msg.ProjectID,
+			AssumeRoleArn:   msg.AssumeRoleArn,
+			ExternalId:      msg.ExternalID,
 			ScanAt:          time.Now().Unix(),
 			// to be updated below, after the scan
 			Status:       awsClient.Status_UNKNOWN,
@@ -54,13 +54,13 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 		},
 	}
 	// check AccountID matches Arn for Scan
-	if !common.IsMatchAccountIDArn(message.AccountID, message.AssumeRoleArn) {
-		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", message.AccountID, message.AssumeRoleArn)
-		return s.updateScanStatusError(ctx, &status, fmt.Sprintf("AssumeRoleArn for Portscan must be created in AWS AccountID: %v", message.AccountID))
+	if !common.IsMatchAccountIDArn(msg.AccountID, msg.AssumeRoleArn) {
+		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", msg.AccountID, msg.AssumeRoleArn)
+		return s.updateScanStatusError(ctx, &status, fmt.Sprintf("AssumeRoleArn for Portscan must be created in AWS AccountID: %v", msg.AccountID))
 	}
 
 	// Get portscan
-	portscan, err := newPortscanClient("", message.AssumeRoleArn, message.ExternalID)
+	portscan, err := newPortscanClient("", msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Failed to create Portscan session: err=%+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
@@ -74,23 +74,23 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	isFirstRegion := true
 	for _, region := range regions {
 		if region == nil || *region.RegionName == "" {
-			appLogger.Warnf("Invalid region in AccountID=%s", message.AccountID)
+			appLogger.Warnf("Invalid region in AccountID=%s", msg.AccountID)
 			continue
 		}
 		appLogger.Infof("Start %s region search...", *region.RegionName)
-		portscan, err = newPortscanClient(*region.RegionName, message.AssumeRoleArn, message.ExternalID)
+		portscan, err = newPortscanClient(*region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
 		if err != nil {
-			appLogger.Warnf("Failed to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, message.AccountID, err)
+			appLogger.Warnf("Failed to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			continue
 		}
-		findings, err := portscan.getResult(message, isFirstRegion)
+		findings, err := portscan.getResult(msg, isFirstRegion)
 		if err != nil {
-			appLogger.Warnf("Failed to get findings to AWS Portscan: AccountID=%+v, err=%+v", message.AccountID, err)
+			appLogger.Warnf("Failed to get findings to AWS Portscan: AccountID=%+v, err=%+v", msg.AccountID, err)
 			continue
 		}
 		// Put finding to core
-		if err := s.putFindings(ctx, message, findings); err != nil {
-			appLogger.Errorf("Failed to put findings: AccountID=%+v, err=%+v", message.AccountID, err)
+		if err := s.putFindings(ctx, msg, findings); err != nil {
+			appLogger.Errorf("Failed to put findings: AccountID=%+v, err=%+v", msg.AccountID, err)
 			statusDetail = fmt.Sprintf("%v%v", statusDetail, err.Error())
 		}
 		isFirstRegion = false
@@ -99,7 +99,10 @@ func (s *sqsHandler) HandleMessage(msg *sqs.Message) error {
 	if err := s.updateScanStatusSuccess(ctx, &status, statusDetail); err != nil {
 		return err
 	}
-	return s.analyzeAlert(ctx, message.ProjectID)
+	if msg.ScanOnly {
+		return nil
+	}
+	return s.analyzeAlert(ctx, msg.ProjectID)
 }
 
 func (s *sqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {
