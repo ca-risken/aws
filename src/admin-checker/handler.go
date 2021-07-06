@@ -75,6 +75,9 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 	if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
 		return err
 	}
+	if msg.ScanOnly {
+		return nil
+	}
 	return s.analyzeAlert(ctx, msg.ProjectID)
 }
 

@@ -77,6 +77,9 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 		return err
 	}
 
+	if msg.ScanOnly {
+		return nil
+	}
 	// Call AnalyzeAlert
 	if err := s.CallAnalyzeAlert(ctx, msg.ProjectID); err != nil {
 		appLogger.Errorf("Faild to analyze alert. AWSID: %v, error: %v", msg.AWSID, err)

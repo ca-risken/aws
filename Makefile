@@ -79,12 +79,16 @@ go-mod-update:
 		&& go get -u \
 			github.com/CyberAgent/mimosa-core/... \
 			github.com/CyberAgent/mimosa-aws/...
+	cd src/portscan \
+		&& go get -u \
+			github.com/CyberAgent/mimosa-core/... \
+			github.com/CyberAgent/mimosa-aws/...
 	cd src/activity \
 		&& go get -u \
 			github.com/CyberAgent/mimosa-core/... \
 			github.com/CyberAgent/mimosa-aws/...
 
-go-mod-tidy: build build-validate
+go-mod-tidy:
 	cd proto/aws           && go mod tidy
 	cd pkg/model           && go mod tidy
 	cd pkg/message         && go mod tidy
@@ -93,6 +97,7 @@ go-mod-tidy: build build-validate
 	cd src/access-analyzer && go mod tidy
 	cd src/admin-checker   && go mod tidy
 	cd src/cloudsploit     && go mod tidy
+	cd src/portscan        && go mod tidy
 	cd src/activity        && go mod tidy
 
 # @see https://github.com/CyberAgent/mimosa-common/tree/master/local
