@@ -3,9 +3,9 @@ module github.com/CyberAgent/mimosa-aws/src/activity
 go 1.16
 
 require (
-	github.com/CyberAgent/mimosa-aws v0.0.0-20210705090541-72660ab20a71
-	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210705090541-72660ab20a71
-	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210705090541-72660ab20a71
+	github.com/CyberAgent/mimosa-aws v0.0.0-20210706052009-c1f53ecf5540
+	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210706052009-c1f53ecf5540
+	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210706052009-c1f53ecf5540
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.39.0
 	github.com/envoyproxy/protoc-gen-validate v0.6.1 // indirect

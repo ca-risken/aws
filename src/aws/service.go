@@ -180,6 +180,7 @@ func (a *awsService) InvokeScan(ctx context.Context, req *aws.InvokeScanRequest)
 	if err != nil {
 		return nil, err
 	}
+	msg.ScanOnly = req.ScanOnly
 	resp, err := a.sqs.send(msg)
 	if err != nil {
 		return nil, err
@@ -237,6 +238,7 @@ func (a *awsService) InvokeScanAll(ctx context.Context, _ *empty.Empty) (*empty.
 			ProjectId:       dataSource.ProjectID,
 			AwsId:           dataSource.AWSID,
 			AwsDataSourceId: dataSource.AWSDataSourceID,
+			// ScanOnly:        true, // TODO Enabled after separate analyze alert job.
 		}); err != nil {
 			// エラーログはいて握りつぶす（すべてのスキャナ登録しきる）
 			appLogger.Errorf("AWS InvokeScan error: err=%+v", err)
