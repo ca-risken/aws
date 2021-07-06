@@ -70,4 +70,5 @@ message InvokeScanRequest {
   uint32 project_id = 1;
   uint32 aws_id = 2;
   uint32 aws_data_source_id = 3;
+  bool scan_only = 4;
 }
