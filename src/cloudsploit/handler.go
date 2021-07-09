@@ -7,6 +7,7 @@ import (
 	"github.com/CyberAgent/mimosa-aws/pkg/common"
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	awsClient "github.com/CyberAgent/mimosa-aws/proto/aws"
+	"github.com/CyberAgent/mimosa-common/pkg/logging"
 	"github.com/CyberAgent/mimosa-core/proto/alert"
 	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
@@ -36,6 +37,12 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 		appLogger.Errorf("Invalid message. message: %v, error: %v", msg, err)
 		return err
 	}
+	requestID, err := logging.GenerateRequestID(fmt.Sprint(msg.ProjectID))
+	if err != nil {
+		appLogger.Warnf("Failed to generate requestID: err=%+v", err)
+		requestID = fmt.Sprint(msg.ProjectID)
+	}
+	appLogger.Infof("start Scan, RequestID=%s", requestID)
 
 	ctx := context.Background()
 	status := common.InitScanStatus(msg)
@@ -76,6 +83,7 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 		appLogger.Errorf("Faild to update scan status. AWSID: %v, error: %v", msg.AWSID, err)
 		return err
 	}
+	appLogger.Infof("end Scan, RequestID=%s", requestID)
 
 	if msg.ScanOnly {
 		return nil

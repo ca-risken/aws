@@ -1,16 +1,10 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/CyberAgent/mimosa-aws v0.0.0-20210705090541-72660ab20a71 h1:rPRgdiToNoP+ldJbgHnsg0xn3WwATcZoi/YvT+c5Tf8=
-github.com/CyberAgent/mimosa-aws v0.0.0-20210705090541-72660ab20a71/go.mod h1:KDMHR2IByOmpcM1YqXMDi6xQf1kDgtoz78BEHyHRsbQ=
 github.com/CyberAgent/mimosa-aws v0.0.0-20210706052009-c1f53ecf5540 h1:grqlShAqhz7NrR2I35lnbFh4idfozlUlI4H3WhKBZPo=
 github.com/CyberAgent/mimosa-aws v0.0.0-20210706052009-c1f53ecf5540/go.mod h1:KDMHR2IByOmpcM1YqXMDi6xQf1kDgtoz78BEHyHRsbQ=
-github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210705090541-72660ab20a71 h1:f/zF5Wu5c/unsy3+XAuth1cBTvk44Up+giyqpLD/TfI=
-github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210705090541-72660ab20a71/go.mod h1:63kdv0bYpeuoHCveNAeQEVomuX6JmdaGOk9gQvOfT0w=
 github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210706052009-c1f53ecf5540 h1:xKl4PaIwvt73G2uJ7cLk7JFeG1JUP+FbIQBU0FXFbdA=
 github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210706052009-c1f53ecf5540/go.mod h1:63kdv0bYpeuoHCveNAeQEVomuX6JmdaGOk9gQvOfT0w=
-github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210705090541-72660ab20a71 h1:pUKveXQ7vOWKmUb435vR2W1hvOZFlTlxuSOgOEufz8U=
-github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210705090541-72660ab20a71/go.mod h1:YZ3ji9lxFv6wDjtQhmpy+RZ+anQAfABQwtGcfzI+Q04=
 github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210706052009-c1f53ecf5540 h1:RLvlkUhJMZ9eWd2BEZpKzjyJKm0cL0RSPYw2sbPvguU=
 github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210706052009-c1f53ecf5540/go.mod h1:YZ3ji9lxFv6wDjtQhmpy+RZ+anQAfABQwtGcfzI+Q04=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
