@@ -8,6 +8,7 @@ import (
 	"github.com/CyberAgent/mimosa-aws/pkg/common"
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	awsClient "github.com/CyberAgent/mimosa-aws/proto/aws"
+	"github.com/CyberAgent/mimosa-common/pkg/logging"
 	"github.com/CyberAgent/mimosa-core/proto/alert"
 	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
@@ -37,6 +38,12 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 		appLogger.Errorf("Invalid message: SQS_msg=%+v, err=%+v", msg, err)
 		return err
 	}
+	requestID, err := logging.GenerateRequestID(fmt.Sprint(msg.ProjectID))
+	if err != nil {
+		appLogger.Warnf("Failed to generate requestID: err=%+v", err)
+		requestID = fmt.Sprint(msg.ProjectID)
+	}
+	appLogger.Infof("start Scan, RequestID=%s", requestID)
 
 	ctx := context.Background()
 	status := common.InitScanStatus(msg)
@@ -91,6 +98,7 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 			return err
 		}
 	}
+	appLogger.Infof("end Scan, RequestID=%s", requestID)
 	if msg.ScanOnly {
 		return nil
 	}
@@ -181,7 +189,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 		if awsServiceTag != common.TagUnknown {
 			s.tagFinding(ctx, awsServiceTag, resp.Finding.FindingId, resp.Finding.ProjectId)
 		}
-		appLogger.Infof("Success to PutFinding, finding_id=%d", resp.Finding.FindingId)
+		appLogger.Debugf("Success to PutFinding, finding_id=%d", resp.Finding.FindingId)
 	}
 	return nil
 }

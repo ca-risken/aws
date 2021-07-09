@@ -6,6 +6,7 @@ require (
 	github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20210706052009-c1f53ecf5540
 	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210706052009-c1f53ecf5540
 	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210706052009-c1f53ecf5540
+	github.com/CyberAgent/mimosa-common/pkg/logging v0.0.0-20210709072254-0b9fc118367f
 	github.com/CyberAgent/mimosa-core/proto/alert v0.0.0-20210705123028-5689cbf3602c
 	github.com/CyberAgent/mimosa-core/proto/finding v0.0.0-20210705123028-5689cbf3602c
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
