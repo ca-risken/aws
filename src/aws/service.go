@@ -238,7 +238,7 @@ func (a *awsService) InvokeScanAll(ctx context.Context, _ *empty.Empty) (*empty.
 			ProjectId:       dataSource.ProjectID,
 			AwsId:           dataSource.AWSID,
 			AwsDataSourceId: dataSource.AWSDataSourceID,
-			// ScanOnly:        true, // TODO Enabled after separate analyze alert job.
+			ScanOnly:        true,
 		}); err != nil {
 			// エラーログはいて握りつぶす（すべてのスキャナ登録しきる）
 			appLogger.Errorf("AWS InvokeScan error: err=%+v", err)
