@@ -9,8 +9,8 @@ import (
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	"github.com/CyberAgent/mimosa-aws/pkg/model"
 	"github.com/CyberAgent/mimosa-aws/proto/aws"
-	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 )
 
 func TestListAWS(t *testing.T) {
@@ -95,16 +95,16 @@ func TestPutAWS(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:       "NG DB error(GetAWSByAccountID)",
+			name:       "Invalid DB error(GetAWSByAccountID)",
 			input:      &aws.PutAWSRequest{Aws: &aws.AWSForUpsert{Name: "new name", ProjectId: 1, AwsAccountId: "123456789012"}},
-			mockGetErr: gorm.ErrInvalidSQL,
+			mockGetErr: gorm.ErrInvalidDB,
 			wantErr:    true,
 		},
 		{
-			name:        "NG DB error(UpsertAWS)",
+			name:        "Invalid DB error(UpsertAWS)",
 			input:       &aws.PutAWSRequest{Aws: &aws.AWSForUpsert{Name: "new name", ProjectId: 1, AwsAccountId: "123456789012"}},
 			mockGetResp: &model.AWS{AWSID: 1, Name: "old name", ProjectID: 1, AWSAccountID: "123456789012", CreatedAt: now, UpdatedAt: now},
-			mockUpdErr:  gorm.ErrCantStartTransaction,
+			mockUpdErr:  gorm.ErrInvalidDB,
 			wantErr:     true,
 		},
 	}
@@ -143,16 +143,15 @@ func TestDeleteAWS(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:     "NG Invalid parameter(aws_id)",
-			input:    &aws.DeleteAWSRequest{ProjectId: 1},
-			wantErr:  true,
-			mockResp: gorm.ErrInvalidSQL,
+			name:    "Invalid parameter(aws_id)",
+			input:   &aws.DeleteAWSRequest{ProjectId: 1},
+			wantErr: true,
 		},
 		{
-			name:     "NG DB error",
+			name:     "Invalid DB error",
 			input:    &aws.DeleteAWSRequest{ProjectId: 1, AwsId: 1},
 			wantErr:  true,
-			mockResp: gorm.ErrInvalidSQL,
+			mockResp: gorm.ErrInvalidDB,
 		},
 	}
 	for _, c := range cases {
@@ -202,10 +201,10 @@ func TestListDataSource(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "NG DB error(ListDataSource)",
+			name:    "Invalid DB error(ListDataSource)",
 			input:   &aws.ListDataSourceRequest{ProjectId: 1, AwsId: 1, DataSource: "aws:guard-duty"},
 			wantErr: true,
-			mockErr: gorm.ErrInvalidSQL,
+			mockErr: gorm.ErrInvalidDB,
 		},
 	}
 	for _, c := range cases {
@@ -257,13 +256,13 @@ func TestAttachDataSource(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "NG DB error",
+			name: "Invalid DB error",
 			input: &aws.AttachDataSourceRequest{
 				ProjectId:        1,
 				AttachDataSource: &aws.DataSourceForAttach{AwsId: 1, AwsDataSourceId: 1, ProjectId: 1, AssumeRoleArn: "role", ExternalId: ""},
 			},
 			wantErr: true,
-			mockErr: gorm.ErrCantStartTransaction,
+			mockErr: gorm.ErrInvalidDB,
 		},
 	}
 	for _, c := range cases {
@@ -298,16 +297,15 @@ func TestDetachDataSource(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:     "NG Invalid parameter(aws_data_source_id)",
-			input:    &aws.DetachDataSourceRequest{ProjectId: 1, AwsId: 1},
-			wantErr:  true,
-			mockResp: gorm.ErrInvalidSQL,
+			name:    "NG Invalid parameter(aws_data_source_id)",
+			input:   &aws.DetachDataSourceRequest{ProjectId: 1, AwsId: 1},
+			wantErr: true,
 		},
 		{
-			name:     "NG DB error",
+			name:     "Invalid DB error",
 			input:    &aws.DetachDataSourceRequest{ProjectId: 1, AwsId: 1, AwsDataSourceId: 1},
 			wantErr:  true,
-			mockResp: gorm.ErrInvalidSQL,
+			mockResp: gorm.ErrInvalidDB,
 		},
 	}
 	for _, c := range cases {

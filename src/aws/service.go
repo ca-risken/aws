@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -10,8 +11,8 @@ import (
 	"github.com/CyberAgent/mimosa-aws/pkg/model"
 	"github.com/CyberAgent/mimosa-aws/proto/aws"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/jinzhu/gorm"
 	"github.com/vikyd/zero"
+	"gorm.io/gorm"
 )
 
 type awsService struct {
@@ -32,7 +33,7 @@ func (a *awsService) ListAWS(ctx context.Context, req *aws.ListAWSRequest) (*aws
 	}
 	list, err := a.repository.ListAWS(req.ProjectId, req.AwsId, req.AwsAccountId)
 	if err != nil {
-		if gorm.IsRecordNotFoundError(err) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &aws.ListAWSResponse{}, nil
 		}
 		return nil, err
@@ -49,7 +50,7 @@ func (a *awsService) PutAWS(ctx context.Context, req *aws.PutAWSRequest) (*aws.P
 		return nil, err
 	}
 	savedData, err := a.repository.GetAWSByAccountID(req.ProjectId, req.Aws.AwsAccountId)
-	noRecord := gorm.IsRecordNotFoundError(err)
+	noRecord := errors.Is(err, gorm.ErrRecordNotFound)
 	if err != nil && !noRecord {
 		return nil, err
 	}
@@ -109,7 +110,7 @@ func (a *awsService) ListDataSource(ctx context.Context, req *aws.ListDataSource
 	}
 	list, err := a.repository.ListDataSource(req.ProjectId, req.AwsId, req.DataSource)
 	if err != nil {
-		if gorm.IsRecordNotFoundError(err) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &aws.ListDataSourceResponse{DataSource: []*aws.DataSource{}}, nil
 		}
 		return nil, err
@@ -222,7 +223,7 @@ func convertAWS(data *model.AWS) *aws.AWS {
 func (a *awsService) InvokeScanAll(ctx context.Context, _ *empty.Empty) (*empty.Empty, error) {
 	list, err := a.repository.ListDataSource(0, 0, "")
 	if err != nil {
-		if gorm.IsRecordNotFoundError(err) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &empty.Empty{}, nil
 		}
 		return nil, err
