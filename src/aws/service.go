@@ -182,7 +182,7 @@ func (a *awsService) InvokeScan(ctx context.Context, req *aws.InvokeScanRequest)
 		return nil, err
 	}
 	msg.ScanOnly = req.ScanOnly
-	resp, err := a.sqs.send(msg)
+	resp, err := a.sqs.send(ctx, msg)
 	if err != nil {
 		return nil, err
 	}

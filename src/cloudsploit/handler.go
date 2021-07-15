@@ -12,12 +12,35 @@ import (
 	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-xray-sdk-go/header"
+	"github.com/aws/aws-xray-sdk-go/xray"
 )
 
 type sqsHandler struct {
 	findingClient finding.FindingServiceClient
 	alertClient   alert.AlertServiceClient
 	awsClient     awsClient.AWSServiceClient
+}
+
+type xrayTracingHandler struct {
+	h *sqsHandler
+}
+
+func (x *xrayTracingHandler) HandleMessage(sqsMsg *sqs.Message) error {
+	ctx := context.Background()
+	var th *header.Header
+	thString, ok := sqsMsg.Attributes["AWSTraceHeader"]
+	if ok {
+		th = header.FromString(aws.StringValue(thString))
+	}
+	ctx, segment := xray.BeginSegmentWithSampling(ctx, "aws.cloudsploit", nil, th)
+	err := x.h.HandleMessage(ctx, sqsMsg)
+	segment.Close(err)
+	return err
+}
+
+func XRayTracingHandler(h *sqsHandler) *xrayTracingHandler {
+	return &xrayTracingHandler{h}
 }
 
 func newHandler() *sqsHandler {
@@ -28,7 +51,7 @@ func newHandler() *sqsHandler {
 	}
 }
 
-func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
+func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
 	msgBody := aws.StringValue(sqsMsg.Body)
 	appLogger.Infof("got message. message: %v", msgBody)
 	// Parse message
@@ -44,7 +67,6 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 	}
 	appLogger.Infof("start Scan, RequestID=%s", requestID)
 
-	ctx := context.Background()
 	status := common.InitScanStatus(msg)
 	// check AccountID matches Arn for Scan
 	if !common.IsMatchAccountIDArn(msg.AccountID, msg.AssumeRoleArn) {

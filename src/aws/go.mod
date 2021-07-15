@@ -6,10 +6,13 @@ require (
 	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210706052009-c1f53ecf5540
 	github.com/CyberAgent/mimosa-aws/pkg/model v0.0.0-20210706052009-c1f53ecf5540
 	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210706052009-c1f53ecf5540
+	github.com/CyberAgent/mimosa-common/pkg/xray v0.0.0-20210713075629-8fad8ef7892d
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.39.0
+	github.com/aws/aws-xray-sdk-go v1.6.0
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
 	github.com/golang/protobuf v1.5.2
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/objx v0.2.0 // indirect
