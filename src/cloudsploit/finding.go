@@ -61,6 +61,7 @@ func (s *sqsHandler) putFinding(ctx context.Context, cloudsploitFinding *finding
 		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS)
 		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagCloudsploit)
 		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, msg.AccountID)
+		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, result.Plugin)
 		serviceTag := getServiceTag(res.Finding.ResourceName)
 		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, serviceTag)
 		complianceTags := getComplianceTags(result.Category, result.Plugin)
