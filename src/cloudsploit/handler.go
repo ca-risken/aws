@@ -23,7 +23,8 @@ type sqsHandler struct {
 }
 
 type xrayTracingHandler struct {
-	h *sqsHandler
+	h   *sqsHandler
+	env string
 }
 
 func (x *xrayTracingHandler) HandleMessage(sqsMsg *sqs.Message) error {
@@ -34,13 +35,17 @@ func (x *xrayTracingHandler) HandleMessage(sqsMsg *sqs.Message) error {
 		th = header.FromString(aws.StringValue(thString))
 	}
 	ctx, segment := xray.BeginSegmentWithSampling(ctx, "aws.cloudsploit", nil, th)
+	if err := xray.AddAnnotation(ctx, "env", x.env); err != nil {
+		// TODO logger
+		fmt.Printf("failed to annotate environment to x-ray: %+v", err)
+	}
 	err := x.h.HandleMessage(ctx, sqsMsg)
 	segment.Close(err)
 	return err
 }
 
-func XRayTracingHandler(h *sqsHandler) *xrayTracingHandler {
-	return &xrayTracingHandler{h}
+func XRayTracingHandler(env string, h *sqsHandler) *xrayTracingHandler {
+	return &xrayTracingHandler{h: h, env: env}
 }
 
 func newHandler() *sqsHandler {
