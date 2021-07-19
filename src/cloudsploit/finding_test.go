@@ -69,7 +69,7 @@ func TestGetComplianceTag(t *testing.T) {
 			name:     "match Map Exist Tag",
 			category: "ACM",
 			plugin:   "acmCertificateExpiry",
-			want:     []string{"pci"},
+			want:     []string{"pci", "reliability"},
 		}, {
 			name:     "match Map Not Exist Tag",
 			category: "RDS",
@@ -85,7 +85,7 @@ func TestGetComplianceTag(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := getComplianceTags(c.category, c.plugin)
+			got := getPluginTags(c.category, c.plugin)
 			if strings.Join(c.want, ",") != strings.Join(got, ",") {
 				t.Fatalf("Unexpected category name: want=%v, got=%v", c.want, got)
 			}

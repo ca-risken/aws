@@ -64,9 +64,9 @@ func (s *sqsHandler) putFinding(ctx context.Context, cloudsploitFinding *finding
 		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, result.Plugin)
 		serviceTag := getServiceTag(res.Finding.ResourceName)
 		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, serviceTag)
-		complianceTags := getComplianceTags(result.Category, result.Plugin)
-		for _, complianceTag := range complianceTags {
-			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, complianceTag)
+		tags := getPluginTags(result.Category, result.Plugin)
+		for _, t := range tags {
+			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, t)
 		}
 	}
 	return nil
@@ -145,10 +145,10 @@ func getScore(status, category, plugin string) float32 {
 	}
 }
 
-func getComplianceTags(category, plugin string) []string {
+func getPluginTags(category, plugin string) []string {
 	findingInf, ok := cloudSploitFindingMap[fmt.Sprintf("%s/%s", category, plugin)]
 	if ok {
-		return findingInf.ComplianceTag
+		return findingInf.Tags
 	}
 	return []string{}
 }
