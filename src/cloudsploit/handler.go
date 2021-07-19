@@ -29,16 +29,21 @@ type xrayTracingHandler struct {
 
 func (x *xrayTracingHandler) HandleMessage(sqsMsg *sqs.Message) error {
 	ctx := context.Background()
+	ctx, segment := xray.BeginSegment(ctx, "aws.cloudsploit")
+
 	var th *header.Header
 	thString, ok := sqsMsg.Attributes["AWSTraceHeader"]
 	if ok {
 		th = header.FromString(aws.StringValue(thString))
+		segment.TraceID = th.TraceID
+		segment.ParentID = th.ParentID
+		segment.Sampled = th.SamplingDecision == header.Sampled
 	}
-	ctx, segment := xray.BeginSegmentWithSampling(ctx, "aws.cloudsploit", nil, th)
 	if err := xray.AddAnnotation(ctx, "env", x.env); err != nil {
 		// TODO logger
 		fmt.Printf("failed to annotate environment to x-ray: %+v", err)
 	}
+
 	err := x.h.HandleMessage(ctx, sqsMsg)
 	segment.Close(err)
 	return err
