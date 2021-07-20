@@ -12,45 +12,12 @@ import (
 	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/aws/aws-xray-sdk-go/header"
-	"github.com/aws/aws-xray-sdk-go/xray"
 )
 
 type sqsHandler struct {
 	findingClient finding.FindingServiceClient
 	alertClient   alert.AlertServiceClient
 	awsClient     awsClient.AWSServiceClient
-}
-
-type xrayTracingHandler struct {
-	h   *sqsHandler
-	env string
-}
-
-func (x *xrayTracingHandler) HandleMessage(sqsMsg *sqs.Message) error {
-	ctx := context.Background()
-	ctx, segment := xray.BeginSegment(ctx, "aws.cloudsploit")
-
-	var th *header.Header
-	thString, ok := sqsMsg.Attributes["AWSTraceHeader"]
-	if ok {
-		th = header.FromString(aws.StringValue(thString))
-		segment.TraceID = th.TraceID
-		segment.ParentID = th.ParentID
-		segment.Sampled = th.SamplingDecision == header.Sampled
-	}
-	if err := xray.AddAnnotation(ctx, "env", x.env); err != nil {
-		// TODO logger
-		fmt.Printf("failed to annotate environment to x-ray: %+v", err)
-	}
-
-	err := x.h.HandleMessage(ctx, sqsMsg)
-	segment.Close(err)
-	return err
-}
-
-func XRayTracingHandler(env string, h *sqsHandler) *xrayTracingHandler {
-	return &xrayTracingHandler{h: h, env: env}
 }
 
 func newHandler() *sqsHandler {
