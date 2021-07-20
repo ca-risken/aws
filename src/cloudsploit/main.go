@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"github.com/kelseyhightower/envconfig"
 
 	mimosaxray "github.com/CyberAgent/mimosa-common/pkg/xray"
 	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/kelseyhightower/envconfig"
 )
 
 type cloudSploitConfig struct {
@@ -22,5 +22,6 @@ func main() {
 	mimosaxray.InitXRay(xray.Config{})
 	consumer := newSQSConsumer()
 	appLogger.Info("Start the cloudsploit SQS consumer server...")
-	consumer.Start(ctx, XRayTracingHandler(conf.EnvName, newHandler()))
+	consumer.Start(ctx,
+		mimosaxray.MessageTracingHandler(conf.EnvName, "aws.cloudsploit", newHandler()))
 }
