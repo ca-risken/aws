@@ -31,7 +31,7 @@ func (a *awsService) ListAWS(ctx context.Context, req *aws.ListAWSRequest) (*aws
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	list, err := a.repository.ListAWS(req.ProjectId, req.AwsId, req.AwsAccountId)
+	list, err := a.repository.ListAWS(ctx, req.ProjectId, req.AwsId, req.AwsAccountId)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &aws.ListAWSResponse{}, nil
@@ -49,7 +49,7 @@ func (a *awsService) PutAWS(ctx context.Context, req *aws.PutAWSRequest) (*aws.P
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	savedData, err := a.repository.GetAWSByAccountID(req.ProjectId, req.Aws.AwsAccountId)
+	savedData, err := a.repository.GetAWSByAccountID(ctx, req.ProjectId, req.Aws.AwsAccountId)
 	noRecord := errors.Is(err, gorm.ErrRecordNotFound)
 	if err != nil && !noRecord {
 		return nil, err
@@ -68,7 +68,7 @@ func (a *awsService) PutAWS(ctx context.Context, req *aws.PutAWSRequest) (*aws.P
 	}
 
 	// aws upsert
-	registerdData, err := a.repository.UpsertAWS(data)
+	registerdData, err := a.repository.UpsertAWS(ctx, data)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (a *awsService) DeleteAWS(ctx context.Context, req *aws.DeleteAWSRequest) (
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	if err := a.repository.DeleteAWS(req.ProjectId, req.AwsId); err != nil {
+	if err := a.repository.DeleteAWS(ctx, req.ProjectId, req.AwsId); err != nil {
 		return nil, err
 	}
 	return &empty.Empty{}, nil
@@ -108,7 +108,7 @@ func (a *awsService) ListDataSource(ctx context.Context, req *aws.ListDataSource
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	list, err := a.repository.ListDataSource(req.ProjectId, req.AwsId, req.DataSource)
+	list, err := a.repository.ListDataSource(ctx, req.ProjectId, req.AwsId, req.DataSource)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &aws.ListDataSourceResponse{DataSource: []*aws.DataSource{}}, nil
@@ -141,7 +141,7 @@ func (a *awsService) AttachDataSource(ctx context.Context, req *aws.AttachDataSo
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	registerd, err := a.repository.UpsertAWSRelDataSource(req.AttachDataSource)
+	registerd, err := a.repository.UpsertAWSRelDataSource(ctx, req.AttachDataSource)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (a *awsService) DetachDataSource(ctx context.Context, req *aws.DetachDataSo
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	if err := a.repository.DeleteAWSRelDataSource(req.ProjectId, req.AwsId, req.AwsDataSourceId); err != nil {
+	if err := a.repository.DeleteAWSRelDataSource(ctx, req.ProjectId, req.AwsId, req.AwsDataSourceId); err != nil {
 		return nil, err
 	}
 	return &empty.Empty{}, nil
@@ -177,7 +177,7 @@ func (a *awsService) InvokeScan(ctx context.Context, req *aws.InvokeScanRequest)
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	msg, err := a.repository.GetAWSDataSourceForMessage(req.AwsId, req.AwsDataSourceId, req.ProjectId)
+	msg, err := a.repository.GetAWSDataSourceForMessage(ctx, req.AwsId, req.AwsDataSourceId, req.ProjectId)
 	if err != nil {
 		return nil, err
 	}
@@ -186,11 +186,11 @@ func (a *awsService) InvokeScan(ctx context.Context, req *aws.InvokeScanRequest)
 	if err != nil {
 		return nil, err
 	}
-	data, err := a.repository.GetAWSRelDataSourceByID(msg.AWSID, msg.AWSDataSourceID, msg.ProjectID)
+	data, err := a.repository.GetAWSRelDataSourceByID(ctx, msg.AWSID, msg.AWSDataSourceID, msg.ProjectID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err = a.repository.UpsertAWSRelDataSource(&aws.DataSourceForAttach{
+	if _, err = a.repository.UpsertAWSRelDataSource(ctx, &aws.DataSourceForAttach{
 		AwsId:           data.AWSID,
 		AwsDataSourceId: data.AWSDataSourceID,
 		ProjectId:       data.ProjectID,
@@ -221,7 +221,7 @@ func convertAWS(data *model.AWS) *aws.AWS {
 }
 
 func (a *awsService) InvokeScanAll(ctx context.Context, _ *empty.Empty) (*empty.Empty, error) {
-	list, err := a.repository.ListDataSource(0, 0, "")
+	list, err := a.repository.ListDataSource(ctx, 0, 0, "")
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &empty.Empty{}, nil

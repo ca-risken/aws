@@ -354,39 +354,39 @@ type mockAWSRepository struct {
 	mock.Mock
 }
 
-func (m *mockAWSRepository) ListAWS(uint32, uint32, string) (*[]model.AWS, error) {
+func (m *mockAWSRepository) ListAWS(context.Context, uint32, uint32, string) (*[]model.AWS, error) {
 	args := m.Called()
 	return args.Get(0).(*[]model.AWS), args.Error(1)
 }
-func (m *mockAWSRepository) GetAWSByAccountID(uint32, string) (*model.AWS, error) {
+func (m *mockAWSRepository) GetAWSByAccountID(context.Context, uint32, string) (*model.AWS, error) {
 	args := m.Called()
 	return args.Get(0).(*model.AWS), args.Error(1)
 }
-func (m *mockAWSRepository) UpsertAWS(*model.AWS) (*model.AWS, error) {
+func (m *mockAWSRepository) UpsertAWS(context.Context, *model.AWS) (*model.AWS, error) {
 	args := m.Called()
 	return args.Get(0).(*model.AWS), args.Error(1)
 }
-func (m *mockAWSRepository) DeleteAWS(uint32, uint32) error {
+func (m *mockAWSRepository) DeleteAWS(context.Context, uint32, uint32) error {
 	args := m.Called()
 	return args.Error(0)
 }
-func (m *mockAWSRepository) ListDataSource(uint32, uint32, string) (*[]dataSource, error) {
+func (m *mockAWSRepository) ListDataSource(context.Context, uint32, uint32, string) (*[]dataSource, error) {
 	args := m.Called()
 	return args.Get(0).(*[]dataSource), args.Error(1)
 }
-func (m *mockAWSRepository) UpsertAWSRelDataSource(*aws.DataSourceForAttach) (*model.AWSRelDataSource, error) {
+func (m *mockAWSRepository) UpsertAWSRelDataSource(context.Context, *aws.DataSourceForAttach) (*model.AWSRelDataSource, error) {
 	args := m.Called()
 	return args.Get(0).(*model.AWSRelDataSource), args.Error(1)
 }
-func (m *mockAWSRepository) GetAWSRelDataSourceByID(awsID, awsDataSourceID, projectID uint32) (*model.AWSRelDataSource, error) {
+func (m *mockAWSRepository) GetAWSRelDataSourceByID(ctx context.Context, awsID, awsDataSourceID, projectID uint32) (*model.AWSRelDataSource, error) {
 	args := m.Called()
 	return args.Get(0).(*model.AWSRelDataSource), args.Error(1)
 }
-func (m *mockAWSRepository) DeleteAWSRelDataSource(uint32, uint32, uint32) error {
+func (m *mockAWSRepository) DeleteAWSRelDataSource(context.Context, uint32, uint32, uint32) error {
 	args := m.Called()
 	return args.Error(0)
 }
-func (m *mockAWSRepository) GetAWSDataSourceForMessage(awsID, awsDataSourceID, projectID uint32) (*message.AWSQueueMessage, error) {
+func (m *mockAWSRepository) GetAWSDataSourceForMessage(ctx context.Context, awsID, awsDataSourceID, projectID uint32) (*message.AWSQueueMessage, error) {
 	args := m.Called()
 	return args.Get(0).(*message.AWSQueueMessage), args.Error(1)
 }

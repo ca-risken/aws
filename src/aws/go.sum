@@ -9,6 +9,8 @@ github.com/CyberAgent/mimosa-aws/pkg/model v0.0.0-20210706052009-c1f53ecf5540 h1
 github.com/CyberAgent/mimosa-aws/pkg/model v0.0.0-20210706052009-c1f53ecf5540/go.mod h1:5i2pV9pxuxqh8txKtY5jqBhX+9h5gC3fqCI5z5U3rTY=
 github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210706052009-c1f53ecf5540 h1:RLvlkUhJMZ9eWd2BEZpKzjyJKm0cL0RSPYw2sbPvguU=
 github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210706052009-c1f53ecf5540/go.mod h1:YZ3ji9lxFv6wDjtQhmpy+RZ+anQAfABQwtGcfzI+Q04=
+github.com/CyberAgent/mimosa-common/pkg/database v0.0.0-20210721063343-44cefe7f590e h1:KRE+HJAQELjA8xOGBfILLNeLEVIJd5iHqFar7FfGPlI=
+github.com/CyberAgent/mimosa-common/pkg/database v0.0.0-20210721063343-44cefe7f590e/go.mod h1:6qBgvUU682xnwELGQFmMwjP4qGyf3TAimeokQFty3xU=
 github.com/CyberAgent/mimosa-common/pkg/xray v0.0.0-20210713075629-8fad8ef7892d h1:oOPC5oHDmPyosWkowG719LU4MbeH08fUMLUyl7vWSEQ=
 github.com/CyberAgent/mimosa-common/pkg/xray v0.0.0-20210713075629-8fad8ef7892d/go.mod h1:OBtNCpEYCTrQKPwUTLZQgpSUOzWsajdm5lVIEx15f38=
 github.com/DATA-DOG/go-sqlmock v1.4.1 h1:ThlnYciV1iM/V0OSF/dtkqWb6xo5qITT1TJBG1MRDJM=
@@ -260,7 +262,7 @@ gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776/go.mod h1:K4uyk7z7BCEPqu6E+C
 gorm.io/driver/mysql v1.1.1 h1:yr1bpyqiwuSPJ4aGGUX9nu46RHXlF8RASQVb1QQNcvo=
 gorm.io/driver/mysql v1.1.1/go.mod h1:KdrTanmfLPPyAOeYGyG+UpDys7/7eeWT1zCq+oekYnU=
 gorm.io/gorm v1.21.9/go.mod h1:F+OptMscr0P2F2qU97WT1WimdH9GaQPoDW7AYd5i2Y0=
-gorm.io/gorm v1.21.11 h1:CxkXW6Cc+VIBlL8yJEHq+Co4RYXdSLiMKNvgoZPjLK4=
-gorm.io/gorm v1.21.11/go.mod h1:F+OptMscr0P2F2qU97WT1WimdH9GaQPoDW7AYd5i2Y0=
+gorm.io/gorm v1.21.12 h1:3fQM0Eiz7jcJEhPggHEpoYnsGZqynMzverL77DV40RM=
+gorm.io/gorm v1.21.12/go.mod h1:F+OptMscr0P2F2qU97WT1WimdH9GaQPoDW7AYd5i2Y0=
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
