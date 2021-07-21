@@ -31,7 +31,7 @@ func newHandler() *sqsHandler {
 	}
 }
 
-func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
+func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
 	msgBody := aws.StringValue(sqsMsg.Body)
 	appLogger.Infof("got message: %s", msgBody)
 	// Parse message
@@ -47,14 +47,13 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 	}
 	appLogger.Infof("start Scan, RequestID=%s", requestID)
 
-	ctx := context.Background()
 	status := common.InitScanStatus(msg)
 	accessAnalyzer, err := newAccessAnalyzerClient("", msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create AccessAnalyzer session: err=%+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
-	regions, err := accessAnalyzer.listAvailableRegion()
+	regions, err := accessAnalyzer.listAvailableRegion(ctx)
 	if err != nil {
 		appLogger.Errorf("Faild to get available regions, err = %+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
@@ -78,7 +77,7 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 			return s.updateScanStatusError(ctx, &status, err.Error())
 		}
 
-		findings, analyzerArns, err := accessAnalyzer.getAccessAnalyzer(msg)
+		findings, analyzerArns, err := accessAnalyzer.getAccessAnalyzer(ctx, msg)
 		if err != nil {
 			appLogger.Errorf("Faild to get findngs to AWS AccessAnalyzer: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.updateScanStatusError(ctx, &status, err.Error())
@@ -108,9 +107,9 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 	return s.analyzeAlert(ctx, msg.ProjectID)
 }
 
-func (a *accessAnalyzerClient) getAccessAnalyzer(msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
+func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
 	putData := []*finding.FindingForUpsert{}
-	analyzerArns, err := a.listAnalyzers()
+	analyzerArns, err := a.listAnalyzers(ctx)
 	if err != nil {
 		appLogger.Errorf("AccessAnalyzer.ListAnalyzers error: err=%+v", err)
 		return nil, &[]string{}, err
@@ -118,7 +117,7 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(msg *message.AWSQueueMessage) (
 
 	for _, arn := range *analyzerArns {
 		appLogger.Infof("Detected analyzer: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
-		findings, err := a.listFindings(msg.AccountID, arn)
+		findings, err := a.listFindings(ctx, msg.AccountID, arn)
 		if err != nil {
 			appLogger.Warnf(
 				"AccessAnalyzer.ListFindings error: analyzerArn=%s, accountID=%s, err=%+v", arn, msg.AccountID, err)
