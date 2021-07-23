@@ -12,6 +12,7 @@ import (
 	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-xray-sdk-go/xray"
 )
 
 type sqsHandler struct {
@@ -59,7 +60,9 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	appLogger.Info("Start cloudsploit Client")
 
 	// Run cloudsploit
+	_, segment := xray.BeginSubsegment(ctx, "runCloudSploit")
 	cloudsploitResult, err := cloudsploitConfig.run(msg.AccountID)
+	segment.Close(err)
 	if err != nil {
 		appLogger.Errorf("Failed exec cloudsploit, error: %v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
