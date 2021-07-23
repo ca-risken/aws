@@ -29,7 +29,7 @@ func newHandler() *sqsHandler {
 	}
 }
 
-func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
+func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
 	msgBody := aws.StringValue(sqsMsg.Body)
 	appLogger.Infof("got message: %s", msgBody)
 	// Parse message
@@ -45,7 +45,6 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 	}
 	appLogger.Infof("start Scan, RequestID=%s", requestID)
 
-	ctx := context.Background()
 	status := awsClient.AttachDataSourceRequest{
 		ProjectId: msg.ProjectID,
 		AttachDataSource: &awsClient.DataSourceForAttach{
@@ -72,7 +71,7 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 		appLogger.Errorf("Failed to create Portscan session: err=%+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
-	regions, err := portscan.listAvailableRegion()
+	regions, err := portscan.listAvailableRegion(ctx)
 	if err != nil {
 		appLogger.Errorf("Failed to get available regions, err = %+v", err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
@@ -90,7 +89,7 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 			appLogger.Warnf("Failed to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			continue
 		}
-		findings, err := portscan.getResult(msg, isFirstRegion)
+		findings, err := portscan.getResult(ctx, msg, isFirstRegion)
 		if err != nil {
 			appLogger.Warnf("Failed to get findings to AWS Portscan: AccountID=%+v, err=%+v", msg.AccountID, err)
 			continue
