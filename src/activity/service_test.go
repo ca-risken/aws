@@ -242,7 +242,7 @@ type mockCloudTrailClient struct {
 	mock.Mock
 }
 
-func (m *mockCloudTrailClient) lookupEvents(*activity.ListCloudTrailRequest, string, string) (*activity.ListCloudTrailResponse, error) {
+func (m *mockCloudTrailClient) lookupEvents(context.Context, *activity.ListCloudTrailRequest, string, string) (*activity.ListCloudTrailResponse, error) {
 	args := m.Called()
 	return args.Get(0).(*activity.ListCloudTrailResponse), args.Error(1)
 }
@@ -251,7 +251,7 @@ type mockConfigServiceClient struct {
 	mock.Mock
 }
 
-func (m *mockConfigServiceClient) listConfigHistory(*activity.ListConfigHistoryRequest, string, string) (*activity.ListConfigHistoryResponse, error) {
+func (m *mockConfigServiceClient) listConfigHistory(context.Context, *activity.ListConfigHistoryRequest, string, string) (*activity.ListConfigHistoryResponse, error) {
 	args := m.Called()
 	return args.Get(0).(*activity.ListConfigHistoryResponse), args.Error(1)
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -10,12 +11,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
+	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/vikyd/zero"
 )
 
 type cloudTrailAPI interface {
-	lookupEvents(req *activity.ListCloudTrailRequest, role, externalID string) (*activity.ListCloudTrailResponse, error)
+	lookupEvents(ctx context.Context, req *activity.ListCloudTrailRequest, role, externalID string) (*activity.ListCloudTrailResponse, error)
 }
 
 type cloudTrailClientConfig struct {
@@ -61,15 +63,17 @@ func (c *cloudTrailClient) newSession(region, assumeRole, externalID string) (*c
 	if err != nil {
 		return nil, err
 	}
-	return cloudtrail.New(sess, aws.NewConfig().WithRegion(region)), nil
+	ct := cloudtrail.New(sess, aws.NewConfig().WithRegion(region))
+	xray.AWS(ct.Client)
+	return ct, nil
 }
 
-func (c *cloudTrailClient) lookupEvents(req *activity.ListCloudTrailRequest, role, externalID string) (*activity.ListCloudTrailResponse, error) {
+func (c *cloudTrailClient) lookupEvents(ctx context.Context, req *activity.ListCloudTrailRequest, role, externalID string) (*activity.ListCloudTrailResponse, error) {
 	sess, err := c.newSession(req.Region, role, externalID)
 	if err != nil {
 		return nil, err
 	}
-	out, err := sess.LookupEvents(generateLookupEventInput(req))
+	out, err := sess.LookupEventsWithContext(ctx, generateLookupEventInput(req))
 	if err != nil {
 		return nil, err
 	}

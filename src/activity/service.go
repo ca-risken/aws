@@ -44,7 +44,7 @@ func (a *activityService) ListCloudTrail(ctx context.Context, req *activity.List
 	if err != nil {
 		return nil, err
 	}
-	resp, err := a.cloudTrailClient.lookupEvents(req, ds.AssumeRoleArn, ds.ExternalId)
+	resp, err := a.cloudTrailClient.lookupEvents(ctx, req, ds.AssumeRoleArn, ds.ExternalId)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (a *activityService) ListConfigHistory(ctx context.Context, req *activity.L
 	if err != nil {
 		return nil, err
 	}
-	resp, err := a.configClient.listConfigHistory(req, ds.AssumeRoleArn, ds.ExternalId)
+	resp, err := a.configClient.listConfigHistory(ctx, req, ds.AssumeRoleArn, ds.ExternalId)
 	if err != nil {
 		return nil, err
 	}
