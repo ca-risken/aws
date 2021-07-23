@@ -70,9 +70,8 @@ func (a *adminCheckerClient) newAWSSession(region, assumeRole, externalID string
 	}
 	// TODO confirm to need
 	a.Sess = sess
-	ic := iam.New(a.Sess)
-	xray.AWS(ic.Client)
-	a.Svc = ic
+	a.Svc = iam.New(a.Sess)
+	xray.AWS(a.Svc.Client)
 	return nil
 }
 

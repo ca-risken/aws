@@ -75,12 +75,10 @@ func (g *guardDutyClient) newAWSSession(region, assumeRole, externalID string) e
 	}
 	// TODO confirm to need
 	g.Sess = sess
-	gd := guardduty.New(g.Sess, aws.NewConfig().WithRegion(region))
-	xray.AWS(gd.Client)
-	g.Svc = gd
-	gec2 := ec2.New(g.Sess, aws.NewConfig().WithRegion(region))
-	xray.AWS(gec2.Client)
-	g.EC2 = gec2
+	g.Svc = guardduty.New(g.Sess, aws.NewConfig().WithRegion(region))
+	xray.AWS(g.Svc.Client)
+	g.EC2 = ec2.New(g.Sess, aws.NewConfig().WithRegion(region))
+	xray.AWS(g.EC2.Client)
 	return nil
 }
 

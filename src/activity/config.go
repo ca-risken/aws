@@ -63,11 +63,9 @@ func (c *configServiceClient) newSession(region, assumeRole, externalID string) 
 	if err != nil {
 		return nil, err
 	}
-	cs, err := configservice.New(sess, aws.NewConfig().WithRegion(region)), nil
-	if err != nil {
-		xray.AWS(cs.Client)
-	}
-	return cs, err
+	cs := configservice.New(sess, aws.NewConfig().WithRegion(region))
+	xray.AWS(cs.Client)
+	return cs, nil
 }
 
 func (c *configServiceClient) listConfigHistory(ctx context.Context, req *activity.ListConfigHistoryRequest, role, externalID string) (*activity.ListConfigHistoryResponse, error) {
