@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -10,12 +11,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/configservice"
+	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/vikyd/zero"
 )
 
 type configServiceAPI interface {
-	listConfigHistory(req *activity.ListConfigHistoryRequest, role, externalID string) (*activity.ListConfigHistoryResponse, error)
+	listConfigHistory(ctx context.Context, req *activity.ListConfigHistoryRequest, role, externalID string) (*activity.ListConfigHistoryResponse, error)
 }
 
 type configServiceConfig struct {
@@ -61,15 +63,17 @@ func (c *configServiceClient) newSession(region, assumeRole, externalID string) 
 	if err != nil {
 		return nil, err
 	}
-	return configservice.New(sess, aws.NewConfig().WithRegion(region)), nil
+	cs := configservice.New(sess, aws.NewConfig().WithRegion(region))
+	xray.AWS(cs.Client)
+	return cs, nil
 }
 
-func (c *configServiceClient) listConfigHistory(req *activity.ListConfigHistoryRequest, role, externalID string) (*activity.ListConfigHistoryResponse, error) {
+func (c *configServiceClient) listConfigHistory(ctx context.Context, req *activity.ListConfigHistoryRequest, role, externalID string) (*activity.ListConfigHistoryResponse, error) {
 	sess, err := c.newSession(req.Region, role, externalID)
 	if err != nil {
 		return nil, err
 	}
-	out, err := sess.GetResourceConfigHistory(generateGetResourceConfigHistoryInput(req))
+	out, err := sess.GetResourceConfigHistoryWithContext(ctx, generateGetResourceConfigHistoryInput(req))
 	if err != nil {
 		return nil, err
 	}

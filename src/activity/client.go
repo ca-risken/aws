@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/CyberAgent/mimosa-aws/proto/aws"
+	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/kelseyhightower/envconfig"
 	"google.golang.org/grpc"
 )
@@ -29,7 +30,8 @@ func newAWSClient() aws.AWSServiceClient {
 }
 
 func getGRPCConn(ctx context.Context, addr string) (*grpc.ClientConn, error) {
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure(), grpc.WithTimeout(time.Second*3))
+	conn, err := grpc.DialContext(ctx, addr,
+		grpc.WithUnaryInterceptor(xray.UnaryClientInterceptor()), grpc.WithInsecure(), grpc.WithTimeout(time.Second*3))
 	if err != nil {
 		return nil, err
 	}

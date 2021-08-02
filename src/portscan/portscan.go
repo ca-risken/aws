@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
@@ -14,19 +15,20 @@ import (
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/lightsail"
 	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/vikyd/zero"
 )
 
 type portscanAPI interface {
-	getResult(*message.AWSQueueMessage, bool) ([]*finding.FindingForUpsert, error)
-	listAvailableRegion() ([]*ec2.Region, error)
-	listEC2(string) error
-	listSecurityGroup() error
-	listELB(string) error
-	listELBv2() error
-	listRDS() error
-	listLightsail() error
+	getResult(context.Context, *message.AWSQueueMessage, bool) ([]*finding.FindingForUpsert, error)
+	listAvailableRegion(ctx context.Context) ([]*ec2.Region, error)
+	listEC2(context.Context, string) error
+	listSecurityGroup(context.Context) error
+	listELB(context.Context, string) error
+	listELBv2(context.Context) error
+	listRDS(context.Context) error
+	listLightsail(context.Context) error
 	excludeScan() []*excludeResult
 	scan() ([]*portscan.NmapResult, error)
 }
@@ -90,17 +92,23 @@ func (p *portscanClient) newAWSSession(region, assumeRole, externalID string) er
 			Credentials: stscreds.NewCredentials(sess, assumeRole),
 		})
 	}
+	// TODO confirm todo need
 	p.Sess = sess
 	p.EC2 = ec2.New(p.Sess, aws.NewConfig().WithRegion(region))
+	xray.AWS(p.EC2.Client)
 	p.ELB = elb.New(p.Sess, aws.NewConfig().WithRegion(region))
+	xray.AWS(p.ELB.Client)
 	p.ELBv2 = elbv2.New(p.Sess, aws.NewConfig().WithRegion(region))
+	xray.AWS(p.ELBv2.Client)
 	p.RDS = rds.New(p.Sess, aws.NewConfig().WithRegion(region))
+	xray.AWS(p.RDS.Client)
 	p.Lightsail = lightsail.New(p.Sess, aws.NewConfig().WithRegion(region))
+	xray.AWS(p.Lightsail.Client)
 	return nil
 }
 
-func (p *portscanClient) listAvailableRegion() ([]*ec2.Region, error) {
-	out, err := p.EC2.DescribeRegions(&ec2.DescribeRegionsInput{})
+func (p *portscanClient) listAvailableRegion(ctx context.Context) ([]*ec2.Region, error) {
+	out, err := p.EC2.DescribeRegionsWithContext(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -111,40 +119,42 @@ func (p *portscanClient) listAvailableRegion() ([]*ec2.Region, error) {
 	return out.Regions, nil
 }
 
-func (p *portscanClient) getResult(message *message.AWSQueueMessage, isFirstRegion bool) ([]*finding.FindingForUpsert, error) {
+func (p *portscanClient) getResult(ctx context.Context, message *message.AWSQueueMessage, isFirstRegion bool) ([]*finding.FindingForUpsert, error) {
 	putData := []*finding.FindingForUpsert{}
-	err := p.listSecurityGroup()
+	err := p.listSecurityGroup(ctx)
 	if err != nil {
 		appLogger.Errorf("Faild to describeSecurityGroups: err=%+v", err)
 		return putData, err
 	}
-	err = p.listEC2(message.AccountID)
+	err = p.listEC2(ctx, message.AccountID)
 	if err != nil {
 		appLogger.Errorf("Faild to describeInstances: err=%+v", err)
 		return putData, err
 	}
-	err = p.listELB(message.AccountID)
+	err = p.listELB(ctx, message.AccountID)
 	if err != nil {
 		appLogger.Errorf("Faild to describeLoadBalancers: err=%+v", err)
 		return putData, err
 	}
-	err = p.listELBv2()
+	err = p.listELBv2(ctx)
 	if err != nil {
 		appLogger.Errorf("Faild to describeLoadBalancers(elbv2): err=%+v", err)
 		return putData, err
 	}
-	err = p.listRDS()
+	err = p.listRDS(ctx)
 	if err != nil {
 		appLogger.Errorf("Faild to describeDBInstances(rds): err=%+v", err)
 		return putData, err
 	}
-	err = p.listLightsail()
+	err = p.listLightsail(ctx)
 	if err != nil {
 		appLogger.Errorf("Faild to getInstances(lightsail): err=%+v", err)
 		return putData, err
 	}
 	excludeList := p.excludeScan()
+	_, segment := xray.BeginSubsegment(ctx, "scanTargets")
 	nmapResults, err := p.scan()
+	segment.Close(err)
 	if err != nil {
 		appLogger.Errorf("Faild to describeSecurityGroups: err=%+v", err)
 		return putData, err
@@ -163,10 +173,10 @@ func (p *portscanClient) getResult(message *message.AWSQueueMessage, isFirstRegi
 	return putData, nil
 }
 
-func (p *portscanClient) listSecurityGroup() error {
+func (p *portscanClient) listSecurityGroup(ctx context.Context) error {
 	var retSG []*targetSG
 	input := &ec2.DescribeSecurityGroupsInput{}
-	result, err := p.EC2.DescribeSecurityGroups(input)
+	result, err := p.EC2.DescribeSecurityGroupsWithContext(ctx, input)
 	if err != nil {
 		appLogger.Errorf("error occured when DescribeSecurityGroups: %v", err)
 		return err
@@ -198,10 +208,10 @@ func (p *portscanClient) listSecurityGroup() error {
 	return nil
 }
 
-func (p *portscanClient) listEC2(accountID string) error {
+func (p *portscanClient) listEC2(ctx context.Context, accountID string) error {
 	var listEC2 []*infoEC2
 	input := &ec2.DescribeInstancesInput{}
-	result, err := p.EC2.DescribeInstances(input)
+	result, err := p.EC2.DescribeInstancesWithContext(ctx, input)
 	if err != nil {
 		appLogger.Errorf("error occured when DescribeInstances: %v", err)
 		return err
@@ -247,10 +257,10 @@ func (p *portscanClient) listEC2(accountID string) error {
 	return nil
 }
 
-func (p *portscanClient) listELB(accountID string) error {
+func (p *portscanClient) listELB(ctx context.Context, accountID string) error {
 	var listELB []*infoELB
 	input := &elb.DescribeLoadBalancersInput{}
-	result, err := p.ELB.DescribeLoadBalancers(input)
+	result, err := p.ELB.DescribeLoadBalancersWithContext(ctx, input)
 	if err != nil {
 		appLogger.Errorf("error occured when DescribeLoadBalancers: %v", err)
 		return err
@@ -287,10 +297,10 @@ func (p *portscanClient) listELB(accountID string) error {
 	return nil
 }
 
-func (p *portscanClient) listELBv2() error {
+func (p *portscanClient) listELBv2(ctx context.Context) error {
 	var listELBv2 []*infoELBv2
 	input := &elbv2.DescribeLoadBalancersInput{}
-	result, err := p.ELBv2.DescribeLoadBalancers(input)
+	result, err := p.ELBv2.DescribeLoadBalancersWithContext(ctx, input)
 	if err != nil {
 		appLogger.Errorf("error occured when DescribeLoadBalancers: %v", err)
 		return err
@@ -327,10 +337,10 @@ func (p *portscanClient) listELBv2() error {
 	return nil
 }
 
-func (p *portscanClient) listRDS() error {
+func (p *portscanClient) listRDS(ctx context.Context) error {
 	var listRDS []*infoRDS
 	input := &rds.DescribeDBInstancesInput{}
-	result, err := p.RDS.DescribeDBInstances(input)
+	result, err := p.RDS.DescribeDBInstancesWithContext(ctx, input)
 	if err != nil {
 		appLogger.Errorf("error occured when DescribeDBInstances: %v", err)
 		return err
@@ -378,9 +388,9 @@ func (p *portscanClient) listRDS() error {
 	return nil
 }
 
-func (p *portscanClient) listLightsail() error {
+func (p *portscanClient) listLightsail(ctx context.Context) error {
 	input := &lightsail.GetInstancesInput{}
-	result, err := p.Lightsail.GetInstances(input)
+	result, err := p.Lightsail.GetInstancesWithContext(ctx, input)
 	if err != nil {
 		appLogger.Errorf("error occured when GetInstances(lightsail) : %v", err)
 		return err
@@ -402,7 +412,7 @@ func (p *portscanClient) listLightsail() error {
 	}
 
 	inputLB := &lightsail.GetLoadBalancersInput{}
-	resultLB, err := p.Lightsail.GetLoadBalancers(inputLB)
+	resultLB, err := p.Lightsail.GetLoadBalancersWithContext(ctx, inputLB)
 	if err != nil {
 		appLogger.Errorf("error occured when GetLoadBalancers(lightsail): %v", err)
 		return err

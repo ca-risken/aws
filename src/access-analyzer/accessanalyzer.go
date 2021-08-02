@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/accessanalyzer"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -71,12 +73,14 @@ func (a *accessAnalyzerClient) newAWSSession(region, assumeRole, externalID stri
 	}
 	a.Sess = sess
 	a.Svc = accessanalyzer.New(a.Sess, aws.NewConfig().WithRegion(region))
+	xray.AWS(a.Svc.Client)
 	a.EC2 = ec2.New(a.Sess, aws.NewConfig().WithRegion(region))
+	xray.AWS(a.EC2.Client)
 	return nil
 }
 
-func (a *accessAnalyzerClient) listAvailableRegion() ([]*ec2.Region, error) {
-	out, err := a.EC2.DescribeRegions(&ec2.DescribeRegionsInput{})
+func (a *accessAnalyzerClient) listAvailableRegion(ctx context.Context) ([]*ec2.Region, error) {
+	out, err := a.EC2.DescribeRegionsWithContext(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -87,11 +91,11 @@ func (a *accessAnalyzerClient) listAvailableRegion() ([]*ec2.Region, error) {
 	return out.Regions, nil
 }
 
-func (a *accessAnalyzerClient) listAnalyzers() (*[]string, error) {
+func (a *accessAnalyzerClient) listAnalyzers(ctx context.Context) (*[]string, error) {
 	var nextToken string
 	var analyzers []string
 	for {
-		out, err := a.Svc.ListAnalyzers(&accessanalyzer.ListAnalyzersInput{
+		out, err := a.Svc.ListAnalyzersWithContext(ctx, &accessanalyzer.ListAnalyzersInput{
 			MaxResults: aws.Int64(50),
 			NextToken:  &nextToken,
 		})
@@ -109,7 +113,7 @@ func (a *accessAnalyzerClient) listAnalyzers() (*[]string, error) {
 	return &analyzers, nil
 }
 
-func (a *accessAnalyzerClient) listFindings(accountID string, analyzerArn string) ([]*accessanalyzer.FindingSummary, error) {
+func (a *accessAnalyzerClient) listFindings(ctx context.Context, accountID string, analyzerArn string) ([]*accessanalyzer.FindingSummary, error) {
 	var nextToken string
 	input := &accessanalyzer.ListFindingsInput{
 		AnalyzerArn: aws.String(analyzerArn),
@@ -124,7 +128,7 @@ func (a *accessAnalyzerClient) listFindings(accountID string, analyzerArn string
 		if nextToken != "" {
 			input.NextToken = &nextToken
 		}
-		out, err := a.Svc.ListFindings(input)
+		out, err := a.Svc.ListFindingsWithContext(ctx, input)
 		if err != nil {
 			return nil, err
 		}

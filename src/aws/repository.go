@@ -1,30 +1,29 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	"github.com/CyberAgent/mimosa-aws/pkg/model"
 	"github.com/CyberAgent/mimosa-aws/proto/aws"
+	mimosasql "github.com/CyberAgent/mimosa-common/pkg/database/sql"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/vikyd/zero"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	glogger "gorm.io/gorm/logger"
-	"gorm.io/gorm/schema"
 )
 
 type awsRepoInterface interface {
-	ListAWS(projectID, awsID uint32, awsAccountID string) (*[]model.AWS, error)
-	GetAWSByAccountID(projectID uint32, awsAccountID string) (*model.AWS, error)
-	UpsertAWS(data *model.AWS) (*model.AWS, error)
-	DeleteAWS(projectID, awsID uint32) error
-	ListDataSource(projectID, awsID uint32, ds string) (*[]dataSource, error)
-	UpsertAWSRelDataSource(data *aws.DataSourceForAttach) (*model.AWSRelDataSource, error)
-	GetAWSRelDataSourceByID(awsID, awsDataSourceID, projectID uint32) (*model.AWSRelDataSource, error)
-	DeleteAWSRelDataSource(projectID, awsID, awsDataSourceID uint32) error
-	GetAWSDataSourceForMessage(awsID, awsDataSourceID, projectID uint32) (*message.AWSQueueMessage, error)
+	ListAWS(ctx context.Context, projectID, awsID uint32, awsAccountID string) (*[]model.AWS, error)
+	GetAWSByAccountID(ctx context.Context, projectID uint32, awsAccountID string) (*model.AWS, error)
+	UpsertAWS(ctx context.Context, data *model.AWS) (*model.AWS, error)
+	DeleteAWS(ctx context.Context, projectID, awsID uint32) error
+	ListDataSource(ctx context.Context, projectID, awsID uint32, ds string) (*[]dataSource, error)
+	UpsertAWSRelDataSource(ctx context.Context, data *aws.DataSourceForAttach) (*model.AWSRelDataSource, error)
+	GetAWSRelDataSourceByID(ctx context.Context, awsID, awsDataSourceID, projectID uint32) (*model.AWSRelDataSource, error)
+	DeleteAWSRelDataSource(ctx context.Context, projectID, awsID, awsDataSourceID uint32) error
+	GetAWSDataSourceForMessage(ctx context.Context, awsID, awsDataSourceID, projectID uint32) (*message.AWSQueueMessage, error)
 }
 
 type awsRepository struct {
@@ -71,19 +70,16 @@ func initDB(isMaster bool) *gorm.DB {
 
 	dsn := fmt.Sprintf("%s:%s@tcp([%s]:%d)/%s?charset=utf8mb4&interpolateParams=true&parseTime=true&loc=Local",
 		user, pass, host, conf.Port, conf.Schema)
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{NamingStrategy: schema.NamingStrategy{SingularTable: true}})
+	db, err := mimosasql.Open(dsn, conf.LogMode)
 	if err != nil {
 		appLogger.Fatalf("Failed to open DB. isMaster: %t, err: %+v", isMaster, err)
 		return nil
-	}
-	if conf.LogMode {
-		db.Logger.LogMode(glogger.Info)
 	}
 	appLogger.Infof("Connected to Database. isMaster: %t", isMaster)
 	return db
 }
 
-func (a *awsRepository) ListAWS(projectID, awsID uint32, awsAccountID string) (*[]model.AWS, error) {
+func (a *awsRepository) ListAWS(ctx context.Context, projectID, awsID uint32, awsAccountID string) (*[]model.AWS, error) {
 	query := `
 select
   *
@@ -104,7 +100,7 @@ where
 	}
 
 	data := []model.AWS{}
-	if err := a.SlaveDB.Raw(query, params...).Scan(&data).Error; err != nil {
+	if err := a.SlaveDB.WithContext(ctx).Raw(query, params...).Scan(&data).Error; err != nil {
 		return nil, err
 	}
 	return &data, nil
@@ -112,9 +108,9 @@ where
 
 const selectGetAWSByAccountID = `select * from aws where project_id = ? and aws_account_id = ?`
 
-func (a *awsRepository) GetAWSByAccountID(projectID uint32, awsAccountID string) (*model.AWS, error) {
+func (a *awsRepository) GetAWSByAccountID(ctx context.Context, projectID uint32, awsAccountID string) (*model.AWS, error) {
 	data := model.AWS{}
-	if err := a.MasterDB.Raw(selectGetAWSByAccountID, projectID, awsAccountID).First(&data).Error; err != nil {
+	if err := a.MasterDB.WithContext(ctx).Raw(selectGetAWSByAccountID, projectID, awsAccountID).First(&data).Error; err != nil {
 		return nil, err
 	}
 	return &data, nil
@@ -129,13 +125,13 @@ ON DUPLICATE KEY UPDATE
   name=VALUES(name)
 `
 
-func (a *awsRepository) UpsertAWS(data *model.AWS) (*model.AWS, error) {
-	if err := a.MasterDB.Exec(insertUpsertAWS,
+func (a *awsRepository) UpsertAWS(ctx context.Context, data *model.AWS) (*model.AWS, error) {
+	if err := a.MasterDB.WithContext(ctx).Exec(insertUpsertAWS,
 		data.AWSID, data.Name, data.ProjectID, data.AWSAccountID).Error; err != nil {
 		return nil, err
 	}
 
-	updated, err := a.GetAWSByAccountID(data.ProjectID, data.AWSAccountID)
+	updated, err := a.GetAWSByAccountID(ctx, data.ProjectID, data.AWSAccountID)
 	if err != nil {
 		return nil, err
 	}
@@ -144,8 +140,8 @@ func (a *awsRepository) UpsertAWS(data *model.AWS) (*model.AWS, error) {
 
 const deleteAws = `delete from aws where project_id = ? and aws_id = ?`
 
-func (a *awsRepository) DeleteAWS(projectID, awsID uint32) error {
-	if err := a.MasterDB.Exec(deleteAws, projectID, awsID).Error; err != nil {
+func (a *awsRepository) DeleteAWS(ctx context.Context, projectID, awsID uint32) error {
+	if err := a.MasterDB.WithContext(ctx).Exec(deleteAws, projectID, awsID).Error; err != nil {
 		return err
 	}
 	return nil
@@ -164,7 +160,7 @@ type dataSource struct {
 	ScanAt          time.Time
 }
 
-func (a *awsRepository) ListDataSource(projectID, awsID uint32, ds string) (*[]dataSource, error) {
+func (a *awsRepository) ListDataSource(ctx context.Context, projectID, awsID uint32, ds string) (*[]dataSource, error) {
 	var params []interface{}
 	query := `
 select
@@ -205,7 +201,7 @@ order by
   , ads.aws_data_source_id
 `
 	data := []dataSource{}
-	if err := a.SlaveDB.Raw(query, params...).Scan(&data).Error; err != nil {
+	if err := a.SlaveDB.WithContext(ctx).Raw(query, params...).Scan(&data).Error; err != nil {
 		return nil, err
 	}
 	return &data, nil
@@ -225,22 +221,22 @@ ON DUPLICATE KEY UPDATE
   scan_at=VALUES(scan_at)
 `
 
-func (a *awsRepository) UpsertAWSRelDataSource(data *aws.DataSourceForAttach) (*model.AWSRelDataSource, error) {
-	if err := a.MasterDB.Exec(insertUpsertAWSRelDataSource,
+func (a *awsRepository) UpsertAWSRelDataSource(ctx context.Context, data *aws.DataSourceForAttach) (*model.AWSRelDataSource, error) {
+	if err := a.MasterDB.WithContext(ctx).Exec(insertUpsertAWSRelDataSource,
 		data.AwsId, data.AwsDataSourceId, data.ProjectId,
 		data.AssumeRoleArn, data.ExternalId,
 		data.Status.String(), data.StatusDetail, time.Unix(data.ScanAt, 0),
 	).Error; err != nil {
 		return nil, err
 	}
-	return a.GetAWSRelDataSourceByID(data.AwsId, data.AwsDataSourceId, data.ProjectId)
+	return a.GetAWSRelDataSourceByID(ctx, data.AwsId, data.AwsDataSourceId, data.ProjectId)
 }
 
 const selectGetAWSRelDataSourceByID = `select * from aws_rel_data_source where aws_id = ? and aws_data_source_id = ? and project_id = ?`
 
-func (a *awsRepository) GetAWSRelDataSourceByID(awsID, awsDataSourceID, projectID uint32) (*model.AWSRelDataSource, error) {
+func (a *awsRepository) GetAWSRelDataSourceByID(ctx context.Context, awsID, awsDataSourceID, projectID uint32) (*model.AWSRelDataSource, error) {
 	data := model.AWSRelDataSource{}
-	if err := a.MasterDB.Raw(selectGetAWSRelDataSourceByID, awsID, awsDataSourceID, projectID).First(&data).Error; err != nil {
+	if err := a.MasterDB.WithContext(ctx).Raw(selectGetAWSRelDataSourceByID, awsID, awsDataSourceID, projectID).First(&data).Error; err != nil {
 		return nil, err
 	}
 	return &data, nil
@@ -248,8 +244,8 @@ func (a *awsRepository) GetAWSRelDataSourceByID(awsID, awsDataSourceID, projectI
 
 const deleteAWSRelDataSource = `delete from aws_rel_data_source where project_id = ? and aws_id = ? and aws_data_source_id = ?`
 
-func (a *awsRepository) DeleteAWSRelDataSource(projectID, awsID, awsDataSourceID uint32) error {
-	if err := a.MasterDB.Exec(deleteAWSRelDataSource, projectID, awsID, awsDataSourceID).Error; err != nil {
+func (a *awsRepository) DeleteAWSRelDataSource(ctx context.Context, projectID, awsID, awsDataSourceID uint32) error {
+	if err := a.MasterDB.WithContext(ctx).Exec(deleteAWSRelDataSource, projectID, awsID, awsDataSourceID).Error; err != nil {
 		return err
 	}
 	return nil
@@ -274,9 +270,9 @@ where
 	and ards.project_id = ? 
 `
 
-func (a *awsRepository) GetAWSDataSourceForMessage(awsID, awsDataSourceID, projectID uint32) (*message.AWSQueueMessage, error) {
+func (a *awsRepository) GetAWSDataSourceForMessage(ctx context.Context, awsID, awsDataSourceID, projectID uint32) (*message.AWSQueueMessage, error) {
 	data := message.AWSQueueMessage{}
-	if err := a.SlaveDB.Raw(selectAWSDataSourceForMessage, awsID, awsDataSourceID, projectID).First(&data).Error; err != nil {
+	if err := a.SlaveDB.WithContext(ctx).Raw(selectAWSDataSourceForMessage, awsID, awsDataSourceID, projectID).First(&data).Error; err != nil {
 		return nil, err
 	}
 	return &data, nil

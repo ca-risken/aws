@@ -29,7 +29,7 @@ func newHandler() *sqsHandler {
 	}
 }
 
-func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
+func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
 	msgBody := aws.StringValue(sqsMsg.Body)
 	appLogger.Infof("got message: %s", msgBody)
 	msg, err := message.ParseMessage(msgBody)
@@ -44,7 +44,6 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 	}
 	appLogger.Infof("start Scan, RequestID=%s", requestID)
 
-	ctx := context.Background()
 	status := common.InitScanStatus(msg)
 	// check AccountID matches Arn for Scan
 	if !common.IsMatchAccountIDArn(msg.AccountID, msg.AssumeRoleArn) {
@@ -59,7 +58,7 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 	}
 
 	// IAM User
-	userFindings, err := adminChecker.listUserFinding(msg)
+	userFindings, err := adminChecker.listUserFinding(ctx, msg)
 	if err != nil {
 		appLogger.Errorf("Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", msg.AccountID, err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
@@ -69,7 +68,7 @@ func (s *sqsHandler) HandleMessage(sqsMsg *sqs.Message) error {
 	}
 
 	// IAM Role
-	roleFindings, err := adminChecker.listRoleFinding(msg)
+	roleFindings, err := adminChecker.listRoleFinding(ctx, msg)
 	if err != nil {
 		appLogger.Errorf("Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", msg.AccountID, err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
