@@ -92,18 +92,12 @@ func (p *portscanClient) newAWSSession(region, assumeRole, externalID string) er
 			Credentials: stscreds.NewCredentials(sess, assumeRole),
 		})
 	}
-	// TODO confirm todo need
 	p.Sess = sess
 	p.EC2 = ec2.New(p.Sess, aws.NewConfig().WithRegion(region))
-	xray.AWS(p.EC2.Client)
 	p.ELB = elb.New(p.Sess, aws.NewConfig().WithRegion(region))
-	xray.AWS(p.ELB.Client)
 	p.ELBv2 = elbv2.New(p.Sess, aws.NewConfig().WithRegion(region))
-	xray.AWS(p.ELBv2.Client)
 	p.RDS = rds.New(p.Sess, aws.NewConfig().WithRegion(region))
-	xray.AWS(p.RDS.Client)
 	p.Lightsail = lightsail.New(p.Sess, aws.NewConfig().WithRegion(region))
-	xray.AWS(p.Lightsail.Client)
 	return nil
 }
 
