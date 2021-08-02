@@ -15,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -68,10 +67,8 @@ func (a *adminCheckerClient) newAWSSession(region, assumeRole, externalID string
 	if err != nil {
 		return err
 	}
-	// TODO confirm to need
 	a.Sess = sess
 	a.Svc = iam.New(a.Sess)
-	xray.AWS(a.Svc.Client)
 	return nil
 }
 

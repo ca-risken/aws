@@ -13,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/accessanalyzer"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -73,9 +72,7 @@ func (a *accessAnalyzerClient) newAWSSession(region, assumeRole, externalID stri
 	}
 	a.Sess = sess
 	a.Svc = accessanalyzer.New(a.Sess, aws.NewConfig().WithRegion(region))
-	xray.AWS(a.Svc.Client)
 	a.EC2 = ec2.New(a.Sess, aws.NewConfig().WithRegion(region))
-	xray.AWS(a.EC2.Client)
 	return nil
 }
 

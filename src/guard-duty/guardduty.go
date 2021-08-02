@@ -13,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/guardduty"
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -73,12 +72,9 @@ func (g *guardDutyClient) newAWSSession(region, assumeRole, externalID string) e
 	if err != nil {
 		return err
 	}
-	// TODO confirm to need
 	g.Sess = sess
 	g.Svc = guardduty.New(g.Sess, aws.NewConfig().WithRegion(region))
-	xray.AWS(g.Svc.Client)
 	g.EC2 = ec2.New(g.Sess, aws.NewConfig().WithRegion(region))
-	xray.AWS(g.EC2.Client)
 	return nil
 }
 
