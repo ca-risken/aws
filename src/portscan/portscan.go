@@ -15,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/lightsail"
 	"github.com/aws/aws-sdk-go/service/rds"
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/vikyd/zero"
 )
@@ -146,9 +145,7 @@ func (p *portscanClient) getResult(ctx context.Context, message *message.AWSQueu
 		return putData, err
 	}
 	excludeList := p.excludeScan()
-	_, segment := xray.BeginSubsegment(ctx, "scanTargets")
 	nmapResults, err := p.scan()
-	segment.Close(err)
 	if err != nil {
 		appLogger.Errorf("Faild to describeSecurityGroups: err=%+v", err)
 		return putData, err
