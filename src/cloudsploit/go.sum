@@ -13,8 +13,8 @@ github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210706052009-c1f53ecf5540 h1
 github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210706052009-c1f53ecf5540/go.mod h1:YZ3ji9lxFv6wDjtQhmpy+RZ+anQAfABQwtGcfzI+Q04=
 github.com/CyberAgent/mimosa-common/pkg/logging v0.0.0-20210720044426-435f5263d379 h1:FdImt6OJDO0DSTM4ngvWrbDYq/JgveCeHlYFpY/hgvw=
 github.com/CyberAgent/mimosa-common/pkg/logging v0.0.0-20210720044426-435f5263d379/go.mod h1:4h+dXymMJmVmPhgFyqakPDiLqQjwcyMBgDOt5/mBcsQ=
-github.com/CyberAgent/mimosa-common/pkg/xray v0.0.0-20210720044426-435f5263d379 h1:geUJgydgYVwT3Qo/p4GMQLCBJadH9JgBIRUYdfkXvxI=
-github.com/CyberAgent/mimosa-common/pkg/xray v0.0.0-20210720044426-435f5263d379/go.mod h1:ruMCA0DIAer5E8qgURueEzZCovjqOKsTCobUMm2bDtw=
+github.com/CyberAgent/mimosa-common/pkg/xray v0.0.0-20210803120909-2cc57e3c75d2 h1:kR25hdxiwJZKpHO5fQBuso+8ob5ukisUXfauAKV/BQM=
+github.com/CyberAgent/mimosa-common/pkg/xray v0.0.0-20210803120909-2cc57e3c75d2/go.mod h1:5oT6h4M/jXOoae5d3i7STExxv/eV68F6yuc0Isbvli0=
 github.com/CyberAgent/mimosa-core/proto/alert v0.0.0-20210705123028-5689cbf3602c h1:J2MUiaEl/s5MFQY6FOSn2tfqLG5jatltafA8REOegoQ=
 github.com/CyberAgent/mimosa-core/proto/alert v0.0.0-20210705123028-5689cbf3602c/go.mod h1:KFDZbX8E/vynUQpezUDu5WRDceqMWyXiaxIKYGuQXhw=
 github.com/CyberAgent/mimosa-core/proto/finding v0.0.0-20210705123028-5689cbf3602c h1:QIFOX4RS/ggiAkvRTX7Or6N11bN/C3fX8phBsI28x4k=
@@ -32,8 +32,8 @@ github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d h1:Byv0BzEl
 github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
 github.com/aws/aws-sdk-go v1.17.12/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.37.10/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
-github.com/aws/aws-sdk-go v1.39.0 h1:74BBwkEmiqBbi2CGflEh34l0YNtIibTjZsibGarkNjo=
-github.com/aws/aws-sdk-go v1.39.0/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
+github.com/aws/aws-sdk-go v1.39.3 h1:JMDk7p+AV89MdVy/ZcFWAGivWIE3vXOsRriFjFWVcIY=
+github.com/aws/aws-sdk-go v1.39.3/go.mod h1:585smgzpB/KqRA+K3y/NL/oYRqQvpNJYvLm+LY1U59Q=
 github.com/aws/aws-sdk-go-v2 v1.6.0/go.mod h1:tI4KhsR5VkzlUa2DZAdwx7wCAYGwkZZ1H31PYrBFx1w=
 github.com/aws/aws-sdk-go-v2/service/route53 v1.6.2/go.mod h1:ZnAMilx42P7DgIrdjlWCkNIGSBLzeyk6T31uB8oGTwY=
 github.com/aws/aws-xray-sdk-go v1.6.0 h1:w4dPTvHZtbQg3dQFTRTu4TIunlfJCRGKdmGYZkcEJwI=
@@ -182,6 +182,7 @@ golang.org/x/net v0.0.0-20210226101413-39120d07d75e/go.mod h1:m0MpNAwzfU5UDzcl9v
 golang.org/x/net v0.0.0-20210226172049-e18ecbb05110/go.mod h1:m0MpNAwzfU5UDzcl9v0D8zg8gWTRqZa9RBIspLL5mdg=
 golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4/go.mod h1:p54w0d4576C0XHj96bSt6lcn1PtDYWL6XObtHCRCNQM=
 golang.org/x/net v0.0.0-20210510120150-4163338589ed/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
+golang.org/x/net v0.0.0-20210614182718-04defd469f4e/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/net v0.0.0-20210716203947-853a461950ff h1:j2EK/QoxYNBsXI4R7fQkkRUk8y6wnOBI+6hgPdP/6Ds=
 golang.org/x/net v0.0.0-20210716203947-853a461950ff/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
