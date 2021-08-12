@@ -17,7 +17,8 @@ import (
 func makeFindings(results []*portscan.NmapResult, message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
 	var findings []*finding.FindingForUpsert
 	for _, r := range results {
-		data, err := json.Marshal(map[string]portscan.NmapResult{"data": *r})
+		externalLink := makeURL(r.Target, r.Port)
+		data, err := json.Marshal(map[string]interface{}{"data": *r, "external_link": externalLink})
 		if err != nil {
 			return nil, err
 		}
@@ -94,4 +95,15 @@ func getExcludeDescription(target, protocol string, fPort, tPort int, securityGr
 func generateDataSourceID(input string) string {
 	hash := sha256.Sum256([]byte(input))
 	return hex.EncodeToString(hash[:])
+}
+
+func makeURL(target string, port int) string {
+	switch port {
+	case 443:
+		return fmt.Sprintf("https://%v", target)
+	case 80:
+		return fmt.Sprintf("http://%v", target)
+	default:
+		return fmt.Sprintf("http://%v:%v", target, port)
+	}
 }
