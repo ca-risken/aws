@@ -1,6 +1,20 @@
-.PHONY: all install clean network fmt build doc proto proto-without-validate proto-validate
-all: run
+TARGETS = aws access-analyzer activity admin-checker cloudsploit guard-duty portscan
+BUILD_TARGETS = $(TARGETS:=.build)
+BUILD_CI_TARGETS = $(TARGETS:=.build-ci)
+IMAGE_PUSH_TARGETS = $(TARGETS:=.push-image)
+MANIFEST_CREATE_TARGETS = $(TARGETS:=.create-manifest)
+MANIFEST_PUSH_TARGETS = $(TARGETS:=.push-manifest)
+TEST_TARGETS = $(TARGETS:=.go-test)
+BUILD_OPT=""
+IMAGE_TAG=latest
+MANIFEST_TAG=latest
+IMAGE_PREFIX=aws
+IMAGE_REGISTRY=local
 
+.PHONY: all
+all: build
+
+.PHONY: install
 install:
 	brew install protobuf clang-format && \
 	go get google.golang.org/grpc@v1.38.0 && \
@@ -9,21 +23,16 @@ install:
 	go install github.com/envoyproxy/protoc-gen-validate@v0.6.1 && \
 	go get github.com/grpc-ecosystem/go-grpc-middleware@latest
 
+.PHONY: clean
 clean:
 	rm -f proto/**/*.pb.go
 	rm -f doc/*.md
 
+.PHONY: fmt
 fmt: proto/**/*.proto
 	clang-format -i proto/**/*.proto
 
-# doc: fmt
-# 	protoc \
-# 		--proto_path=proto \
-# 		--error_format=gcc \
-# 		-I $(shell go env GOPATH)/pkg/mod/github.com/envoyproxy/protoc-gen-validate@v0.6.1 \
-# 		--doc_out=markdown,README.md:doc \
-# 		proto/**/*.proto;
-
+.PHONY: proto-without-validate
 proto-without-validate: fmt
 	for svc in "aws"; do \
 		protoc \
@@ -34,6 +43,7 @@ proto-without-validate: fmt
 	done
 
 # build with protoc-gen-validate``
+.PHONY: proto-validate
 proto-validate: fmt
 	for svc in "activity"; do \
 		protoc \
@@ -45,20 +55,49 @@ proto-validate: fmt
 			proto/$$svc/*.proto; \
 	done
 
+.PHONY: proto
 proto : proto-without-validate proto-validate
 
-go-test: proto
+.PHONY: build
+build: $(BUILD_TARGETS)
+%.build: %.go-test
+	. env.sh && TARGET=$(*) IMAGE_TAG=$(IMAGE_TAG) IMAGE_PREFIX=$(IMAGE_PREFIX) BUILD_OPT="$(BUILD_OPT)" . hack/docker-build.sh
+
+.PHONY: build-ci
+build-ci: $(BUILD_CI_TARGETS)
+%.build-ci: FAKE
+	TARGET=$(*) IMAGE_TAG=$(IMAGE_TAG) IMAGE_PREFIX=$(IMAGE_PREFIX) BUILD_OPT="$(BUILD_OPT)" . hack/docker-build.sh
+	docker tag $(IMAGE_PREFIX)/$(*):$(IMAGE_TAG) $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(IMAGE_TAG)
+
+.PHONY: push-image
+push-image: $(IMAGE_PUSH_TARGETS)
+%.push-image: FAKE
+	docker push $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(IMAGE_TAG)
+
+.PHONY: create-manifest
+create-manifest: $(MANIFEST_CREATE_TARGETS)
+%.create-manifest: FAKE
+	docker manifest create $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(MANIFEST_TAG) $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(IMAGE_TAG_BASE)_linux_amd64 $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(IMAGE_TAG_BASE)_linux_arm64
+	docker manifest annotate --arch amd64 $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(MANIFEST_TAG) $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(IMAGE_TAG_BASE)_linux_amd64
+	docker manifest annotate --arch arm64 $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(MANIFEST_TAG) $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(IMAGE_TAG_BASE)_linux_arm64
+
+.PHONY: push-manifest
+push-manifest: $(MANIFEST_PUSH_TARGETS)
+%.push-manifest: FAKE
+	docker manifest push $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(MANIFEST_TAG)
+	docker manifest inspect $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(MANIFEST_TAG)
+
+.PHONY: go-test proto-test pkg-test
+go-test: $(TEST_TARGETS) proto-test pkg-test
+%.go-test: FAKE
+	cd src/$(*) && go test ./...
+proto-test:
 	cd proto/aws           && go test ./...
+pkg-test:
 	cd pkg/message         && go test ./...
 	cd pkg/common          && go test ./...
-	cd src/aws             && go test ./...
-	cd src/guard-duty      && go test ./...
-	cd src/access-analyzer && go test ./...
-	cd src/admin-checker   && go test ./...
-	cd src/cloudsploit     && go test ./...
-	cd src/portscan        && go test ./...
-	cd src/activity        && go test ./...
 
+.PHONY: go-mod-update
 go-mod-update:
 	cd src/aws \
 		&& go get -u \
@@ -88,6 +127,7 @@ go-mod-update:
 			github.com/CyberAgent/mimosa-core/... \
 			github.com/CyberAgent/mimosa-aws/...
 
+.PHONY: go-mod-tidy
 go-mod-tidy:
 	cd proto/aws           && go mod tidy
 	cd pkg/model           && go mod tidy
@@ -100,21 +140,4 @@ go-mod-tidy:
 	cd src/portscan        && go mod tidy
 	cd src/activity        && go mod tidy
 
-# @see https://github.com/CyberAgent/mimosa-common/tree/master/local
-network:
-	@if [ -z "`docker network ls | grep local-shared`" ]; then docker network create local-shared; fi
-
-build: go-test network
-	source env.sh && docker-compose build
-
-run: build
-	source env.sh && docker-compose up -d --remove-orphans
-
-log:
-	source env.sh && docker-compose logs -f
-
-log-activity:
-	source env.sh && docker-compose logs -f activity
-
-stop:
-	source env.sh && docker-compose down
+FAKE:
