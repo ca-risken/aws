@@ -63,14 +63,25 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		appLogger.Errorf("Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", msg.AccountID, err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
-	if err := s.putUserFindings(ctx, msg, userFindings); err != nil {
-		return s.updateScanStatusError(ctx, &status, err.Error())
-	}
-
 	// IAM Role
 	roleFindings, err := adminChecker.listRoleFinding(ctx, msg)
 	if err != nil {
 		appLogger.Errorf("Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", msg.AccountID, err)
+		return s.updateScanStatusError(ctx, &status, err.Error())
+	}
+
+	// Clear finding score
+	if _, err := s.findingClient.ClearScore(ctx, &finding.ClearScoreRequest{
+		DataSource: msg.DataSource,
+		ProjectId:  msg.ProjectID,
+		Tag:        []string{msg.AccountID},
+	}); err != nil {
+		appLogger.Errorf("Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
+		return s.updateScanStatusError(ctx, &status, err.Error())
+	}
+
+	// Put finding
+	if err := s.putUserFindings(ctx, msg, userFindings); err != nil {
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
 	if err := s.putRoleFindings(ctx, msg, roleFindings); err != nil {

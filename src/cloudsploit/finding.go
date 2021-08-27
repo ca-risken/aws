@@ -153,62 +153,6 @@ func getPluginTags(category, plugin string) []string {
 	return []string{}
 }
 
-func (s *sqsHandler) clearFindingScore(ctx context.Context, msg *message.AWSQueueMessage) error {
-	maxScore, err := s.getCloudSploitMaxScore(ctx, msg)
-	if err != nil {
-		appLogger.Errorf("Failed to getCloudSploitMaxScore. error: %+v", err)
-		return err
-	}
-
-	var findingIDs []uint64
-	var offset int32
-	for {
-		resp, err := s.findingClient.ListFinding(ctx, &finding.ListFindingRequest{
-			ProjectId:  msg.ProjectID,
-			DataSource: []string{message.CloudsploitDataSource},
-			Tag:        []string{msg.AccountID},
-			FromScore:  0.01,
-			Status:     finding.FindingStatus_FINDING_ACTIVE,
-			Offset:     offset,
-			Limit:      200,
-		})
-		if err != nil {
-			appLogger.Errorf("Failed to ListFinding. error: %+v", err)
-			return err
-		}
-		findingIDs = append(findingIDs, resp.FindingId...)
-		if uint32(len(findingIDs)) >= resp.Total || len(resp.FindingId) <= 0 {
-			break
-		}
-		offset = +offset + int32(len(resp.FindingId))
-	}
-
-	for _, id := range findingIDs {
-		f, err := s.findingClient.GetFinding(ctx, &finding.GetFindingRequest{ProjectId: msg.ProjectID, FindingId: id})
-		if err != nil {
-			appLogger.Errorf("Failed to GetFinding. error: %+v", err)
-			return err
-		}
-		if _, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{
-			ProjectId: f.Finding.ProjectId,
-			Finding: &finding.FindingForUpsert{
-				Description:      f.Finding.Description,
-				DataSource:       message.CloudsploitDataSource,
-				DataSourceId:     f.Finding.DataSourceId,
-				ResourceName:     f.Finding.ResourceName,
-				ProjectId:        f.Finding.ProjectId,
-				OriginalScore:    0.0, // update
-				OriginalMaxScore: maxScore,
-				Data:             f.Finding.Data,
-			},
-		}); err != nil {
-			appLogger.Errorf("Failed to clear siding score. error: %+v", err)
-			return err
-		}
-	}
-	return nil
-}
-
 func (s *sqsHandler) getCloudSploitMaxScore(ctx context.Context, msg *message.AWSQueueMessage) (float32, error) {
 	resp, err := s.awsClient.ListDataSource(ctx, &aws.ListDataSourceRequest{
 		ProjectId:  msg.ProjectID,

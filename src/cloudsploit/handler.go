@@ -69,7 +69,11 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	}
 
 	// Clear finding score
-	if err := s.clearFindingScore(ctx, msg); err != nil {
+	if _, err := s.findingClient.ClearScore(ctx, &finding.ClearScoreRequest{
+		DataSource: msg.DataSource,
+		ProjectId:  msg.ProjectID,
+		Tag:        []string{msg.AccountID},
+	}); err != nil {
 		appLogger.Errorf("Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
 		return s.updateScanStatusError(ctx, &status, err.Error())
 	}
