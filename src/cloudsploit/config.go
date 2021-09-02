@@ -43,7 +43,8 @@ module.exports = {
                 session_token: 'SESSION_TOKEN',
             // plugins_remediate: ['bucketEncryptionInTransit']
         },
-    }
+    },
+	ecr_check_cross_account_principal: 'false'
 };
 `
 
