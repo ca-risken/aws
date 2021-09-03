@@ -38,13 +38,11 @@ const awsCredential string = `
 module.exports = {
     credentials: {
         aws: {
-                access_key: 'ACCESS_KEY',
-                secret_access_key: 'SECRET_KEY',
-                session_token: 'SESSION_TOKEN',
-            // plugins_remediate: ['bucketEncryptionInTransit']
+            access_key: 'ACCESS_KEY',
+            secret_access_key: 'SECRET_KEY',
+            session_token: 'SESSION_TOKEN',
         },
     },
-	ecr_check_cross_account_principal: 'false'
 };
 `
 
