@@ -8,11 +8,11 @@ import (
 	"github.com/CyberAgent/mimosa-aws/pkg/common"
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	awsClient "github.com/CyberAgent/mimosa-aws/proto/aws"
-	"github.com/CyberAgent/mimosa-common/pkg/logging"
-	"github.com/CyberAgent/mimosa-core/proto/alert"
-	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/ca-risken/common/pkg/logging"
+	"github.com/ca-risken/core/proto/alert"
+	"github.com/ca-risken/core/proto/finding"
 )
 
 type sqsHandler struct {

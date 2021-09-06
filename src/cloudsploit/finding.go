@@ -11,7 +11,7 @@ import (
 	"github.com/CyberAgent/mimosa-aws/pkg/common"
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	"github.com/CyberAgent/mimosa-aws/proto/aws"
-	"github.com/CyberAgent/mimosa-core/proto/finding"
+	"github.com/ca-risken/core/proto/finding"
 )
 
 func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResult, message *message.AWSQueueMessage) error {

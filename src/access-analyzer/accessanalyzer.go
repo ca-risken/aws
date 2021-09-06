@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
-	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/accessanalyzer"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/ca-risken/core/proto/finding"
 	"github.com/kelseyhightower/envconfig"
 )
 

@@ -9,8 +9,8 @@ import (
 
 	"github.com/CyberAgent/mimosa-aws/pkg/common"
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
-	"github.com/CyberAgent/mimosa-common/pkg/portscan"
-	"github.com/CyberAgent/mimosa-core/proto/finding"
+	"github.com/ca-risken/common/pkg/portscan"
+	"github.com/ca-risken/core/proto/finding"
 	"github.com/vikyd/zero"
 )
 

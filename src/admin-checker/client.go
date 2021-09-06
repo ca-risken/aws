@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/CyberAgent/mimosa-aws/proto/aws"
-	"github.com/CyberAgent/mimosa-core/proto/alert"
-	"github.com/CyberAgent/mimosa-core/proto/finding"
+	"github.com/ca-risken/core/proto/alert"
+	"github.com/ca-risken/core/proto/finding"
 	"github.com/kelseyhightower/envconfig"
 	"google.golang.org/grpc"
 )

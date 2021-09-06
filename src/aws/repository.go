@@ -8,7 +8,7 @@ import (
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	"github.com/CyberAgent/mimosa-aws/pkg/model"
 	"github.com/CyberAgent/mimosa-aws/proto/aws"
-	mimosasql "github.com/CyberAgent/mimosa-common/pkg/database/sql"
+	mimosasql "github.com/ca-risken/common/pkg/database/sql"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/vikyd/zero"
 	"gorm.io/gorm"

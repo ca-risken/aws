@@ -5,7 +5,7 @@ export GITHUB_USER="your-name"
 export GITHUB_TOKEN="your-token"
 
 # GO
-export GOPRIVATE="github.com/CyberAgent/*"
+export GOPRIVATE="github.com/CyberAgent/*,github.com/ca-risken/*"
 
 # DB
 export DB_MASTER_HOST="db"

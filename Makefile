@@ -104,27 +104,32 @@ go-mod-update:
 			github.com/CyberAgent/mimosa-aws/...
 	cd src/guard-duty \
 		&& go get -u \
-			github.com/CyberAgent/mimosa-core/... \
+			github.com/ca-risken/core/... \
 			github.com/CyberAgent/mimosa-aws/...
 	cd src/access-analyzer \
 		&& go get -u \
-			github.com/CyberAgent/mimosa-core/... \
+			github.com/ca-risken/core/... \
 			github.com/CyberAgent/mimosa-aws/...
 	cd src/admin-checker \
 		&& go get -u \
-			github.com/CyberAgent/mimosa-core/... \
+			github.com/ca-risken/core/... \
 			github.com/CyberAgent/mimosa-aws/...
 	cd src/cloudsploit \
 		&& go get -u \
-			github.com/CyberAgent/mimosa-core/... \
+			github.com/ca-risken/core/... \
 			github.com/CyberAgent/mimosa-aws/...
 	cd src/portscan \
 		&& go get -u \
-			github.com/CyberAgent/mimosa-core/... \
+			github.com/ca-risken/core/... \
 			github.com/CyberAgent/mimosa-aws/...
 	cd src/activity \
 		&& go get -u \
-			github.com/CyberAgent/mimosa-core/... \
+			github.com/ca-risken/core/... \
+			github.com/CyberAgent/mimosa-aws/...
+	cd src/portscan \
+		&& go get -u \
+			github.com/ca-risken/common/... \
+			github.com/ca-risken/core/... \
 			github.com/CyberAgent/mimosa-aws/...
 
 .PHONY: go-mod-tidy
