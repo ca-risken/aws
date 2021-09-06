@@ -23,6 +23,7 @@ phases:
       - TAG=$(git rev-parse --short HEAD)
       - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
       - REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+      - go clean -modcache
 
       - echo Testing the sources...
       - make go-test -j
