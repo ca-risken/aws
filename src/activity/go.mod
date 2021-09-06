@@ -6,11 +6,11 @@ require (
 	github.com/CyberAgent/mimosa-aws v0.0.0-20210812025300-d17f54d12b6a
 	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210812025300-d17f54d12b6a
 	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210812025300-d17f54d12b6a
-	github.com/CyberAgent/mimosa-common/pkg/xray v0.0.0-20210811114519-3370ca0f108e
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.40.31
 	github.com/aws/aws-xray-sdk-go v1.6.0
+	github.com/ca-risken/common/pkg/xray v0.0.0-20210906084924-5c6039fc609d
 	github.com/envoyproxy/protoc-gen-validate v0.6.1 // indirect
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
 	github.com/golang/protobuf v1.5.2

@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	mimosaxray "github.com/CyberAgent/mimosa-common/pkg/xray"
 	"github.com/aws/aws-xray-sdk-go/xray"
+	mimosaxray "github.com/ca-risken/common/pkg/xray"
 	"github.com/kelseyhightower/envconfig"
 )
 

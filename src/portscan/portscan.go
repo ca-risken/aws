@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	"github.com/CyberAgent/mimosa-aws/pkg/message"
-	"github.com/CyberAgent/mimosa-common/pkg/portscan"
-	"github.com/CyberAgent/mimosa-core/proto/finding"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -15,6 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/lightsail"
 	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/ca-risken/common/pkg/portscan"
+	"github.com/ca-risken/core/proto/finding"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/vikyd/zero"
 )
