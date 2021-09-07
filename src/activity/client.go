@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/CyberAgent/mimosa-aws/proto/aws"
 	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/ca-risken/aws/proto/aws"
 	"github.com/kelseyhightower/envconfig"
 	"google.golang.org/grpc"
 )

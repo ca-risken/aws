@@ -1,15 +1,15 @@
-module github.com/CyberAgent/mimosa-aws/src/guard-duty
+module github.com/ca-risken/aws/src/guard-duty
 
 go 1.16
 
 require (
-	github.com/CyberAgent/mimosa-aws/pkg/common v0.0.0-20210903035152-d8afaeff0d53
-	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210903035152-d8afaeff0d53
-	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210903035152-d8afaeff0d53
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.40.37
 	github.com/aws/aws-xray-sdk-go v1.6.0
+	github.com/ca-risken/aws/pkg/common v0.0.0-20210907025819-7ab4c5b39a8e
+	github.com/ca-risken/aws/pkg/message v0.0.0-20210907025819-7ab4c5b39a8e
+	github.com/ca-risken/aws/proto/aws v0.0.0-20210907025819-7ab4c5b39a8e
 	github.com/ca-risken/common/pkg/logging v0.0.0-20210906122657-d2be54cc7181
 	github.com/ca-risken/common/pkg/xray v0.0.0-20210906122657-d2be54cc7181
 	github.com/ca-risken/core/proto/alert v0.0.0-20210906115102-3cabd5f9511a

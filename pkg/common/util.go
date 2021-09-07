@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CyberAgent/mimosa-aws/pkg/message"
-	"github.com/CyberAgent/mimosa-aws/proto/aws"
+	"github.com/ca-risken/aws/pkg/message"
+	"github.com/ca-risken/aws/proto/aws"
 )
 
 // InitScanStatus return init aws.AttachDataSourceRequest data
