@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	awsClient "github.com/ca-risken/aws/proto/aws"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdca-risken/aws
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/ca-risken/aws/pkg/common"
 	"github.com/ca-risken/aws/pkg/message"
+	awsClient "github.com/ca-risken/aws/proto/aws"
 	"github.com/ca-risken/common/pkg/logging"
 	"github.com/ca-risken/core/proto/alert"
 	"github.com/ca-risken/core/proto/finding"

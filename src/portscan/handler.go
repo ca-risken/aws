@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	awsClient "gca-risken/awsws/proto/aws"
+	awsClient "github.com/ca-risken/aws/proto/aws"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"

@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"reflect"
 
-	awsClient "github.com/ca-risken/aws/proto/aws"
-
 	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/aws/proto/activity"
+	awsClient "github.com/ca-risken/aws/proto/aws"
 )
 
 type activityService struct {
