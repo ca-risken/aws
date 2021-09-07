@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CyberAgent/mimosa-aws/proto/activity"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
+	"github.com/ca-risken/aws/proto/activity"
 )
 
 func TestGenerateLookupEventInput(t *testing.T) {

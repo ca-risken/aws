@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/CyberAgent/mimosa-aws/pkg/common"
-	"github.com/CyberAgent/mimosa-aws/pkg/message"
-	"github.com/CyberAgent/mimosa-aws/proto/aws"
+	"github.com/ca-risken/aws/pkg/common"
+	"github.com/ca-risken/aws/pkg/message"
+	"github.com/ca-risken/aws/proto/aws"
 	"github.com/ca-risken/core/proto/finding"
 )
 

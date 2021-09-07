@@ -3,8 +3,8 @@ package main
 import (
 	"strings"
 
-	"github.com/CyberAgent/mimosa-aws/proto/activity"
 	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/ca-risken/aws/proto/activity"
 )
 
 // Parse from arn to resource details

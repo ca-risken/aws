@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/CyberAgent/mimosa-aws/proto/activity"
 	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/ca-risken/aws/proto/activity"
 	mimosaxray "github.com/ca-risken/common/pkg/xray"
 	grpcmiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/kelseyhightower/envconfig"

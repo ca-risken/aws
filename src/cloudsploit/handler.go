@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/CyberAgent/mimosa-aws/pkg/common"
-	"github.com/CyberAgent/mimosa-aws/pkg/message"
-	awsClient "github.com/CyberAgent/mimosa-aws/proto/aws"
+	awsClient "gca-risken/awsws/proto/aws"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/ca-risken/aws/pkg/common"
+	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/common/pkg/logging"
 	"github.com/ca-risken/core/proto/alert"
 	"github.com/ca-risken/core/proto/finding"
