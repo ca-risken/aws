@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package aws.activity;
-option go_package = "github.com/CyberAgent/mimosa-aws/proto/activity";
+option go_package = "github.com/ca-risken/aws/proto/activity";
 
 /**
  * Entity

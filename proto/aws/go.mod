@@ -1,4 +1,4 @@
-module github.com/CyberAgent/mimosa-aws/proto/aws
+module github.com/ca-risken/aws/proto/aws
 
 go 1.16
 
