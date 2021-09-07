@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/CyberAgent/mimosa-aws/proto/activity"
+	"github.com/ca-risken/aws/proto/activity"
 )
 
 func TestParse(t *testing.T) {

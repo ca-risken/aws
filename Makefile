@@ -137,6 +137,7 @@ go-mod-tidy:
 	cd proto/aws           && go mod tidy
 	cd pkg/model           && go mod tidy
 	cd pkg/message         && go mod tidy
+	cd pkg/common          && go mod tidy
 	cd src/aws             && go mod tidy
 	cd src/guard-duty      && go mod tidy
 	cd src/access-analyzer && go mod tidy

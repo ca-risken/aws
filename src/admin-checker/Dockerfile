@@ -1,5 +1,5 @@
 FROM golang:1.16 as builder
-WORKDIR /go/src/github.com/CyberAgent/mimosa-aws/src/admin-checker/
+WORKDIR /go/src/github.com/ca-risken/aws/src/admin-checker/
 ADD *.go go.* ./
 ENV CGO_ENABLED=0 GOPRIVATE="github.com/CyberAgent/*,github.com/ca-risken/*"
 ARG ENV_INJECTOR_VERSION=v0.0.6

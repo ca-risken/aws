@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CyberAgent/mimosa-aws/pkg/message"
-	"github.com/CyberAgent/mimosa-aws/pkg/model"
-	"github.com/CyberAgent/mimosa-aws/proto/aws"
+	"github.com/ca-risken/aws/pkg/message"
+	"github.com/ca-risken/aws/pkg/model"
+	"github.com/ca-risken/aws/proto/aws"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 )

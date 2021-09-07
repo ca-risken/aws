@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/CyberAgent/mimosa-aws/pkg/message"
-	"github.com/CyberAgent/mimosa-aws/proto/activity"
-	awsClient "github.com/CyberAgent/mimosa-aws/proto/aws"
+	"github.com/ca-risken/aws/pkg/message"
+	"github.com/ca-risken/aws/proto/activity"
+	awsClient "github.com/ca-risken/aws/proto/aws"
 )
 
 type activityService struct {

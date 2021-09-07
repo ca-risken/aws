@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/CyberAgent/mimosa-aws/pkg/message"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/ca-risken/aws/pkg/message"
 	"github.com/kelseyhightower/envconfig"
 )
 

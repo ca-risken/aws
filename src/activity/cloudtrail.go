@@ -5,13 +5,13 @@ import (
 	"errors"
 	"time"
 
-	"github.com/CyberAgent/mimosa-aws/proto/activity"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/ca-risken/aws/proto/activity"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/vikyd/zero"
 )
