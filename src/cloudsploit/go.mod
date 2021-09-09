@@ -3,8 +3,6 @@ module github.com/ca-risken/aws/src/cloudsploit
 go 1.16
 
 require (
-	github.com/CyberAgent/mimosa-aws/pkg/message v0.0.0-20210125022408-c3af4b06cf07 // indirect
-	github.com/CyberAgent/mimosa-aws/proto/aws v0.0.0-20210125022408-c3af4b06cf07 // indirect
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.40.37
