@@ -17,9 +17,9 @@ github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d h1:Byv0BzEl
 github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
 github.com/aws/aws-sdk-go v1.17.12/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.37.10/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
-github.com/aws/aws-sdk-go v1.39.3/go.mod h1:585smgzpB/KqRA+K3y/NL/oYRqQvpNJYvLm+LY1U59Q=
-github.com/aws/aws-sdk-go v1.40.37 h1:I+Q6cLctkFyMMrKukcDnj+i2kjrQ37LGiOM6xmsxC48=
-github.com/aws/aws-sdk-go v1.40.37/go.mod h1:585smgzpB/KqRA+K3y/NL/oYRqQvpNJYvLm+LY1U59Q=
+github.com/aws/aws-sdk-go v1.40.44/go.mod h1:585smgzpB/KqRA+K3y/NL/oYRqQvpNJYvLm+LY1U59Q=
+github.com/aws/aws-sdk-go v1.40.48 h1:9lKz7AoFl2vYuVwWB7el9SmMBvOj83NixEvfNrojLEo=
+github.com/aws/aws-sdk-go v1.40.48/go.mod h1:585smgzpB/KqRA+K3y/NL/oYRqQvpNJYvLm+LY1U59Q=
 github.com/aws/aws-sdk-go-v2 v1.6.0/go.mod h1:tI4KhsR5VkzlUa2DZAdwx7wCAYGwkZZ1H31PYrBFx1w=
 github.com/aws/aws-sdk-go-v2/service/route53 v1.6.2/go.mod h1:ZnAMilx42P7DgIrdjlWCkNIGSBLzeyk6T31uB8oGTwY=
 github.com/aws/aws-xray-sdk-go v1.6.0 h1:w4dPTvHZtbQg3dQFTRTu4TIunlfJCRGKdmGYZkcEJwI=
@@ -35,8 +35,11 @@ github.com/ca-risken/aws/proto/aws v0.0.0-20210907034232-c56f481434cd h1:WmSD2T9
 github.com/ca-risken/aws/proto/aws v0.0.0-20210907034232-c56f481434cd/go.mod h1:TE5GpQXMfqTcHyi7/S7a2tWhAvJZRadYlIjnBm7AFPk=
 github.com/ca-risken/common/pkg/logging v0.0.0-20210906122657-d2be54cc7181 h1:MtQ2iiy8bQEXFzeRnjljxssQUYnUVPwe+YqyUQACiKM=
 github.com/ca-risken/common/pkg/logging v0.0.0-20210906122657-d2be54cc7181/go.mod h1:h0Rj4W2YM6pAPyTT60bVdfpCDALOV8SMpZZCx8GhkYI=
-github.com/ca-risken/common/pkg/xray v0.0.0-20210906122657-d2be54cc7181 h1:1KzpbfBRcaaomzljIeL7Gr7G+pRj3A+KFzD3MlewhGY=
-github.com/ca-risken/common/pkg/xray v0.0.0-20210906122657-d2be54cc7181/go.mod h1:n654ONolaDXo0FYBd5sPDdaj/P5FL/G3PhhJVYT9WpY=
+github.com/ca-risken/common/pkg/sqs v0.0.0-20210924080827-df6e4ac73f01/go.mod h1:IxYbziqfohwo7y7Zn15W2emT4ubB5duUzdvj5fYhHJ4=
+github.com/ca-risken/common/pkg/sqs v0.0.0-20210927112235-42730386bf2a h1:q5KqqDim3lQPBGNTqTCf+uzsXCq093BN2NSmyxr57Rs=
+github.com/ca-risken/common/pkg/sqs v0.0.0-20210927112235-42730386bf2a/go.mod h1:PnGxivikVgnsel3YoM1W8a6ZlrlXL7pXb7UdKDFW96Q=
+github.com/ca-risken/common/pkg/xray v0.0.0-20210927112235-42730386bf2a h1:md9wwfzDB9f2eqkZW3vMMJwYDQs+xJ2JK2fXZQ1v7dM=
+github.com/ca-risken/common/pkg/xray v0.0.0-20210927112235-42730386bf2a/go.mod h1:1QELprYp9UidwqzB1253qA00l3umMen4njJMFRNq5Po=
 github.com/ca-risken/core/proto/alert v0.0.0-20210907025810-a42d886856fb h1:iFuxqs9LHwiy5+49yMnZHkdSyfxHlB5q5FchvLt5RYY=
 github.com/ca-risken/core/proto/alert v0.0.0-20210907025810-a42d886856fb/go.mod h1:BYVAXJlXATb39k2UHRWbnTzl+hunqKY8GxxtBynK1K0=
 github.com/ca-risken/core/proto/finding v0.0.0-20210907025810-a42d886856fb h1:0txK2pZRr8XC7vx8uYxuvXPHzJjRyWgtgcSUI8Phgy8=

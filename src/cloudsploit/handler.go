@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	awsClient "github.com/ca-risken/aws/proto/aws"
+	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -37,7 +38,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	msg, err := message.ParseMessage(msgBody)
 	if err != nil {
 		appLogger.Errorf("Invalid message. message: %v, error: %v", msg, err)
-		return err
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	requestID, err := logging.GenerateRequestID(fmt.Sprint(msg.ProjectID))
 	if err != nil {
@@ -50,13 +51,17 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	// check AccountID matches Arn for Scan
 	if !common.IsMatchAccountIDArn(msg.AccountID, msg.AssumeRoleArn) {
 		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", msg.AccountID, msg.AssumeRoleArn)
-		return s.updateScanStatusError(ctx, &status, fmt.Sprintf("AssumeRoleArn for Portscan must be created in AWS AccountID: %v", msg.AccountID))
+		err := fmt.Errorf("AssumeRoleArn for CloudSploit must be created in AWS AccountID: %v", msg.AccountID)
+		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
+			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+		}
+		return mimosasqs.WrapNonRetryable(err)
 	}
 
 	cloudsploitConfig, err := newcloudsploitConfig(msg.AssumeRoleArn, msg.ExternalID, msg.AWSID, msg.AccountID)
 	if err != nil {
 		appLogger.Errorf("Error occured when configure: %v, error: %v", msg, err)
-		return err
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	appLogger.Info("Start cloudsploit Client")
 
@@ -66,7 +71,10 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	segment.Close(err)
 	if err != nil {
 		appLogger.Errorf("Failed exec cloudsploit, error: %v", err)
-		return s.updateScanStatusError(ctx, &status, err.Error())
+		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
+			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+		}
+		return mimosasqs.WrapNonRetryable(err)
 	}
 
 	// Clear finding score
@@ -76,19 +84,25 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		Tag:        []string{msg.AccountID},
 	}); err != nil {
 		appLogger.Errorf("Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
-		return s.updateScanStatusError(ctx, &status, err.Error())
+		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
+			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+		}
+		return mimosasqs.WrapNonRetryable(err)
 	}
 
 	// Put Finding and Tag Finding
 	if err := s.putFindings(ctx, cloudsploitResult, msg); err != nil {
 		appLogger.Errorf("Faild to put findings. AWSID: %v, error: %v", msg.AWSID, err)
-		return s.updateScanStatusError(ctx, &status, err.Error())
+		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
+			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+		}
+		return mimosasqs.WrapNonRetryable(err)
 	}
 
 	// Update status
 	if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
 		appLogger.Errorf("Faild to update scan status. AWSID: %v, error: %v", msg.AWSID, err)
-		return err
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	appLogger.Infof("end Scan, RequestID=%s", requestID)
 
@@ -98,7 +112,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	// Call AnalyzeAlert
 	if err := s.CallAnalyzeAlert(ctx, msg.ProjectID); err != nil {
 		appLogger.Errorf("Faild to analyze alert. AWSID: %v, error: %v", msg.AWSID, err)
-		return err
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	return nil
 }

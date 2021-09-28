@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aws/aws-xray-sdk-go/xray"
+	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	mimosaxray "github.com/ca-risken/common/pkg/xray"
 	"github.com/kelseyhightower/envconfig"
 )
@@ -23,5 +24,9 @@ func main() {
 	consumer := newSQSConsumer()
 	appLogger.Info("Start the AWS IAM AdminChecker SQS consumer server...")
 	consumer.Start(ctx,
-		mimosaxray.MessageTracingHandler(conf.EnvName, "aws.adminChecker", newHandler()))
+		mimosasqs.InitializeHandler(
+			mimosasqs.RetryableErrorHandler(
+				mimosasqs.StatusLoggingHandler(appLogger,
+					mimosaxray.MessageTracingHandler(conf.EnvName, "aws.adminChecker", newHandler())))))
+
 }
