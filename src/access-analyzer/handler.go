@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -52,18 +53,12 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	accessAnalyzer, err := newAccessAnalyzerClient("", msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create AccessAnalyzer session: err=%+v", err)
-		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
-			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
-		}
-		return mimosasqs.WrapNonRetryable(err)
+		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 	regions, err := accessAnalyzer.listAvailableRegion(ctx)
 	if err != nil {
 		appLogger.Errorf("Faild to get available regions, err = %+v", err)
-		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
-			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
-		}
-		return mimosasqs.WrapNonRetryable(err)
+		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 
 	analyzerEnabled := false
@@ -81,19 +76,13 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		accessAnalyzer, err = newAccessAnalyzerClient(*region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
 		if err != nil {
 			appLogger.Errorf("Faild to create AccessAnalyzer session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
-			if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
-				appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
-			}
-			return mimosasqs.WrapNonRetryable(err)
+			return s.handleErrorWithUpdateStatus(ctx, &status, err)
 		}
 
 		findings, analyzerArns, err := accessAnalyzer.getAccessAnalyzer(ctx, msg)
 		if err != nil {
 			appLogger.Errorf("Faild to get findngs to AWS AccessAnalyzer: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
-			if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
-				appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
-			}
-			return mimosasqs.WrapNonRetryable(err)
+			return s.handleErrorWithUpdateStatus(ctx, &status, err)
 		}
 		if analyzerArns != nil && len(*analyzerArns) > 0 {
 			analyzerEnabled = true
@@ -101,19 +90,14 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		// Put finding to core
 		if err := s.putFindings(ctx, msg, findings); err != nil {
 			appLogger.Errorf("Faild to put findngs: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
-			if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
-				appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
-			}
-			return mimosasqs.WrapNonRetryable(err)
+			return s.handleErrorWithUpdateStatus(ctx, &status, err)
 		}
 		if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
 			return mimosasqs.WrapNonRetryable(err)
 		}
 	}
 	if !analyzerEnabled {
-		if err := s.updateScanStatusError(ctx, &status, "AccessAnalyzer is disabled in all regions"); err != nil {
-			return mimosasqs.WrapNonRetryable(err)
-		}
+		return s.handleErrorWithUpdateStatus(ctx, &status, errors.New("AccessAnalyzer is disabled in all regions"))
 	}
 	appLogger.Infof("end Scan, RequestID=%s", requestID)
 
@@ -124,6 +108,13 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		return mimosasqs.WrapNonRetryable(err)
 	}
 	return nil
+}
+
+func (s *sqsHandler) handleErrorWithUpdateStatus(ctx context.Context, scanStatus *awsClient.AttachDataSourceRequest, err error) error {
+	if updateErr := s.updateScanStatusError(ctx, scanStatus, err.Error()); updateErr != nil {
+		appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+	}
+	return mimosasqs.WrapNonRetryable(err)
 }
 
 func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
