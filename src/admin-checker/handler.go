@@ -49,39 +49,26 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	// check AccountID matches Arn for Scan
 	if !common.IsMatchAccountIDArn(msg.AccountID, msg.AssumeRoleArn) {
 		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", msg.AccountID, msg.AssumeRoleArn)
-		err := fmt.Errorf("AssumeRoleArn for admin-checker must be created in AWS AccountID: %v", msg.AccountID)
-		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
-			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
-		}
-		return mimosasqs.WrapNonRetryable(err)
+		return s.handleErrorWithUpdateStatus(ctx, &status, fmt.Errorf("AssumeRoleArn for admin-checker must be created in AWS AccountID: %v", msg.AccountID))
 	}
 	// IAM Admin Checker
 	adminChecker, err := newAdminCheckerClient(msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create AdminChecker session: err=%+v", err)
-		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
-			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
-		}
-		return mimosasqs.WrapNonRetryable(err)
+		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 
 	// IAM User
 	userFindings, err := adminChecker.listUserFinding(ctx, msg)
 	if err != nil {
 		appLogger.Errorf("Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", msg.AccountID, err)
-		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
-			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
-		}
-		return mimosasqs.WrapNonRetryable(err)
+		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 	// IAM Role
 	roleFindings, err := adminChecker.listRoleFinding(ctx, msg)
 	if err != nil {
 		appLogger.Errorf("Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", msg.AccountID, err)
-		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
-			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
-		}
-		return mimosasqs.WrapNonRetryable(err)
+		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 
 	// Clear finding score
@@ -91,24 +78,15 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		Tag:        []string{msg.AccountID},
 	}); err != nil {
 		appLogger.Errorf("Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
-		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
-			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
-		}
-		return mimosasqs.WrapNonRetryable(err)
+		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 
 	// Put finding
 	if err := s.putUserFindings(ctx, msg, userFindings); err != nil {
-		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
-			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
-		}
-		return mimosasqs.WrapNonRetryable(err)
+		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 	if err := s.putRoleFindings(ctx, msg, roleFindings); err != nil {
-		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
-			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
-		}
-		return mimosasqs.WrapNonRetryable(err)
+		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 
 	// finish
@@ -124,6 +102,13 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		return mimosasqs.WrapNonRetryable(err)
 	}
 	return nil
+}
+
+func (s *sqsHandler) handleErrorWithUpdateStatus(ctx context.Context, scanStatus *awsClient.AttachDataSourceRequest, err error) error {
+	if updateErr := s.updateScanStatusError(ctx, scanStatus, err.Error()); updateErr != nil {
+		appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+	}
+	return mimosasqs.WrapNonRetryable(err)
 }
 
 const (
