@@ -6,6 +6,7 @@ import (
 	"time"
 
 	awsClient "github.com/ca-risken/aws/proto/aws"
+	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -37,7 +38,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	msg, err := message.ParseMessage(msgBody)
 	if err != nil {
 		appLogger.Errorf("Invalid message: SQS_msg=%+v, err=%+v", msg, err)
-		return err
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	requestID, err := logging.GenerateRequestID(fmt.Sprint(msg.ProjectID))
 	if err != nil {
@@ -63,19 +64,29 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	// check AccountID matches Arn for Scan
 	if !common.IsMatchAccountIDArn(msg.AccountID, msg.AssumeRoleArn) {
 		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", msg.AccountID, msg.AssumeRoleArn)
-		return s.updateScanStatusError(ctx, &status, fmt.Sprintf("AssumeRoleArn for Portscan must be created in AWS AccountID: %v", msg.AccountID))
+		err := fmt.Errorf("AssumeRoleArn for Portscan must be created in AWS AccountID: %v", msg.AccountID)
+		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
+			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+		}
+		return mimosasqs.WrapNonRetryable(err)
 	}
 
 	// Get portscan
 	portscan, err := newPortscanClient("", msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Failed to create Portscan session: err=%+v", err)
-		return s.updateScanStatusError(ctx, &status, err.Error())
+		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
+			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+		}
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	regions, err := portscan.listAvailableRegion(ctx)
 	if err != nil {
 		appLogger.Errorf("Failed to get available regions, err = %+v", err)
-		return s.updateScanStatusError(ctx, &status, err.Error())
+		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
+			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+		}
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	statusDetail := ""
 	isFirstRegion := true
@@ -104,13 +115,16 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	}
 
 	if err := s.updateScanStatusSuccess(ctx, &status, statusDetail); err != nil {
-		return err
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	appLogger.Infof("end Scan, RequestID=%s", requestID)
 	if msg.ScanOnly {
 		return nil
 	}
-	return s.analyzeAlert(ctx, msg.ProjectID)
+	if err := s.analyzeAlert(ctx, msg.ProjectID); err != nil {
+		return mimosasqs.WrapNonRetryable(err)
+	}
+	return nil
 }
 
 func (s *sqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {

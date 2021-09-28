@@ -13,6 +13,7 @@ import (
 	"github.com/ca-risken/aws/pkg/message"
 	awsClient "github.com/ca-risken/aws/proto/aws"
 	"github.com/ca-risken/common/pkg/logging"
+	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	"github.com/ca-risken/core/proto/alert"
 	"github.com/ca-risken/core/proto/finding"
 )
@@ -38,7 +39,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	msg, err := message.ParseMessage(msgBody)
 	if err != nil {
 		appLogger.Errorf("Invalid message: SQS_msg=%+v, err=%+v", msg, err)
-		return err
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	requestID, err := logging.GenerateRequestID(fmt.Sprint(msg.ProjectID))
 	if err != nil {
@@ -51,12 +52,18 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	accessAnalyzer, err := newAccessAnalyzerClient("", msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create AccessAnalyzer session: err=%+v", err)
-		return s.updateScanStatusError(ctx, &status, err.Error())
+		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
+			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+		}
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	regions, err := accessAnalyzer.listAvailableRegion(ctx)
 	if err != nil {
 		appLogger.Errorf("Faild to get available regions, err = %+v", err)
-		return s.updateScanStatusError(ctx, &status, err.Error())
+		if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
+			appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+		}
+		return mimosasqs.WrapNonRetryable(err)
 	}
 
 	analyzerEnabled := false
@@ -74,13 +81,19 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		accessAnalyzer, err = newAccessAnalyzerClient(*region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
 		if err != nil {
 			appLogger.Errorf("Faild to create AccessAnalyzer session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
-			return s.updateScanStatusError(ctx, &status, err.Error())
+			if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
+				appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+			}
+			return mimosasqs.WrapNonRetryable(err)
 		}
 
 		findings, analyzerArns, err := accessAnalyzer.getAccessAnalyzer(ctx, msg)
 		if err != nil {
 			appLogger.Errorf("Faild to get findngs to AWS AccessAnalyzer: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
-			return s.updateScanStatusError(ctx, &status, err.Error())
+			if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
+				appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+			}
+			return mimosasqs.WrapNonRetryable(err)
 		}
 		if analyzerArns != nil && len(*analyzerArns) > 0 {
 			analyzerEnabled = true
@@ -88,15 +101,18 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		// Put finding to core
 		if err := s.putFindings(ctx, msg, findings); err != nil {
 			appLogger.Errorf("Faild to put findngs: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
-			return s.updateScanStatusError(ctx, &status, err.Error())
+			if updateErr := s.updateScanStatusError(ctx, &status, err.Error()); updateErr != nil {
+				appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+			}
+			return mimosasqs.WrapNonRetryable(err)
 		}
 		if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
-			return err
+			return mimosasqs.WrapNonRetryable(err)
 		}
 	}
 	if !analyzerEnabled {
 		if err := s.updateScanStatusError(ctx, &status, "AccessAnalyzer is disabled in all regions"); err != nil {
-			return err
+			return mimosasqs.WrapNonRetryable(err)
 		}
 	}
 	appLogger.Infof("end Scan, RequestID=%s", requestID)
@@ -104,7 +120,10 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	if msg.ScanOnly {
 		return nil
 	}
-	return s.analyzeAlert(ctx, msg.ProjectID)
+	if err := s.analyzeAlert(ctx, msg.ProjectID); err != nil {
+		return mimosasqs.WrapNonRetryable(err)
+	}
+	return nil
 }
 
 func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
