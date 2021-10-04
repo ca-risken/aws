@@ -3,7 +3,7 @@ version: 0.2
 env:
   variables:
     REGISTRY: "public.ecr.aws/risken"
-    IMAGE_PREFIX: "core"
+    IMAGE_PREFIX: "aws"
 
   parameter-store:
     GITHUB_USER: "/build/GITHUB_USER"
