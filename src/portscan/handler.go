@@ -91,11 +91,24 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 			appLogger.Warnf("Failed to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			continue
 		}
-		findings, err := portscan.getResult(ctx, msg, isFirstRegion)
+		findings, err := portscan.getResult(ctx, msg)
 		if err != nil {
 			appLogger.Warnf("Failed to get findings to AWS Portscan: AccountID=%+v, err=%+v", msg.AccountID, err)
 			continue
 		}
+
+		// Clear finding score
+		if isFirstRegion {
+			if _, err := s.findingClient.ClearScore(ctx, &finding.ClearScoreRequest{
+				DataSource: msg.DataSource,
+				ProjectId:  msg.ProjectID,
+				Tag:        []string{msg.AccountID},
+			}); err != nil {
+				appLogger.Errorf("Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
+				return s.handleErrorWithUpdateStatus(ctx, &status, err)
+			}
+		}
+
 		// Put finding to core
 		if err := s.putFindings(ctx, msg, findings); err != nil {
 			appLogger.Errorf("Failed to put findings: AccountID=%+v, err=%+v", msg.AccountID, err)
