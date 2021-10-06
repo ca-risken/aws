@@ -20,7 +20,7 @@ import (
 )
 
 type portscanAPI interface {
-	getResult(context.Context, *message.AWSQueueMessage, bool) ([]*finding.FindingForUpsert, error)
+	getResult(context.Context, *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error)
 	listAvailableRegion(ctx context.Context) ([]*ec2.Region, error)
 	listEC2(context.Context, string) error
 	listSecurityGroup(context.Context) error
@@ -112,7 +112,7 @@ func (p *portscanClient) listAvailableRegion(ctx context.Context) ([]*ec2.Region
 	return out.Regions, nil
 }
 
-func (p *portscanClient) getResult(ctx context.Context, message *message.AWSQueueMessage, isFirstRegion bool) ([]*finding.FindingForUpsert, error) {
+func (p *portscanClient) getResult(ctx context.Context, message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
 	putData := []*finding.FindingForUpsert{}
 	err := p.listSecurityGroup(ctx)
 	if err != nil {
