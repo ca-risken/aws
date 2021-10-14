@@ -6,11 +6,11 @@ import (
 	"github.com/aws/aws-xray-sdk-go/xray"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	mimosaxray "github.com/ca-risken/common/pkg/xray"
-	"github.com/kelseyhightower/envconfig"
+	"github.com/gassara-kys/envconfig"
 )
 
 type cloudSploitConfig struct {
-	EnvName string `default:"default" split_words:"true"`
+	EnvName string `default:"local" split_words:"true"`
 }
 
 func main() {
@@ -28,5 +28,4 @@ func main() {
 			mimosasqs.RetryableErrorHandler(
 				mimosasqs.StatusLoggingHandler(appLogger,
 					mimosaxray.MessageTracingHandler(conf.EnvName, "aws.cloudsploit", newHandler())))))
-
 }

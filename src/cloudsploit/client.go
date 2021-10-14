@@ -7,12 +7,12 @@ import (
 	"github.com/ca-risken/aws/proto/aws"
 	"github.com/ca-risken/core/proto/alert"
 	"github.com/ca-risken/core/proto/finding"
-	"github.com/kelseyhightower/envconfig"
+	"github.com/gassara-kys/envconfig"
 	"google.golang.org/grpc"
 )
 
 type findingConfig struct {
-	FindingSvcAddr string `required:"true" split_words:"true"`
+	FindingSvcAddr string `required:"true" split_words:"true" default:"finding.core.svc.cluster.local:8001"`
 }
 
 func newFindingClient() finding.FindingServiceClient {
@@ -32,7 +32,7 @@ func newFindingClient() finding.FindingServiceClient {
 }
 
 type alertConfig struct {
-	AlertSvcAddr string `required:"true" split_words:"true"`
+	AlertSvcAddr string `required:"true" split_words:"true" default:"alert.core.svc.cluster.local:8004"`
 }
 
 func newAlertClient() alert.AlertServiceClient {
@@ -52,7 +52,7 @@ func newAlertClient() alert.AlertServiceClient {
 }
 
 type awsConfig struct {
-	AWSSvcAddr string `required:"true" split_words:"true"`
+	AWSSvcAddr string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
 }
 
 func newAWSClient() aws.AWSServiceClient {

@@ -8,14 +8,14 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/kelseyhightower/envconfig"
+	"github.com/gassara-kys/envconfig"
 )
 
 type cloudsploitConfig struct {
-	ResultDir      string `required:"true" split_words:"true"`
-	ConfigDir      string `required:"true" split_words:"true"`
-	CloudsploitDir string `required:"true" split_words:"true"`
-	AWSRegion      string `envconfig:"aws_region" default:"ap-northeast-1"`
+	ResultDir      string `required:"true" split_words:"true" default:"/tmp"`
+	ConfigDir      string `required:"true" split_words:"true" default:"/tmp"`
+	CloudsploitDir string `required:"true" split_words:"true" default:"/opt/cloudsploit"`
+	AWSRegion      string `envconfig:"aws_region"             default:"ap-northeast-1"`
 	ConfigPath     string
 }
 

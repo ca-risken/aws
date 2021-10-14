@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/ca-risken/aws/proto/activity"
-	"github.com/kelseyhightower/envconfig"
+	"github.com/gassara-kys/envconfig"
 	"github.com/vikyd/zero"
 )
 

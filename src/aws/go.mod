@@ -12,10 +12,10 @@ require (
 	github.com/ca-risken/aws/proto/aws v0.0.0-20210907034232-c56f481434cd
 	github.com/ca-risken/common/pkg/database v0.0.0-20210906122657-d2be54cc7181
 	github.com/ca-risken/common/pkg/xray v0.0.0-20210906122657-d2be54cc7181
+	github.com/gassara-kys/envconfig v1.4.4
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
 	github.com/golang/protobuf v1.5.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
-	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/klauspost/compress v1.13.5 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/objx v0.2.0 // indirect

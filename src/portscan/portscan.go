@@ -15,7 +15,7 @@ import (
 	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/common/pkg/portscan"
 	"github.com/ca-risken/core/proto/finding"
-	"github.com/kelseyhightower/envconfig"
+	"github.com/gassara-kys/envconfig"
 	"github.com/vikyd/zero"
 )
 
@@ -47,7 +47,7 @@ type portscanClient struct {
 
 type portscanConfig struct {
 	AWSRegion             string `envconfig:"aws_region" default:"ap-northeast-1"`
-	ScanExcludePortNumber int    `default:"1000" split_words:"true"`
+	ScanExcludePortNumber int    `split_words:"true"     default:"1000"`
 }
 
 func newPortscanClient(region, assumeRole, externalID string) (*portscanClient, error) {
