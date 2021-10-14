@@ -6,12 +6,12 @@ import (
 
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/ca-risken/aws/proto/aws"
-	"github.com/kelseyhightower/envconfig"
+	"github.com/gassara-kys/envconfig"
 	"google.golang.org/grpc"
 )
 
 type awsConfig struct {
-	AWSSvcAddr string `required:"true" split_words:"true"`
+	AWSSvcAddr string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
 }
 
 func newAWSClient() aws.AWSServiceClient {

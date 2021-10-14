@@ -15,10 +15,10 @@ require (
 	github.com/ca-risken/common/pkg/xray v0.0.0-20210927112235-42730386bf2a
 	github.com/ca-risken/core/proto/alert v0.0.0-20210907025810-a42d886856fb
 	github.com/ca-risken/core/proto/finding v0.0.0-20210907025810-a42d886856fb
+	github.com/gassara-kys/envconfig v1.4.4
 	github.com/gassara-kys/go-sqs-poller/worker/v4 v4.0.0-20210215110542-0be358599a2f
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/klauspost/compress v1.13.5 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/valyala/fasthttp v1.29.0 // indirect

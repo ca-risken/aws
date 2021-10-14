@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/core/proto/finding"
-	"github.com/kelseyhightower/envconfig"
+	"github.com/gassara-kys/envconfig"
 )
 
 type adminCheckerAPI interface {
