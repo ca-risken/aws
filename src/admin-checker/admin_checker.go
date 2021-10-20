@@ -146,6 +146,7 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 				JobID: jobID,
 			},
 		})
+		time.Sleep(time.Millisecond * 1000) // For control the API call rating.
 	}
 	for idx, user := range iamUsers {
 		jobID := user.ServiceAccessedReport.JobID
@@ -155,6 +156,7 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 			continue
 		}
 		iamUsers[idx].ServiceAccessedReport = *accessedDetail
+		time.Sleep(time.Millisecond * 1000) // For control the API call rating.
 	}
 	return &iamUsers, nil
 }
@@ -485,6 +487,7 @@ func (a *adminCheckerClient) listRole(ctx context.Context) (*[]iamRole, error) {
 				JobID: jobID,
 			},
 		})
+		time.Sleep(time.Millisecond * 1000) // For control the API call rating.
 	}
 	for idx, role := range iamRoles {
 		jobID := role.ServiceAccessedReport.JobID
@@ -494,6 +497,7 @@ func (a *adminCheckerClient) listRole(ctx context.Context) (*[]iamRole, error) {
 			continue
 		}
 		iamRoles[idx].ServiceAccessedReport = *accessedDetail
+		time.Sleep(time.Millisecond * 1000) // For control the API call rating.
 	}
 	return &iamRoles, nil
 }
