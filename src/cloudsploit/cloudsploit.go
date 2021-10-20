@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -41,8 +42,12 @@ func (c *cloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) 
 		"--console", "none",
 		"--json", filePath,
 	)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 	err := cmd.Run()
+
 	if err != nil {
+		appLogger.Errorf("Failed to execute theHarvester. stderr: %v", stderr.String())
 		appLogger.Errorf("Failed exec cloudsploit. error: %v", err)
 		return nil, fmt.Errorf("Failed exec cloudsploit. error: %v", err)
 	}
