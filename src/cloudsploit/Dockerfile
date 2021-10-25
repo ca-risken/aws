@@ -18,8 +18,8 @@ RUN git clone https://github.com/gassara-kys/env-injector.git -b ${ENV_INJECTOR_
 
 FROM node:lts-alpine3.12
 RUN apk add --no-cache ca-certificates tzdata git \
-  && cd /opt && git clone https://github.com/aquasecurity/cloudsploit.git -b v2.0.0 --depth 1  \
-  && cd cloudsploit && yarn install
+  && cd /opt && git clone https://github.com/aquasecurity/cloudsploit.git \
+  && cd cloudsploit && git reset --hard 5a6d88264d7bed075b2e51fb7a1c0f5f979de8f && yarn install
 COPY --from=builder /go/bin/env-injector /usr/local/bin/
 COPY --from=builder /go/bin/cloudsploit /usr/local/cloudsploit/bin/
 ENV DEBUG= \
