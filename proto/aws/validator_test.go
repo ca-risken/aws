@@ -133,8 +133,8 @@ func TestValidate_ListDataSourceRequest(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "NG Length(aws_id)",
-			input:   &ListDataSourceRequest{ProjectId: 111, DataSource: "ds"},
+			name:    "NG Required(project_id)",
+			input:   &ListDataSourceRequest{AwsId: 1001, DataSource: "ds"},
 			wantErr: true,
 		},
 		{
@@ -143,14 +143,48 @@ func TestValidate_ListDataSourceRequest(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "NG Length(project_id)",
-			input:   &ListDataSourceRequest{AwsId: 1001, DataSource: "ds"},
+			name:    "NG Required(aws_id)",
+			input:   &ListDataSourceRequest{ProjectId: 111, DataSource: "ds"},
 			wantErr: true,
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			err := c.input.Validate()
+			if c.wantErr && err == nil {
+				t.Fatal("Unexpected no error")
+			} else if !c.wantErr && err != nil {
+				t.Fatalf("Unexpected error occured: wantErr=%t, err=%+v", c.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestValidateForAdmin_ListDataSourceRequest(t *testing.T) {
+	cases := []struct {
+		name    string
+		input   *ListDataSourceRequest
+		wantErr bool
+	}{
+		{
+			name:    "OK",
+			input:   &ListDataSourceRequest{ProjectId: 1, AwsId: 1, DataSource: "ds"},
+			wantErr: false,
+		},
+		{
+			name:    "OK(min)",
+			input:   &ListDataSourceRequest{},
+			wantErr: false,
+		},
+		{
+			name:    "NG Length(data_source)",
+			input:   &ListDataSourceRequest{DataSource: stringLength65},
+			wantErr: true,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := c.input.ValidateForAdmin()
 			if c.wantErr && err == nil {
 				t.Fatal("Unexpected no error")
 			} else if !c.wantErr && err != nil {
