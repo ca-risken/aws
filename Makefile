@@ -121,11 +121,15 @@ go-mod-update:
 			github.com/ca-risken/aws/...
 	cd src/portscan \
 		&& go get -u \
-			github.com/ca-risken/common/... \
 			github.com/ca-risken/core/... \
 			github.com/ca-risken/aws/...
 	cd src/activity \
 		&& go get -u \
+			github.com/ca-risken/core/... \
+			github.com/ca-risken/aws/...
+	cd src/portscan \
+		&& go get -u \
+			github.com/ca-risken/common/... \
 			github.com/ca-risken/core/... \
 			github.com/ca-risken/aws/...
 

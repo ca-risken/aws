@@ -45,13 +45,6 @@ func (l *ListDataSourceRequest) Validate() error {
 	)
 }
 
-// ValidateForAdmin ListDataSourceRequest
-func (l *ListDataSourceRequest) ValidateForAdmin() error {
-	return validation.ValidateStruct(l,
-		validation.Field(&l.DataSource, validation.Length(0, 64)),
-	)
-}
-
 // Validate AttachDataSourceRequest
 func (a *AttachDataSourceRequest) Validate() error {
 	if a.AttachDataSource == nil {
