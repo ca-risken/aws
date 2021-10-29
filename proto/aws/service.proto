@@ -14,6 +14,8 @@ service AWSService {
 
   // AWS DataSource
   rpc ListDataSource(ListDataSourceRequest) returns (ListDataSourceResponse);
+  rpc ListDataSourceAllProject(ListDataSourceAllProjectRequest)
+      returns (ListDataSourceAllProjectResponse);
   rpc AttachDataSource(AttachDataSourceRequest)
       returns (AttachDataSourceResponse);
   rpc DetachDataSource(DetachDataSourceRequest) returns (google.protobuf.Empty);
@@ -53,6 +55,17 @@ message ListDataSourceRequest {
 }
 
 message ListDataSourceResponse { repeated DataSource data_source = 1; }
+
+message ListDataSourceAllProjectRequest {
+  uint32 project_id = 1;
+  uint32 aws_id = 2;
+  string data_source = 3;
+  Status status = 4;
+}
+
+message ListDataSourceAllProjectResponse {
+  repeated DataSource data_source = 1;
+}
 
 message AttachDataSourceRequest {
   uint32 project_id = 1;

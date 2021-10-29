@@ -160,31 +160,31 @@ func TestValidate_ListDataSourceRequest(t *testing.T) {
 	}
 }
 
-func TestValidateForAdmin_ListDataSourceRequest(t *testing.T) {
+func TestValidate_ListDataSourceAllProjectRequest(t *testing.T) {
 	cases := []struct {
 		name    string
-		input   *ListDataSourceRequest
+		input   *ListDataSourceAllProjectRequest
 		wantErr bool
 	}{
 		{
 			name:    "OK",
-			input:   &ListDataSourceRequest{ProjectId: 1, AwsId: 1, DataSource: "ds"},
+			input:   &ListDataSourceAllProjectRequest{ProjectId: 1, AwsId: 1, DataSource: "ds"},
 			wantErr: false,
 		},
 		{
 			name:    "OK(min)",
-			input:   &ListDataSourceRequest{},
+			input:   &ListDataSourceAllProjectRequest{},
 			wantErr: false,
 		},
 		{
 			name:    "NG Length(data_source)",
-			input:   &ListDataSourceRequest{DataSource: stringLength65},
+			input:   &ListDataSourceAllProjectRequest{DataSource: stringLength65},
 			wantErr: true,
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			err := c.input.ValidateForAdmin()
+			err := c.input.Validate()
 			if c.wantErr && err == nil {
 				t.Fatal("Unexpected no error")
 			} else if !c.wantErr && err != nil {

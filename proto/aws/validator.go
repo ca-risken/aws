@@ -45,8 +45,8 @@ func (l *ListDataSourceRequest) Validate() error {
 	)
 }
 
-// ValidateForAdmin ListDataSourceRequest
-func (l *ListDataSourceRequest) ValidateForAdmin() error {
+// Validate ListDataSourceAllProjectRequest
+func (l *ListDataSourceAllProjectRequest) Validate() error {
 	return validation.ValidateStruct(l,
 		validation.Field(&l.DataSource, validation.Length(0, 64)),
 	)
