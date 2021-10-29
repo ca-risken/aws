@@ -49,7 +49,6 @@ message ListDataSourceRequest {
   uint32 project_id = 1;
   uint32 aws_id = 2;
   string data_source = 3;
-  Status status = 4;
 }
 
 message ListDataSourceResponse { repeated DataSource data_source = 1; }

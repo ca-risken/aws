@@ -178,7 +178,7 @@ from
   aws_data_source ads
   left outer join (
 		select * from aws_rel_data_source where 1=1 `
-	if !zero.IsZeroVal(awsID) {
+	if !zero.IsZeroVal(projectID) {
 		query += " and project_id = ? "
 		params = append(params, projectID)
 	}
