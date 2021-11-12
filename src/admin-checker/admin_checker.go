@@ -14,12 +14,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/ca-risken/aws/pkg/message"
-	"github.com/ca-risken/core/proto/finding"
 	"github.com/gassara-kys/envconfig"
 )
 
 type adminCheckerAPI interface {
-	listUserFinding(ctx context.Context, msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error)
+	listUserFinding(ctx context.Context, msg *message.AWSQueueMessage) (*[]iamUser, error)
 	listRoleFinding(ctx context.Context, msg *message.AWSQueueMessage) (*[]iamRole, error)
 }
 
@@ -32,7 +31,7 @@ type adminCheckerConfig struct {
 	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"`
 }
 
-func newAdminCheckerClient(assumeRole, externalID string) (*adminCheckerClient, error) {
+func newAdminCheckerClient(assumeRole, externalID string) (adminCheckerAPI, error) {
 	var conf adminCheckerConfig
 	err := envconfig.Process("", &conf)
 	if err != nil {
@@ -50,24 +49,29 @@ func (a *adminCheckerClient) newAWSSession(region, assumeRole, externalID string
 	if assumeRole == "" {
 		return errors.New("Required AWS AssumeRole")
 	}
+	sess, err := session.NewSession()
+	if err != nil {
+		appLogger.Errorf("Failed to create session, err=%+v", err)
+		return err
+	}
 	var cred *credentials.Credentials
 	if externalID != "" {
 		cred = stscreds.NewCredentials(
-			session.New(), assumeRole, func(p *stscreds.AssumeRoleProvider) {
+			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
 				p.ExternalID = aws.String(externalID)
 			},
 		)
 	} else {
-		cred = stscreds.NewCredentials(session.New(), assumeRole)
+		cred = stscreds.NewCredentials(sess, assumeRole)
 	}
-	sess, err := session.NewSessionWithOptions(session.Options{
+	sessWithCred, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 		Config:            aws.Config{Region: &region, Credentials: cred},
 	})
 	if err != nil {
 		return err
 	}
-	a.Sess = sess
+	a.Sess = sessWithCred
 	a.Svc = iam.New(a.Sess)
 	return nil
 }

@@ -143,10 +143,3 @@ func (s *sqsHandler) CallAnalyzeAlert(ctx context.Context, projectID uint32) err
 	appLogger.Info("Success to analyze alert.")
 	return nil
 }
-
-func getStatus(isSuccess bool) awsClient.Status {
-	if isSuccess {
-		return awsClient.Status_OK
-	}
-	return awsClient.Status_ERROR
-}

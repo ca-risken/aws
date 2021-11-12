@@ -15,6 +15,10 @@ import (
 )
 
 func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResult, message *message.AWSQueueMessage) error {
+	maxScore, err := s.getCloudSploitMaxScore(ctx, message)
+	if err != nil {
+		return err
+	}
 	for _, result := range *results {
 		data, err := json.Marshal(map[string]cloudSploitResult{"data": result})
 		if err != nil {
@@ -30,7 +34,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 			ResourceName:     getResourceName(result.Resource, result.Category, message.AccountID),
 			ProjectId:        message.ProjectID,
 			OriginalScore:    getScore(result.Status, result.Category, result.Plugin),
-			OriginalMaxScore: 10.0,
+			OriginalMaxScore: maxScore,
 			Data:             string(data),
 		}
 		err = s.putFinding(ctx, finding, &result, message)
@@ -72,7 +76,7 @@ func (s *sqsHandler) putFinding(ctx context.Context, cloudsploitFinding *finding
 	return nil
 }
 
-func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID uint64, tag string) error {
+func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID uint64, tag string) {
 
 	_, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
 		ProjectId: projectID,
@@ -83,9 +87,7 @@ func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID
 		}})
 	if err != nil {
 		appLogger.Errorf("Failed to TagFinding. error: %v", err)
-		return err
 	}
-	return nil
 }
 
 func generateDataSourceID(input string) string {
@@ -94,16 +96,14 @@ func generateDataSourceID(input string) string {
 }
 
 const (
-
 	// Unknown
 	cloudsploitUnknown = "Unknown"
 	cloudsploitNA      = "N/A"
 
 	resultOK      string = "OK"      // 0: PASS: No risks
 	resultWARN    string = "WARN"    // 1: WARN: The result represents a potential misconfiguration or issue but is not an immediate risk
-	resultFAIL    string = "FAIL"    // 2: FAIL: The result presents an immediate risk to the security of the account
 	resultUNKNOWN string = "UNKNOWN" // 3: UNKNOWN: The results could not be determined (API failure, wrong permissions, etc.)
-
+	// resultFAIL    string = "FAIL"    // 2: FAIL: The result presents an immediate risk to the security of the account
 )
 
 func getResourceName(resource, category, accountID string) string {

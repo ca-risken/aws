@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -117,53 +116,6 @@ func (s *sqsHandler) handleErrorWithUpdateStatus(ctx context.Context, scanStatus
 	return mimosasqs.WrapNonRetryable(err)
 }
 
-func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
-	putData := []*finding.FindingForUpsert{}
-	analyzerArns, err := a.listAnalyzers(ctx)
-	if err != nil {
-		appLogger.Errorf("AccessAnalyzer.ListAnalyzers error: err=%+v", err)
-		return nil, &[]string{}, err
-	}
-
-	for _, arn := range *analyzerArns {
-		appLogger.Infof("Detected analyzer: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
-		findings, err := a.listFindings(ctx, msg.AccountID, arn)
-		if err != nil {
-			appLogger.Warnf(
-				"AccessAnalyzer.ListFindings error: analyzerArn=%s, accountID=%s, err=%+v", arn, msg.AccountID, err)
-			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
-		}
-		appLogger.Debugf("[Debug]Got findings, %+v", findings)
-		if len(findings) == 0 {
-			appLogger.Infof("No findings: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
-			continue
-		}
-		for _, data := range findings {
-			buf, err := json.Marshal(data)
-			if err != nil {
-				appLogger.Errorf("Failed to json encoding error: err=%+v", err)
-				return nil, &[]string{}, err
-			}
-			isPublic := false
-			if data.IsPublic != nil {
-				appLogger.Warnf("API Response parameter `IsPublic` got nil data, maybe something error occured, accountID=%s", msg.AccountID)
-				isPublic = *data.IsPublic
-			}
-			putData = append(putData, &finding.FindingForUpsert{
-				Description:      fmt.Sprintf("AccessAnalyzer: %s (public=%t)", *data.Resource, isPublic),
-				DataSource:       msg.DataSource,
-				DataSourceId:     *data.Id,
-				ResourceName:     *data.Resource,
-				ProjectId:        msg.ProjectID,
-				OriginalScore:    scoreAccessAnalyzerFinding(*data.Status, isPublic, data.Action),
-				OriginalMaxScore: 1.0,
-				Data:             string(buf),
-			})
-		}
-	}
-	return putData, analyzerArns, nil
-}
-
 func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessage, findings []*finding.FindingForUpsert) error {
 	for _, f := range findings {
 		// finding
@@ -184,7 +136,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 	return nil
 }
 
-func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint64, projectID uint32) error {
+func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint64, projectID uint32) {
 	_, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
 		ProjectId: projectID,
 		Tag: &finding.FindingTagForUpsert{
@@ -194,9 +146,7 @@ func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint6
 		}})
 	if err != nil {
 		appLogger.Errorf("Failed to TagFinding, finding_id=%d, tag=%s, error=%+v", findingID, tag, err)
-		return err
 	}
-	return nil
 }
 
 func (s *sqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {

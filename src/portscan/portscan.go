@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -50,7 +52,7 @@ type portscanConfig struct {
 	ScanExcludePortNumber int    `split_words:"true"     default:"1000"`
 }
 
-func newPortscanClient(region, assumeRole, externalID string) (*portscanClient, error) {
+func newPortscanClient(region, assumeRole, externalID string) (portscanAPI, error) {
 	var conf portscanConfig
 	err := envconfig.Process("", &conf)
 	if err != nil {
@@ -70,28 +72,32 @@ func newPortscanClient(region, assumeRole, externalID string) (*portscanClient, 
 }
 
 func (p *portscanClient) newAWSSession(region, assumeRole, externalID string) error {
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(region)},
-	)
+	if assumeRole == "" {
+		return errors.New("Required AWS AssumeRole")
+	}
+	sess, err := session.NewSession()
+	if err != nil {
+		appLogger.Errorf("Failed to create session, err=%+v", err)
+		return err
+	}
+	var cred *credentials.Credentials
+	if externalID != "" {
+		cred = stscreds.NewCredentials(
+			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
+				p.ExternalID = aws.String(externalID)
+			},
+		)
+	} else {
+		cred = stscreds.NewCredentials(sess, assumeRole)
+	}
+	sessWithCred, err := session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Config:            aws.Config{Region: &region, Credentials: cred},
+	})
 	if err != nil {
 		return err
 	}
-	if assumeRole != "" && externalID != "" {
-		sess = session.New(&aws.Config{
-			Region: sess.Config.Region,
-			Credentials: stscreds.NewCredentials(
-				sess, assumeRole, func(arp *stscreds.AssumeRoleProvider) {
-					arp.ExternalID = aws.String(externalID)
-				},
-			),
-		})
-	} else if assumeRole != "" && externalID == "" {
-		sess = session.New(&aws.Config{
-			Region:      sess.Config.Region,
-			Credentials: stscreds.NewCredentials(sess, assumeRole),
-		})
-	}
-	p.Sess = sess
+	p.Sess = sessWithCred
 	p.EC2 = ec2.New(p.Sess, aws.NewConfig().WithRegion(region))
 	p.ELB = elb.New(p.Sess, aws.NewConfig().WithRegion(region))
 	p.ELBv2 = elbv2.New(p.Sess, aws.NewConfig().WithRegion(region))
@@ -321,10 +327,6 @@ func (p *portscanClient) listELBv2(ctx context.Context) error {
 			p.target = append(p.target, targetELB)
 		}
 	}
-
-	//	for _, aaa := range retELBv2 {
-	//		fmt.Printf("%v\n", aaa)
-	//	}
 	return nil
 }
 
@@ -337,7 +339,7 @@ func (p *portscanClient) listRDS(ctx context.Context) error {
 		return err
 	}
 	for _, i := range result.DBInstances {
-		if *i.PubliclyAccessible == false {
+		if !*i.PubliclyAccessible {
 			continue
 		}
 		var groupIDs []*string

@@ -18,10 +18,16 @@ func (c *cloudsploitConfig) makeConfig(region, assumeRole, externalID string, aw
 	if assumeRole == "" {
 		return "", errors.New("Required AWS AssumeRole")
 	}
-	creds := getCredential(assumeRole, externalID, 3600)
+	creds, err := getCredential(assumeRole, externalID, 3600)
+	if err != nil {
+		return "", err
+	}
 	roleDuration, err := getRoleMaxSessionDuration(creds, region, assumeRole)
 	if err == nil && roleDuration != 3600 {
-		creds = getCredential(assumeRole, externalID, roleDuration)
+		creds, err = getCredential(assumeRole, externalID, roleDuration)
+		if err != nil {
+			return "", err
+		}
 	}
 	val, err := creds.Get()
 	if err != nil {
@@ -58,27 +64,35 @@ func (c *cloudsploitConfig) createConfigFile(accessKeyID, secretAccessKey, sesso
 	config := strings.Replace(awsCredential, "ACCESS_KEY", accessKeyID, 1)
 	config = strings.Replace(config, "SECRET_KEY", secretAccessKey, 1)
 	config = strings.Replace(config, "SESSION_TOKEN", sessoinToken, 1)
-	file.Write(([]byte)(config))
+	if _, err := file.Write(([]byte)(config)); err != nil {
+		appLogger.Errorf("Failed to write file, filename: %s", file.Name())
+	}
 	return file.Name(), nil
 }
 
-func getCredential(assumeRole, externalID string, duration int) *credentials.Credentials {
+func getCredential(assumeRole, externalID string, duration int) (*credentials.Credentials, error) {
+	sess, err := session.NewSession()
+	if err != nil {
+		appLogger.Errorf("Failed to create session, err=%+v", err)
+		return nil, err
+	}
+
 	var creds *credentials.Credentials
 	if externalID != "" {
 		creds = stscreds.NewCredentials(
-			session.New(), assumeRole, func(p *stscreds.AssumeRoleProvider) {
+			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
 				p.ExternalID = aws.String(externalID)
 				p.Duration = time.Duration(duration) * time.Second
 			},
 		)
 	} else {
 		creds = stscreds.NewCredentials(
-			session.New(), assumeRole, func(p *stscreds.AssumeRoleProvider) {
+			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
 				p.Duration = time.Duration(duration) * time.Second
 			},
 		)
 	}
-	return creds
+	return creds, nil
 }
 
 func getRoleMaxSessionDuration(cred *credentials.Credentials, region, assumeRole string) (int, error) {

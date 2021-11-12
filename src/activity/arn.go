@@ -45,12 +45,7 @@ func ParseARN(arnString string) (*activity.ARN, error) {
 		typeKey += "/" + slashSplited[0]
 	}
 
-	// if v, ok := ResourceTypeMap[typeKey]; !ok {
-	// 	return nil, fmt.Errorf("Unknown resource type, inputARN=%s, resoruceTypeKey=%s", arnString, typeKey)
-	// } else {
-	// 	r.ResourceType = v
-	// }
-	r.ResourceType, _ = ResourceTypeMap[typeKey]
+	r.ResourceType = ResourceTypeMap[typeKey]
 	return r, nil
 }
 

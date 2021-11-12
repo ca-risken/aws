@@ -69,8 +69,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 	return nil
 }
 
-func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID uint64, tag string) error {
-
+func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID uint64, tag string) {
 	_, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
 		ProjectId: projectID,
 		Tag: &finding.FindingTagForUpsert{
@@ -80,9 +79,7 @@ func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID
 		}})
 	if err != nil {
 		appLogger.Errorf("Failed to TagFinding. error: %v", err)
-		return err
 	}
-	return nil
 }
 
 func getExcludeDescription(target, protocol string, fPort, tPort int, securityGroup string) string {

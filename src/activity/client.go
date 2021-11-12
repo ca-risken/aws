@@ -30,9 +30,12 @@ func newAWSClient() aws.AWSServiceClient {
 }
 
 func getGRPCConn(ctx context.Context, addr string) (*grpc.ClientConn, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
+	defer cancel()
 	conn, err := grpc.DialContext(ctx, addr,
-		grpc.WithUnaryInterceptor(xray.UnaryClientInterceptor()), grpc.WithInsecure(), grpc.WithTimeout(time.Second*3))
+		grpc.WithUnaryInterceptor(xray.UnaryClientInterceptor()), grpc.WithInsecure())
 	if err != nil {
+		appLogger.Fatalf("Failed to connect backend gRPC server, addr=%s, err=%+v", addr, err)
 		return nil, err
 	}
 	return conn, nil
