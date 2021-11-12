@@ -201,7 +201,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, findingType string, msg *m
 	return nil
 }
 
-func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint64, projectID uint32) error {
+func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint64, projectID uint32) {
 	_, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
 		ProjectId: projectID,
 		Tag: &finding.FindingTagForUpsert{
@@ -211,9 +211,7 @@ func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint6
 		}})
 	if err != nil {
 		appLogger.Errorf("Failed to TagFinding, finding_id=%d, tag=%s, error=%+v", findingID, tag, err)
-		return err
 	}
-	return nil
 }
 
 func (s *sqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {
