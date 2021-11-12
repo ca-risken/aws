@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -81,9 +80,9 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 			appLogger.Errorf("Faild to get findngs to AWS GuardDuty: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.handleErrorWithUpdateStatus(ctx, &status, err)
 		}
-		appLogger.Infof("detecterIDs: %+v, length: %d", *detecterIDs, len(*detecterIDs))
 		if detecterIDs != nil && len(*detecterIDs) > 0 {
 			guardDutyEnabled = true
+			appLogger.Infof("detecterIDs: %+v, length: %d", *detecterIDs, len(*detecterIDs))
 		}
 		// Put finding to core
 		if err := s.putFindings(ctx, msg, findings); err != nil {
@@ -127,61 +126,6 @@ func supportedRegion(region string) bool {
 	return true
 }
 
-func (g *guardDutyClient) getGuardDuty(ctx context.Context, message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
-	putData := []*finding.FindingForUpsert{}
-	detecterIDs, err := g.listDetectors(ctx)
-	if err != nil {
-		appLogger.Errorf("GuardDuty.ListDetectors error: err=%+v", err)
-		return nil, &[]string{}, err
-	}
-	if detecterIDs == nil || len(*detecterIDs) == 0 {
-		return nil, &[]string{}, nil // guardduty not enabled
-	}
-	for _, id := range *detecterIDs {
-		fmt.Printf("detecterId: %s\n", id)
-		findingIDs, err := g.listFindings(ctx, message.AccountID, id)
-		if err != nil {
-			appLogger.Warnf(
-				"GuardDuty.ListDetectors error: detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)
-			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
-		}
-		if len(findingIDs) == 0 {
-			appLogger.Infof("No findings: accountID=%s", message.AccountID)
-			continue
-		}
-		findings, err := g.getFindings(ctx, id, findingIDs)
-		if err != nil {
-			appLogger.Warnf(
-				"GuardDuty.GetFindings error:detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)
-			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
-		}
-		for _, data := range findings {
-			buf, err := json.Marshal(data)
-			if err != nil {
-				appLogger.Errorf("Failed to json encoding error: err=%+v", err)
-				return nil, detecterIDs, err
-			}
-			var score float32
-			if *data.Service.Archived {
-				score = 1.0
-			} else {
-				score = float32(*data.Severity)
-			}
-			putData = append(putData, &finding.FindingForUpsert{
-				Description:      *data.Title,
-				DataSource:       message.DataSource,
-				DataSourceId:     *data.Id,
-				ResourceName:     *data.Arn,
-				ProjectId:        message.ProjectID,
-				OriginalScore:    score,
-				OriginalMaxScore: 10.0,
-				Data:             string(buf),
-			})
-		}
-	}
-	return putData, detecterIDs, nil
-}
-
 func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessage, findings []*finding.FindingForUpsert) error {
 	for _, f := range findings {
 		resp, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
@@ -203,7 +147,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 	return nil
 }
 
-func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint64, projectID uint32) error {
+func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint64, projectID uint32) {
 	_, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
 		ProjectId: projectID,
 		Tag: &finding.FindingTagForUpsert{
@@ -213,9 +157,7 @@ func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint6
 		}})
 	if err != nil {
 		appLogger.Errorf("Failed to TagFinding, finding_id=%d, tag=%s, error=%+v", findingID, tag, err)
-		return err
 	}
-	return nil
 }
 
 func (s *sqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {

@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,11 +19,11 @@ import (
 )
 
 type guardDutyAPI interface {
-	getGuardDuty(*message.AWSQueueMessage) ([]*finding.FindingForUpsert, error)
+	getGuardDuty(ctx context.Context, message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error)
 	listAvailableRegion(ctx context.Context) ([]*ec2.Region, error)
-	listDetectors(context.Context) (*[]string, error)
-	listFindings(context.Context, string, string) ([]*string, error)
-	getFindings(context.Context, string, []*string) ([]*guardduty.Finding, error)
+	listDetectors(ctx context.Context) (*[]string, error)
+	listFindings(ctx context.Context, accountID, detectorID string) ([]*string, error)
+	getFindings(ctx context.Context, detectorID string, findingIDs []*string) ([]*guardduty.Finding, error)
 }
 
 type guardDutyClient struct {
@@ -34,7 +36,7 @@ type guardDutyConfig struct {
 	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
 }
 
-func newGuardDutyClient(region, assumeRole, externalID string) (*guardDutyClient, error) {
+func newGuardDutyClient(region, assumeRole, externalID string) (guardDutyAPI, error) {
 	if region == "" {
 		var conf guardDutyConfig
 		err := envconfig.Process("", &conf)
@@ -55,27 +57,87 @@ func (g *guardDutyClient) newAWSSession(region, assumeRole, externalID string) e
 	if assumeRole == "" {
 		return errors.New("Required AWS AssumeRole")
 	}
+	sess, err := session.NewSession()
+	if err != nil {
+		appLogger.Errorf("Failed to create session, err=%+v", err)
+		return err
+	}
 	var cred *credentials.Credentials
 	if externalID != "" {
 		cred = stscreds.NewCredentials(
-			session.New(), assumeRole, func(p *stscreds.AssumeRoleProvider) {
+			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
 				p.ExternalID = aws.String(externalID)
 			},
 		)
 	} else {
-		cred = stscreds.NewCredentials(session.New(), assumeRole)
+		cred = stscreds.NewCredentials(sess, assumeRole)
 	}
-	sess, err := session.NewSessionWithOptions(session.Options{
+	sessWithCred, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 		Config:            aws.Config{Region: &region, Credentials: cred},
 	})
 	if err != nil {
 		return err
 	}
-	g.Sess = sess
+	g.Sess = sessWithCred
 	g.Svc = guardduty.New(g.Sess, aws.NewConfig().WithRegion(region))
 	g.EC2 = ec2.New(g.Sess, aws.NewConfig().WithRegion(region))
 	return nil
+}
+
+func (g *guardDutyClient) getGuardDuty(ctx context.Context, message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
+	putData := []*finding.FindingForUpsert{}
+	detecterIDs, err := g.listDetectors(ctx)
+	if err != nil {
+		appLogger.Errorf("GuardDuty.ListDetectors error: err=%+v", err)
+		return nil, &[]string{}, err
+	}
+	if detecterIDs == nil || len(*detecterIDs) == 0 {
+		return nil, &[]string{}, nil // guardduty not enabled
+	}
+	for _, id := range *detecterIDs {
+		fmt.Printf("detecterId: %s\n", id)
+		findingIDs, err := g.listFindings(ctx, message.AccountID, id)
+		if err != nil {
+			appLogger.Warnf(
+				"GuardDuty.ListDetectors error: detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)
+			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
+		}
+		if len(findingIDs) == 0 {
+			appLogger.Infof("No findings: accountID=%s", message.AccountID)
+			continue
+		}
+		findings, err := g.getFindings(ctx, id, findingIDs)
+		if err != nil {
+			appLogger.Warnf(
+				"GuardDuty.GetFindings error:detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)
+			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
+		}
+		for _, data := range findings {
+			buf, err := json.Marshal(data)
+			if err != nil {
+				appLogger.Errorf("Failed to json encoding error: err=%+v", err)
+				return nil, detecterIDs, err
+			}
+			var score float32
+			if *data.Service.Archived {
+				score = 1.0
+			} else {
+				score = float32(*data.Severity)
+			}
+			putData = append(putData, &finding.FindingForUpsert{
+				Description:      *data.Title,
+				DataSource:       message.DataSource,
+				DataSourceId:     *data.Id,
+				ResourceName:     *data.Arn,
+				ProjectId:        message.ProjectID,
+				OriginalScore:    score,
+				OriginalMaxScore: 10.0,
+				Data:             string(buf),
+			})
+		}
+	}
+	return putData, detecterIDs, nil
 }
 
 func (g *guardDutyClient) listAvailableRegion(ctx context.Context) ([]*ec2.Region, error) {
@@ -135,9 +197,7 @@ func (g *guardDutyClient) listFindings(ctx context.Context, accountID, detectorI
 		if err != nil {
 			return nil, err
 		}
-		for _, id := range out.FindingIds {
-			findingIDs = append(findingIDs, id)
-		}
+		findingIDs = append(findingIDs, out.FindingIds...)
 		if out.NextToken == nil || *out.NextToken == "" {
 			break
 		}
@@ -166,9 +226,7 @@ func (g *guardDutyClient) getFindings(ctx context.Context, detectorID string, fi
 		if err != nil {
 			return nil, err
 		}
-		for _, f := range finding.Findings {
-			guardDutyFindings = append(guardDutyFindings, f)
-		}
+		guardDutyFindings = append(guardDutyFindings, finding.Findings...)
 		time.Sleep(time.Millisecond * 500)
 	}
 	return guardDutyFindings, nil
