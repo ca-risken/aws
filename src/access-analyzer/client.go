@@ -70,8 +70,6 @@ func newAWSClient() aws.AWSServiceClient {
 
 func getGRPCConn(ctx context.Context, addr string) (*grpc.ClientConn, error) {
 	// gRPCクライアントの呼び出し回数が非常に多くトレーシング情報の送信がエラーになるため、トレースは無効にしておく
-	//conn, err := grpc.DialContext(ctx, addr,
-	//	grpc.WithUnaryInterceptor(xray.UnaryClientInterceptor()), grpc.WithInsecure(), grpc.WithTimeout(time.Second*3))
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())

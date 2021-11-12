@@ -57,7 +57,7 @@ func (a *accessAnalyzerClient) newAWSSession(region, assumeRole, externalID stri
 	}
 	sess, err := session.NewSession()
 	if err != nil {
-		appLogger.Errorf("Failed to create session, err=%+v", sess)
+		appLogger.Errorf("Failed to create session, err=%+v", err)
 		return err
 	}
 	var cred *credentials.Credentials

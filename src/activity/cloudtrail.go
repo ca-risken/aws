@@ -46,24 +46,29 @@ func (c *cloudTrailClient) newSession(region, assumeRole, externalID string) (*c
 	if assumeRole == "" {
 		return nil, errors.New("Required AWS AssumeRole")
 	}
+	sess, err := session.NewSession()
+	if err != nil {
+		appLogger.Errorf("Failed to create session, err=%+v", err)
+		return nil, err
+	}
 	var cred *credentials.Credentials
 	if externalID != "" {
 		cred = stscreds.NewCredentials(
-			session.New(), assumeRole, func(p *stscreds.AssumeRoleProvider) {
+			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
 				p.ExternalID = aws.String(externalID)
 			},
 		)
 	} else {
-		cred = stscreds.NewCredentials(session.New(), assumeRole)
+		cred = stscreds.NewCredentials(sess, assumeRole)
 	}
-	sess, err := session.NewSessionWithOptions(session.Options{
+	sessWithCred, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 		Config:            aws.Config{Region: &region, Credentials: cred},
 	})
 	if err != nil {
 		return nil, err
 	}
-	ct := cloudtrail.New(sess, aws.NewConfig().WithRegion(region))
+	ct := cloudtrail.New(sessWithCred, aws.NewConfig().WithRegion(region))
 	xray.AWS(ct.Client)
 	return ct, nil
 }
