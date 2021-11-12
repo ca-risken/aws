@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,10 +19,10 @@ import (
 )
 
 type accessAnalyzerAPI interface {
-	getAccessAnalyzer(*message.AWSQueueMessage) ([]*finding.FindingForUpsert, error)
-	listAvailableRegion() ([]*ec2.Region, error)
-	listAnalyzers() (*[]string, error)
-	listFindings(string, string) ([]*accessanalyzer.FindingSummary, error)
+	getAccessAnalyzer(ctx context.Context, msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error)
+	listAvailableRegion(ctx context.Context) ([]*ec2.Region, error)
+	listAnalyzers(ctx context.Context) (*[]string, error)
+	listFindings(ctx context.Context, accountID string, analyzerArn string) ([]*accessanalyzer.FindingSummary, error)
 }
 
 type accessAnalyzerClient struct {
@@ -33,7 +35,7 @@ type accessAnalyzerConfig struct {
 	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
 }
 
-func newAccessAnalyzerClient(region, assumeRole, externalID string) (*accessAnalyzerClient, error) {
+func newAccessAnalyzerClient(region, assumeRole, externalID string) (accessAnalyzerAPI, error) {
 	if region == "" {
 		var conf accessAnalyzerConfig
 		err := envconfig.Process("", &conf)
@@ -53,27 +55,79 @@ func (a *accessAnalyzerClient) newAWSSession(region, assumeRole, externalID stri
 	if assumeRole == "" {
 		return errors.New("Required AWS AssumeRole")
 	}
+	sess, err := session.NewSession()
+	if err != nil {
+		appLogger.Errorf("Failed to create session, err=%+v", sess)
+		return err
+	}
 	var cred *credentials.Credentials
 	if externalID != "" {
 		cred = stscreds.NewCredentials(
-			session.New(), assumeRole, func(p *stscreds.AssumeRoleProvider) {
+			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
 				p.ExternalID = aws.String(externalID)
 			},
 		)
 	} else {
-		cred = stscreds.NewCredentials(session.New(), assumeRole)
+		cred = stscreds.NewCredentials(sess, assumeRole)
 	}
-	sess, err := session.NewSessionWithOptions(session.Options{
+	sessWithCred, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 		Config:            aws.Config{Region: &region, Credentials: cred},
 	})
 	if err != nil {
 		return err
 	}
-	a.Sess = sess
+	a.Sess = sessWithCred
 	a.Svc = accessanalyzer.New(a.Sess, aws.NewConfig().WithRegion(region))
 	a.EC2 = ec2.New(a.Sess, aws.NewConfig().WithRegion(region))
 	return nil
+}
+
+func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
+	putData := []*finding.FindingForUpsert{}
+	analyzerArns, err := a.listAnalyzers(ctx)
+	if err != nil {
+		appLogger.Errorf("AccessAnalyzer.ListAnalyzers error: err=%+v", err)
+		return nil, &[]string{}, err
+	}
+
+	for _, arn := range *analyzerArns {
+		appLogger.Infof("Detected analyzer: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
+		findings, err := a.listFindings(ctx, msg.AccountID, arn)
+		if err != nil {
+			appLogger.Warnf(
+				"AccessAnalyzer.ListFindings error: analyzerArn=%s, accountID=%s, err=%+v", arn, msg.AccountID, err)
+			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
+		}
+		appLogger.Debugf("[Debug]Got findings, %+v", findings)
+		if len(findings) == 0 {
+			appLogger.Infof("No findings: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
+			continue
+		}
+		for _, data := range findings {
+			buf, err := json.Marshal(data)
+			if err != nil {
+				appLogger.Errorf("Failed to json encoding error: err=%+v", err)
+				return nil, &[]string{}, err
+			}
+			isPublic := false
+			if data.IsPublic != nil {
+				appLogger.Warnf("API Response parameter `IsPublic` got nil data, maybe something error occured, accountID=%s", msg.AccountID)
+				isPublic = *data.IsPublic
+			}
+			putData = append(putData, &finding.FindingForUpsert{
+				Description:      fmt.Sprintf("AccessAnalyzer: %s (public=%t)", *data.Resource, isPublic),
+				DataSource:       msg.DataSource,
+				DataSourceId:     *data.Id,
+				ResourceName:     *data.Resource,
+				ProjectId:        msg.ProjectID,
+				OriginalScore:    scoreAccessAnalyzerFinding(*data.Status, isPublic, data.Action),
+				OriginalMaxScore: 1.0,
+				Data:             string(buf),
+			})
+		}
+	}
+	return putData, analyzerArns, nil
 }
 
 func (a *accessAnalyzerClient) listAvailableRegion(ctx context.Context) ([]*ec2.Region, error) {
@@ -129,9 +183,7 @@ func (a *accessAnalyzerClient) listFindings(ctx context.Context, accountID strin
 		if err != nil {
 			return nil, err
 		}
-		for _, f := range out.Findings {
-			findings = append(findings, f)
-		}
+		findings = append(findings, out.Findings...)
 		if out.NextToken == nil || *out.NextToken == "" {
 			break
 		}
