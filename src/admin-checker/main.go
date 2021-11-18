@@ -20,7 +20,10 @@ func main() {
 		appLogger.Fatal(err.Error())
 	}
 	ctx := context.Background()
-	mimosaxray.InitXRay(xray.Config{})
+	err = mimosaxray.InitXRay(xray.Config{})
+	if err != nil {
+		appLogger.Fatal(err.Error())
+	}
 	consumer := newSQSConsumer()
 	appLogger.Info("Start the AWS IAM AdminChecker SQS consumer server...")
 	consumer.Start(ctx,
