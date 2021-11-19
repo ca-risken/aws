@@ -5,14 +5,14 @@ go 1.16
 require (
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
-	github.com/aws/aws-sdk-go v1.40.37
+	github.com/aws/aws-sdk-go v1.40.48
 	github.com/aws/aws-xray-sdk-go v1.6.0
 	github.com/ca-risken/aws/pkg/message v0.0.0-20210907034232-c56f481434cd
 	github.com/ca-risken/aws/pkg/model v0.0.0-20210907034232-c56f481434cd
 	github.com/ca-risken/aws/proto/aws v0.0.0-20210907034232-c56f481434cd
-	github.com/ca-risken/common/pkg/database v0.0.0-20210906122657-d2be54cc7181
-	github.com/ca-risken/common/pkg/rpc v0.0.0-20211112102518-e808bff9e30e
-	github.com/ca-risken/common/pkg/xray v0.0.0-20210906122657-d2be54cc7181
+	github.com/ca-risken/common/pkg/database v0.0.0-20211118071101-9855266b50a1
+	github.com/ca-risken/common/pkg/rpc v0.0.0-20211118071101-9855266b50a1
+	github.com/ca-risken/common/pkg/xray v0.0.0-20211118071101-9855266b50a1
 	github.com/gassara-kys/envconfig v1.4.4
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
 	github.com/golang/protobuf v1.5.2
