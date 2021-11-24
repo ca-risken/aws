@@ -123,32 +123,26 @@ func (p *portscanClient) getResult(ctx context.Context, message *message.AWSQueu
 	err := p.listSecurityGroup(ctx)
 	if err != nil {
 		appLogger.Errorf("Faild to describeSecurityGroups: err=%+v", err)
-		return putData, err
 	}
 	err = p.listEC2(ctx, message.AccountID)
 	if err != nil {
 		appLogger.Errorf("Faild to describeInstances: err=%+v", err)
-		return putData, err
 	}
 	err = p.listELB(ctx, message.AccountID)
 	if err != nil {
 		appLogger.Errorf("Faild to describeLoadBalancers: err=%+v", err)
-		return putData, err
 	}
 	err = p.listELBv2(ctx)
 	if err != nil {
 		appLogger.Errorf("Faild to describeLoadBalancers(elbv2): err=%+v", err)
-		return putData, err
 	}
 	err = p.listRDS(ctx)
 	if err != nil {
 		appLogger.Errorf("Faild to describeDBInstances(rds): err=%+v", err)
-		return putData, err
 	}
 	err = p.listLightsail(ctx)
 	if err != nil {
-		appLogger.Errorf("Faild to getInstances(lightsail): err=%+v", err)
-		return putData, err
+		appLogger.Warnf("Faild to getInstances(lightsail): err=%+v", err)
 	}
 	excludeList := p.excludeScan()
 	nmapResults, err := p.scan()

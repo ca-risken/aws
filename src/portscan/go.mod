@@ -12,7 +12,7 @@ require (
 	github.com/ca-risken/aws/pkg/message v0.0.0-20211004102725-c7fcf33f3fd3
 	github.com/ca-risken/aws/proto/aws v0.0.0-20211004102725-c7fcf33f3fd3
 	github.com/ca-risken/common/pkg/logging v0.0.0-20211118071101-9855266b50a1
-	github.com/ca-risken/common/pkg/portscan v0.0.0-20211118071101-9855266b50a1
+	github.com/ca-risken/common/pkg/portscan v0.0.0-20211124090848-375c75e97506
 	github.com/ca-risken/common/pkg/sqs v0.0.0-20211118071101-9855266b50a1
 	github.com/ca-risken/common/pkg/xray v0.0.0-20211118071101-9855266b50a1
 	github.com/ca-risken/core/proto/alert v0.0.0-20211004070125-d4ec17a60d36
