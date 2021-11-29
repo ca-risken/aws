@@ -47,9 +47,7 @@ func (c *cloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) 
 	err := cmd.Run()
 
 	if err != nil {
-		appLogger.Errorf("Failed to execute theHarvester. stderr: %v", stderr.String())
-		appLogger.Errorf("Failed exec cloudsploit. error: %v", err)
-		return nil, fmt.Errorf("Failed exec cloudsploit. error: %v", err)
+		return nil, fmt.Errorf("Failed exec cloudsploit. error: %+v, detail: %s", err, stderr.String())
 	}
 
 	bytes, err := readFile(filePath)

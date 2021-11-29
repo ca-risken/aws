@@ -66,7 +66,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	cloudsploitResult, err := cloudsploitConfig.run(msg.AccountID)
 	segment.Close(err)
 	if err != nil {
-		appLogger.Errorf("Failed exec cloudsploit, error: %v", err)
+		appLogger.Errorf("Failed to exec cloudsploit, error: %v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 
