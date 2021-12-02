@@ -57,27 +57,35 @@ func (s *sqsHandler) putFinding(ctx context.Context, cloudsploitFinding *finding
 			appLogger.Errorf("Failed to put finding project_id=%d, resource=%s, err=%+v", cloudsploitFinding.ProjectId, cloudsploitFinding.ResourceName, err)
 			return err
 		}
-	} else {
-		res, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: cloudsploitFinding})
-		if err != nil {
-			return err
-		}
-		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS)
-		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagCloudsploit)
-		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, msg.AccountID)
-		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, result.Plugin)
-		serviceTag := getServiceTag(res.Finding.ResourceName)
-		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, serviceTag)
-		tags := getPluginTags(result.Category, result.Plugin)
-		for _, t := range tags {
-			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, t)
-		}
+		return nil
+	}
+
+	// finding
+	res, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: cloudsploitFinding})
+	if err != nil {
+		return err
+	}
+	// finding tag
+	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS)
+	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagCloudsploit)
+	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, msg.AccountID)
+	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, result.Plugin)
+	serviceTag := getServiceTag(res.Finding.ResourceName)
+	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, serviceTag)
+	tags := getPluginTags(result.Category, result.Plugin)
+	for _, t := range tags {
+		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, t)
+	}
+	// recommend
+	if err := s.putRecommend(ctx, res.Finding.ProjectId, res.Finding.FindingId, result.Category, result.Plugin); err != nil {
+		appLogger.Errorf("Failed to put recommend project_id=%d, finding_id=%d, plugin=%s, err=%+v",
+			res.Finding.ProjectId, res.Finding.FindingId, result.Plugin, err)
+		return err
 	}
 	return nil
 }
 
 func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID uint64, tag string) {
-
 	_, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
 		ProjectId: projectID,
 		Tag: &finding.FindingTagForUpsert{
@@ -88,6 +96,26 @@ func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID
 	if err != nil {
 		appLogger.Errorf("Failed to TagFinding. error: %v", err)
 	}
+}
+
+func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, findingID uint64, category, plugin string) error {
+	recommendType := fmt.Sprintf("%s/%s", category, plugin)
+	r := recommendMap[recommendType]
+	if r.Risk == "" && r.Recommendation == "" {
+		appLogger.Warnf("Failed to get recommendation, Unknown plugin=%s", recommendType)
+		return nil
+	}
+	if _, err := s.findingClient.PutRecommend(ctx, &finding.PutRecommendRequest{
+		ProjectId:      projectID,
+		FindingId:      findingID,
+		DataSource:     message.CloudsploitDataSource,
+		Type:           recommendType,
+		Risk:           r.Risk,
+		Recommendation: r.Recommendation,
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func generateDataSourceID(input string) string {
