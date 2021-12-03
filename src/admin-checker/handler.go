@@ -197,6 +197,8 @@ func (s *sqsHandler) putFindings(ctx context.Context, findingType string, msg *m
 	if awsServiceTag != common.TagUnknown {
 		s.tagFinding(ctx, awsServiceTag, resp.Finding.FindingId, resp.Finding.ProjectId)
 	}
+	// recommend
+	s.putRecommend(ctx, resp.Finding.ProjectId, resp.Finding.FindingId, findingType)
 	appLogger.Debugf("Success to PutFinding, finding_id=%d", resp.Finding.FindingId)
 	return nil
 }
@@ -243,6 +245,24 @@ func (s *sqsHandler) analyzeAlert(ctx context.Context, projectID uint32) error {
 		ProjectId: projectID,
 	})
 	return err
+}
+
+func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, findingID uint64, findingType string) {
+	r := getRecommend(findingType)
+	if r.Risk == "" && r.Recommendation == "" {
+		appLogger.Warnf("Failed to get recommendation, Unknown plugin=%s", findingType)
+		return
+	}
+	if _, err := s.findingClient.PutRecommend(ctx, &finding.PutRecommendRequest{
+		ProjectId:      projectID,
+		FindingId:      findingID,
+		DataSource:     message.GuardDutyDataSource,
+		Type:           findingType,
+		Risk:           r.Risk,
+		Recommendation: r.Recommendation,
+	}); err != nil {
+		appLogger.Errorf("Failed to TagFinding, finding_id=%d, finding_type=%s, error=%+v", findingID, findingType, err)
+	}
 }
 
 func scoreAdminUser(user *iamUser) float32 {
