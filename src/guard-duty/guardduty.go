@@ -14,12 +14,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/guardduty"
 	"github.com/ca-risken/aws/pkg/message"
-	"github.com/ca-risken/core/proto/finding"
 	"github.com/gassara-kys/envconfig"
 )
 
 type guardDutyAPI interface {
-	getGuardDuty(ctx context.Context, message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error)
+	getGuardDuty(ctx context.Context, message *message.AWSQueueMessage) ([]*guardDutyFinding, *[]string, error)
 	listAvailableRegion(ctx context.Context) ([]*ec2.Region, error)
 	listDetectors(ctx context.Context) (*[]string, error)
 	listFindings(ctx context.Context, accountID, detectorID string) ([]*string, error)
@@ -85,8 +84,20 @@ func (g *guardDutyClient) newAWSSession(region, assumeRole, externalID string) e
 	return nil
 }
 
-func (g *guardDutyClient) getGuardDuty(ctx context.Context, message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
-	putData := []*finding.FindingForUpsert{}
+type guardDutyFinding struct {
+	Description      string  `json:"description,omitempty"`
+	DataSource       string  `json:"data_source,omitempty"`
+	DataSourceId     string  `json:"data_source_id,omitempty"`
+	ResourceName     string  `json:"resource_name,omitempty"`
+	ProjectId        uint32  `json:"project_id,omitempty"`
+	OriginalScore    float32 `json:"original_score,omitempty"`
+	OriginalMaxScore float32 `json:"original_max_score,omitempty"`
+	Data             string  `json:"data,omitempty"`
+	GuardDutyType    string  `json:"guard_duty_type,omitempty"`
+}
+
+func (g *guardDutyClient) getGuardDuty(ctx context.Context, message *message.AWSQueueMessage) ([]*guardDutyFinding, *[]string, error) {
+	putData := []*guardDutyFinding{}
 	detecterIDs, err := g.listDetectors(ctx)
 	if err != nil {
 		appLogger.Errorf("GuardDuty.ListDetectors error: err=%+v", err)
@@ -125,7 +136,7 @@ func (g *guardDutyClient) getGuardDuty(ctx context.Context, message *message.AWS
 			} else {
 				score = float32(*data.Severity)
 			}
-			putData = append(putData, &finding.FindingForUpsert{
+			putData = append(putData, &guardDutyFinding{
 				Description:      *data.Title,
 				DataSource:       message.DataSource,
 				DataSourceId:     *data.Id,
@@ -134,6 +145,7 @@ func (g *guardDutyClient) getGuardDuty(ctx context.Context, message *message.AWS
 				OriginalScore:    score,
 				OriginalMaxScore: 10.0,
 				Data:             string(buf),
+				GuardDutyType:    *data.Type,
 			})
 		}
 	}
