@@ -16,13 +16,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/common/pkg/portscan"
-	"github.com/ca-risken/core/proto/finding"
 	"github.com/gassara-kys/envconfig"
 	"github.com/vikyd/zero"
 )
 
 type portscanAPI interface {
-	getResult(context.Context, *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error)
+	getResult(context.Context, *message.AWSQueueMessage) ([]*portscan.NmapResult, []*excludeResult, error)
 	listAvailableRegion(ctx context.Context) ([]*ec2.Region, error)
 	listEC2(context.Context, string) error
 	listSecurityGroup(context.Context) error
@@ -118,50 +117,49 @@ func (p *portscanClient) listAvailableRegion(ctx context.Context) ([]*ec2.Region
 	return out.Regions, nil
 }
 
-func (p *portscanClient) getResult(ctx context.Context, message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
-	putData := []*finding.FindingForUpsert{}
+func (p *portscanClient) getResult(ctx context.Context, message *message.AWSQueueMessage) ([]*portscan.NmapResult, []*excludeResult, error) {
 	err := p.listSecurityGroup(ctx)
 	if err != nil {
-		appLogger.Errorf("Faild to describeSecurityGroups: err=%+v", err)
+		appLogger.Errorf("Failed to describeSecurityGroups: err=%+v", err)
+		return []*portscan.NmapResult{}, []*excludeResult{}, err
 	}
 	err = p.listEC2(ctx, message.AccountID)
 	if err != nil {
-		appLogger.Errorf("Faild to describeInstances: err=%+v", err)
+		appLogger.Errorf("Failed to describeInstances: err=%+v", err)
+		return []*portscan.NmapResult{}, []*excludeResult{}, err
 	}
 	err = p.listELB(ctx, message.AccountID)
 	if err != nil {
-		appLogger.Errorf("Faild to describeLoadBalancers: err=%+v", err)
+		appLogger.Errorf("Failed to describeLoadBalancers: err=%+v", err)
+		return []*portscan.NmapResult{}, []*excludeResult{}, err
 	}
 	err = p.listELBv2(ctx)
 	if err != nil {
-		appLogger.Errorf("Faild to describeLoadBalancers(elbv2): err=%+v", err)
+		appLogger.Errorf("Failed to describeLoadBalancers(elbv2): err=%+v", err)
+		return []*portscan.NmapResult{}, []*excludeResult{}, err
 	}
 	err = p.listRDS(ctx)
 	if err != nil {
-		appLogger.Errorf("Faild to describeDBInstances(rds): err=%+v", err)
+		appLogger.Errorf("Failed to describeDBInstances(rds): err=%+v", err)
+		return []*portscan.NmapResult{}, []*excludeResult{}, err
 	}
 	err = p.listLightsail(ctx)
 	if err != nil {
-		appLogger.Warnf("Faild to getInstances(lightsail): err=%+v", err)
+		appLogger.Infof("Region:%v", p.Region)
+		if isAvailableRegionLightSail(p.Region) {
+			appLogger.Errorf("Failed to getInstances(lightsail): err=%+v", err)
+			return []*portscan.NmapResult{}, []*excludeResult{}, err
+		} else {
+			appLogger.Infof("Failed to getInstances(lightsail). but region %v is not supported LightSail", p.Region)
+		}
 	}
 	excludeList := p.excludeScan()
 	nmapResults, err := p.scan()
 	if err != nil {
-		appLogger.Errorf("Faild to describeSecurityGroups: err=%+v", err)
-		return putData, err
+		appLogger.Errorf("Failed to execute nmap: err=%+v", err)
+		return []*portscan.NmapResult{}, []*excludeResult{}, err
 	}
-	putData, err = makeFindings(nmapResults, message)
-	if err != nil {
-		appLogger.Errorf("Faild to make findings: err=%+v", err)
-		return putData, err
-	}
-	putDataExclude, err := makeExcludeFindings(excludeList, message)
-	if err != nil {
-		appLogger.Errorf("Faild to make findings: err=%+v", err)
-		return putData, err
-	}
-	putData = append(putData, putDataExclude...)
-	return putData, nil
+	return nmapResults, excludeList, nil
 }
 
 func (p *portscanClient) listSecurityGroup(ctx context.Context) error {
@@ -429,6 +427,7 @@ func (p *portscanClient) excludeScan() []*excludeResult {
 				Target:        t.Target,
 				Arn:           t.Arn,
 				SecurityGroup: t.SecurityGroup,
+				Category:      t.Category,
 			})
 		} else {
 			excludedTarget = append(excludedTarget, t)
@@ -517,4 +516,5 @@ type excludeResult struct {
 	Target        string
 	Arn           string
 	SecurityGroup string
+	Category      string
 }
