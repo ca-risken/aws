@@ -121,7 +121,7 @@ func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, finding
 	if _, err := s.findingClient.PutRecommend(ctx, &finding.PutRecommendRequest{
 		ProjectId:      projectID,
 		FindingId:      findingID,
-		DataSource:     message.CloudsploitDataSource,
+		DataSource:     message.PortscanDataSource,
 		Type:           recommendType,
 		Risk:           r.Risk,
 		Recommendation: r.Recommendation,
