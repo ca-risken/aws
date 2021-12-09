@@ -83,18 +83,18 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	for _, region := range regions {
 		if region == nil || *region.RegionName == "" {
 			appLogger.Warnf("Invalid region in AccountID=%s", msg.AccountID)
-			continue
+			return s.handleErrorWithUpdateStatus(ctx, &status, err)
 		}
 		appLogger.Infof("Start %s region search...", *region.RegionName)
 		portscan, err = newPortscanClient(*region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
 		if err != nil {
-			appLogger.Warnf("Failed to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
-			continue
+			appLogger.Errorf("Failed to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
+			return s.handleErrorWithUpdateStatus(ctx, &status, err)
 		}
-		findings, err := portscan.getResult(ctx, msg)
+		nmapResults, excludeList, err := portscan.getResult(ctx, msg)
 		if err != nil {
-			appLogger.Warnf("Failed to get findings to AWS Portscan: AccountID=%+v, err=%+v", msg.AccountID, err)
-			continue
+			appLogger.Errorf("Failed to get findings to AWS Portscan: AccountID=%+v, err=%+v", msg.AccountID, err)
+			return s.handleErrorWithUpdateStatus(ctx, &status, err)
 		}
 
 		// Clear finding score
@@ -110,7 +110,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		}
 
 		// Put finding to core
-		if err := s.putFindings(ctx, msg, findings); err != nil {
+		if err := s.putFindings(ctx, msg, nmapResults, excludeList); err != nil {
 			appLogger.Errorf("Failed to put findings: AccountID=%+v, err=%+v", msg.AccountID, err)
 			statusDetail = fmt.Sprintf("%v%v", statusDetail, err.Error())
 		}

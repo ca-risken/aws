@@ -48,22 +48,47 @@ func makeExcludeFindings(results []*excludeResult, message *message.AWSQueueMess
 	return findings, nil
 }
 
-func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessage, findings []*finding.FindingForUpsert) error {
-	for _, f := range findings {
-
-		res, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
+func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessage, nmapResults []*portscan.NmapResult, excludeResults []*excludeResult) error {
+	findingsNmap, err := makeFindings(nmapResults, msg)
+	if err != nil {
+		return err
+	}
+	for _, f := range findingsNmap {
+		err := s.putFinding(ctx, f, msg, categoryNmap)
 		if err != nil {
 			return err
 		}
-		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS)
-		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagPortscan)
-		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, msg.AccountID)
-		tagService := common.GetAWSServiceTagByARN(res.Finding.ResourceName)
-		if !zero.IsZeroVal(tagService) {
-			s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, tagService)
+	}
+	findingsExclude, err := makeExcludeFindings(excludeResults, msg)
+	if err != nil {
+		return err
+	}
+	for _, f := range findingsExclude {
+		err := s.putFinding(ctx, f, msg, categoryManyOpen)
+		if err != nil {
+			return err
 		}
-		//appLogger.Infof("Success to PutFinding. finding: %v", f)
+	}
+	return nil
+}
 
+func (s *sqsHandler) putFinding(ctx context.Context, f *finding.FindingForUpsert, msg *message.AWSQueueMessage, category string) error {
+	res, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
+	if err != nil {
+		return err
+	}
+	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS)
+	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagPortscan)
+	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, msg.AccountID)
+	tagService := common.GetAWSServiceTagByARN(res.Finding.ResourceName)
+	if !zero.IsZeroVal(tagService) {
+		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, tagService)
+	}
+	// recommend
+	if err = s.putRecommend(ctx, res.Finding.ProjectId, res.Finding.FindingId, category, tagService); err != nil {
+		appLogger.Errorf("Failed to put recommend project_id=%d, finding_id=%d, category=%s,service=%s, err=%+v",
+			res.Finding.ProjectId, res.Finding.FindingId, category, tagService, err)
+		return err
 	}
 
 	return nil
@@ -80,6 +105,30 @@ func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID
 	if err != nil {
 		appLogger.Errorf("Failed to TagFinding. error: %v", err)
 	}
+}
+
+func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, findingID uint64, category, service string) error {
+	recommendType := getRecommendType(category, service)
+	if zero.IsZeroVal(recommendType) {
+		appLogger.Warnf("Failed to get recommendation, Unknown category,service=%s", fmt.Sprintf("%v:%v", category, service))
+		return nil
+	}
+	r := getRecommend(recommendType, service)
+	if r.Risk == "" && r.Recommendation == "" {
+		appLogger.Warnf("Failed to get recommendation, Unknown reccomendType,service=%s", fmt.Sprintf("%v:%v", category, service))
+		return nil
+	}
+	if _, err := s.findingClient.PutRecommend(ctx, &finding.PutRecommendRequest{
+		ProjectId:      projectID,
+		FindingId:      findingID,
+		DataSource:     message.PortscanDataSource,
+		Type:           recommendType,
+		Risk:           r.Risk,
+		Recommendation: r.Recommendation,
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func getExcludeDescription(target, protocol string, fPort, tPort int, securityGroup string) string {
