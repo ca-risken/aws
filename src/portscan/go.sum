@@ -43,9 +43,10 @@ github.com/ca-risken/common/pkg/logging v0.0.0-20211118071101-9855266b50a1 h1:uG
 github.com/ca-risken/common/pkg/logging v0.0.0-20211118071101-9855266b50a1/go.mod h1:h0Rj4W2YM6pAPyTT60bVdfpCDALOV8SMpZZCx8GhkYI=
 github.com/ca-risken/common/pkg/portscan v0.0.0-20211124090848-375c75e97506 h1:CzHkYFdS+12VuR+4h1hOshuHUGiOtldKIwXq9XrDV84=
 github.com/ca-risken/common/pkg/portscan v0.0.0-20211124090848-375c75e97506/go.mod h1:4JgzkE62Dv8uTvhAqTRE8KQWIZ6oQX2CcgfS6nf/I4Q=
+github.com/ca-risken/common/pkg/sqs v0.0.0-20210924080827-df6e4ac73f01 h1:HTH++QqX5zyHUOsxBMIUpRpQL0Xt6JGxMBVK3gKIr9Y=
 github.com/ca-risken/common/pkg/sqs v0.0.0-20210924080827-df6e4ac73f01/go.mod h1:IxYbziqfohwo7y7Zn15W2emT4ubB5duUzdvj5fYhHJ4=
-github.com/ca-risken/common/pkg/sqs v0.0.0-20211118071101-9855266b50a1 h1:mHASUUV7qA2Z9wa6JQQ34W10txcoYo98X5zz0B0Lozo=
-github.com/ca-risken/common/pkg/sqs v0.0.0-20211118071101-9855266b50a1/go.mod h1:PnGxivikVgnsel3YoM1W8a6ZlrlXL7pXb7UdKDFW96Q=
+github.com/ca-risken/common/pkg/sqs v0.0.0-20211210074045-79fdb4c61950 h1:O7SSgjqZCP6YpqNyErZsJ71epIrHE9oKqlNF8U8LfcM=
+github.com/ca-risken/common/pkg/sqs v0.0.0-20211210074045-79fdb4c61950/go.mod h1:PnGxivikVgnsel3YoM1W8a6ZlrlXL7pXb7UdKDFW96Q=
 github.com/ca-risken/common/pkg/xray v0.0.0-20211118071101-9855266b50a1 h1:SjbAAb2H9yZu4Ecs9aL2tNdgifTzYTSxY4qjXFubnYI=
 github.com/ca-risken/common/pkg/xray v0.0.0-20211118071101-9855266b50a1/go.mod h1:1QELprYp9UidwqzB1253qA00l3umMen4njJMFRNq5Po=
 github.com/ca-risken/core/proto/alert v0.0.0-20211129081226-f2531e88f350 h1:KBNMsIMqxXOCOUl4X1/YmM7iTfJv2tUD6PGO158Bcis=
