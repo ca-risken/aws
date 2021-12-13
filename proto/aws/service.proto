@@ -21,7 +21,7 @@ service AWSService {
   // Scan
   rpc InvokeScan(InvokeScanRequest)
       returns (google.protobuf.Empty); // For ondeamnd
-  rpc InvokeScanAll(google.protobuf.Empty)
+  rpc InvokeScanAll(InvokeScanAllRequest)
       returns (google.protobuf.Empty); // For scheduled
 }
 
@@ -72,3 +72,6 @@ message InvokeScanRequest {
   uint32 aws_data_source_id = 3;
   bool scan_only = 4;
 }
+
+// Invoke Scan All
+message InvokeScanAllRequest { uint32 aws_data_source_id = 1; }
