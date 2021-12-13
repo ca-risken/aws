@@ -18,7 +18,6 @@ github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d/go.mod h1:W
 github.com/aws/aws-sdk-go v1.17.12/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.37.10/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
 github.com/aws/aws-sdk-go v1.40.44/go.mod h1:585smgzpB/KqRA+K3y/NL/oYRqQvpNJYvLm+LY1U59Q=
-github.com/aws/aws-sdk-go v1.40.48 h1:9lKz7AoFl2vYuVwWB7el9SmMBvOj83NixEvfNrojLEo=
 github.com/aws/aws-sdk-go v1.40.48/go.mod h1:585smgzpB/KqRA+K3y/NL/oYRqQvpNJYvLm+LY1U59Q=
 github.com/aws/aws-sdk-go v1.42.22 h1:EwcM7/+Ytg6xK+jbeM2+f9OELHqPiEiEKetT/GgAr7I=
 github.com/aws/aws-sdk-go v1.42.22/go.mod h1:585smgzpB/KqRA+K3y/NL/oYRqQvpNJYvLm+LY1U59Q=
@@ -38,8 +37,6 @@ github.com/ca-risken/aws/proto/aws v0.0.0-20210907034232-c56f481434cd/go.mod h1:
 github.com/ca-risken/common/pkg/logging v0.0.0-20211118071101-9855266b50a1 h1:uGzkmaHaYDQ3U96iak6aORA01lPcC6yKgK8dssPx0sM=
 github.com/ca-risken/common/pkg/logging v0.0.0-20211118071101-9855266b50a1/go.mod h1:h0Rj4W2YM6pAPyTT60bVdfpCDALOV8SMpZZCx8GhkYI=
 github.com/ca-risken/common/pkg/sqs v0.0.0-20210924080827-df6e4ac73f01/go.mod h1:IxYbziqfohwo7y7Zn15W2emT4ubB5duUzdvj5fYhHJ4=
-github.com/ca-risken/common/pkg/sqs v0.0.0-20211118071101-9855266b50a1 h1:mHASUUV7qA2Z9wa6JQQ34W10txcoYo98X5zz0B0Lozo=
-github.com/ca-risken/common/pkg/sqs v0.0.0-20211118071101-9855266b50a1/go.mod h1:PnGxivikVgnsel3YoM1W8a6ZlrlXL7pXb7UdKDFW96Q=
 github.com/ca-risken/common/pkg/sqs v0.0.0-20211210074045-79fdb4c61950 h1:O7SSgjqZCP6YpqNyErZsJ71epIrHE9oKqlNF8U8LfcM=
 github.com/ca-risken/common/pkg/sqs v0.0.0-20211210074045-79fdb4c61950/go.mod h1:PnGxivikVgnsel3YoM1W8a6ZlrlXL7pXb7UdKDFW96Q=
 github.com/ca-risken/common/pkg/xray v0.0.0-20211118071101-9855266b50a1 h1:SjbAAb2H9yZu4Ecs9aL2tNdgifTzYTSxY4qjXFubnYI=
@@ -221,8 +218,6 @@ golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20210423082822-04245dca01da/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210510120138-977fb7262007/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20210514084401-e8d321eab015/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.0.0-20211124211545-fe61309f8881 h1:TyHqChC80pFkXWraUUf6RuB5IqFdQieMLwwCJokV2pc=
-golang.org/x/sys v0.0.0-20211124211545-fe61309f8881/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20211210111614-af8b64212486 h1:5hpz5aRr+W1erYCL5JRhSUBJRph7l9XkNveoExlrKYk=
 golang.org/x/sys v0.0.0-20211210111614-af8b64212486/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201117132131-f5c789dd3221/go.mod h1:Nr5EML6q2oocZ2LXRh80K7BxOlk5/8JxuGnuhpl+muw=
