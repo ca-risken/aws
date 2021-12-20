@@ -221,7 +221,7 @@ func (a *awsRepository) ListDataSourceByAWSDataSourceID(ctx context.Context, dat
 	, ards.status_detail
 	, ards.scan_at 
 	from aws_data_source ads
-	inner join (select * from aws_rel_data_source) ards using(aws_data_source_id)`
+	inner join aws_rel_data_source ards using(aws_data_source_id)`
 	if !zero.IsZeroVal(dataSourceID) {
 		query += " where aws_data_source_id = ?"
 		params = append(params, dataSourceID)
