@@ -61,35 +61,35 @@ var recommendMap = map[string]recommend{
 	typeSecurityGroupEC2: {
 		Risk: `Port opens to pubilc
 			- Determine if target TCP or UDP port is open to the public
-			- While some ports  are required to be open to the public to function properly, Restrict to trusted IP addresses.`,
+			- While some ports are required to be open to the public to function properly, Restrict to trusted IP addresses.`,
 		Recommendation: `Restrict target TCP and UDP port to trusted IP addresses.
 			- http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html`,
 	},
 	typeSecurityGroupELB: {
 		Risk: `Port opens to pubilc
 			- Determine if target TCP or UDP port is open to the public
-			- While some ports  are required to be open to the public to function properly, Restrict to trusted IP addresses.`,
+			- While some ports are required to be open to the public to function properly, Restrict to trusted IP addresses.`,
 		Recommendation: `Restrict target TCP and UDP port to trusted IP addresses.
 			- https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-update-security-groups.html`,
 	},
 	typeSecurityGroupRDS: {
 		Risk: `Port opens to pubilc
 			- Determine if target TCP or UDP port is open to the public
-			- While some ports  are required to be open to the public to function properly, Restrict to trusted IP addresses.`,
+			- While some ports are required to be open to the public to function properly, Restrict to trusted IP addresses.`,
 		Recommendation: `Restrict target TCP and UDP port to trusted IP addresses.
 			- https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.RDSSecurityGroups.html`,
 	},
 	typeLightSail: {
 		Risk: `Port opens to pubilc
 		- Determine if target TCP or UDP port is open to the public
-		- While some ports  are required to be open to the public to function properly, Restrict to trusted IP addresses.`,
+		- While some ports are required to be open to the public to function properly, Restrict to trusted IP addresses.`,
 		Recommendation: `Restrict target TCP and UDP port to trusted IP addresses.
 		- https://lightsail.aws.amazon.com/ls/docs/en_us/articles/amazon-lightsail-editing-firewall-rules`,
 	},
 	typeSecurityGroup: {
 		Risk: `Port opens to pubilc
 			- Determine if target TCP or UDP port is open to the public
-			- While some ports  are required to be open to the public to function properly, Restrict to trusted IP addresses.`,
+			- While some ports are required to be open to the public to function properly, Restrict to trusted IP addresses.`,
 		Recommendation: `Restrict target TCP and UDP port to trusted IP addresses.
 			- https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html`,
 	},
