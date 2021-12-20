@@ -49,7 +49,7 @@ func TestGetRecommend(t *testing.T) {
 			want: recommend{
 				Risk: `Port opens to pubilc
 			- Determine if target TCP or UDP port is open to the public
-			- While some ports  are required to be open to the public to function properly, Restrict to trusted IP addresses.`,
+			- While some ports are required to be open to the public to function properly, Restrict to trusted IP addresses.`,
 				Recommendation: `Restrict target TCP and UDP port to trusted IP addresses.
 			- http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html`,
 			},
