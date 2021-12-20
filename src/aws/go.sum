@@ -30,6 +30,8 @@ github.com/ca-risken/aws/pkg/model v0.0.0-20210907034232-c56f481434cd h1:wgtODv2
 github.com/ca-risken/aws/pkg/model v0.0.0-20210907034232-c56f481434cd/go.mod h1:4LlDwrEeTKf4kM1y+CG5d6uycPn3ELQswS6MKG7yx2A=
 github.com/ca-risken/aws/proto/aws v0.0.0-20210907034232-c56f481434cd h1:WmSD2T9IEHhpH5b9CvaN4LKoR0+OnTjrGOzPyepkwWg=
 github.com/ca-risken/aws/proto/aws v0.0.0-20210907034232-c56f481434cd/go.mod h1:TE5GpQXMfqTcHyi7/S7a2tWhAvJZRadYlIjnBm7AFPk=
+github.com/ca-risken/aws/proto/aws v0.0.0-20211213023214-4f82b6829c8a h1:5Y6TmQYl/Np/o8LepMHFSz+hrxpn/FWWcWOBxyAID0g=
+github.com/ca-risken/aws/proto/aws v0.0.0-20211213023214-4f82b6829c8a/go.mod h1:TE5GpQXMfqTcHyi7/S7a2tWhAvJZRadYlIjnBm7AFPk=
 github.com/ca-risken/common/pkg/database v0.0.0-20211118071101-9855266b50a1 h1:MVJHHJgSk0k0/s+cCU7hMySV0SWXnMiLM87c/tt6KYg=
 github.com/ca-risken/common/pkg/database v0.0.0-20211118071101-9855266b50a1/go.mod h1:9JacDXQAdUUqCyV3Z0iVBcS2SCh/ZMDnIzBzgbFRRbc=
 github.com/ca-risken/common/pkg/rpc v0.0.0-20211118071101-9855266b50a1 h1:9DqrM6hVgz+m9GCxDPcJsfH+NG8z8dn+/zlCyPerjuw=

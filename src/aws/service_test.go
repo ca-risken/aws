@@ -374,6 +374,10 @@ func (m *mockAWSRepository) ListDataSource(context.Context, uint32, uint32, stri
 	args := m.Called()
 	return args.Get(0).(*[]dataSource), args.Error(1)
 }
+func (m *mockAWSRepository) ListDataSourceByAWSDataSourceID(context.Context, uint32) (*[]dataSource, error) {
+	args := m.Called()
+	return args.Get(0).(*[]dataSource), args.Error(1)
+}
 func (m *mockAWSRepository) UpsertAWSRelDataSource(context.Context, *aws.DataSourceForAttach) (*model.AWSRelDataSource, error) {
 	args := m.Called()
 	return args.Get(0).(*model.AWSRelDataSource), args.Error(1)

@@ -11,7 +11,6 @@ import (
 	"github.com/ca-risken/aws/pkg/model"
 	"github.com/ca-risken/aws/proto/aws"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/vikyd/zero"
 	"gorm.io/gorm"
 )
 
@@ -220,8 +219,8 @@ func convertAWS(data *model.AWS) *aws.AWS {
 	}
 }
 
-func (a *awsService) InvokeScanAll(ctx context.Context, _ *empty.Empty) (*empty.Empty, error) {
-	list, err := a.repository.ListDataSource(ctx, 0, 0, "")
+func (a *awsService) InvokeScanAll(ctx context.Context, req *aws.InvokeScanAllRequest) (*empty.Empty, error) {
+	list, err := a.repository.ListDataSourceByAWSDataSourceID(ctx, req.AwsDataSourceId)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &empty.Empty{}, nil
@@ -229,9 +228,6 @@ func (a *awsService) InvokeScanAll(ctx context.Context, _ *empty.Empty) (*empty.
 		return nil, err
 	}
 	for _, dataSource := range *list {
-		if zero.IsZeroVal(dataSource.ProjectID) || zero.IsZeroVal(dataSource.AWSID) || zero.IsZeroVal(dataSource.AWSDataSourceID) {
-			continue
-		}
 		if skipScanDataSource(dataSource.DataSource) {
 			continue
 		}

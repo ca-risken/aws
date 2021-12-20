@@ -20,6 +20,7 @@ type awsRepoInterface interface {
 	UpsertAWS(ctx context.Context, data *model.AWS) (*model.AWS, error)
 	DeleteAWS(ctx context.Context, projectID, awsID uint32) error
 	ListDataSource(ctx context.Context, projectID, awsID uint32, ds string) (*[]dataSource, error)
+	ListDataSourceByAWSDataSourceID(ctx context.Context, awsDataSourceID uint32) (*[]dataSource, error)
 	UpsertAWSRelDataSource(ctx context.Context, data *aws.DataSourceForAttach) (*model.AWSRelDataSource, error)
 	GetAWSRelDataSourceByID(ctx context.Context, awsID, awsDataSourceID, projectID uint32) (*model.AWSRelDataSource, error)
 	DeleteAWSRelDataSource(ctx context.Context, projectID, awsID, awsDataSourceID uint32) error
@@ -200,6 +201,32 @@ order by
 	, ards.aws_id
   , ads.aws_data_source_id
 `
+	data := []dataSource{}
+	if err := a.SlaveDB.WithContext(ctx).Raw(query, params...).Scan(&data).Error; err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+func (a *awsRepository) ListDataSourceByAWSDataSourceID(ctx context.Context, dataSourceID uint32) (*[]dataSource, error) {
+	var params []interface{}
+	query := `select ads.aws_data_source_id
+	, ads.data_source
+	, ads.max_score
+	, ards.aws_id
+	, ards.project_id
+	, ards.assume_role_arn
+	, ards.external_id
+	, ards.status
+	, ards.status_detail
+	, ards.scan_at 
+	from aws_data_source ads
+	inner join (select * from aws_rel_data_source `
+	if !zero.IsZeroVal(dataSourceID) {
+		query += " where ads.aws_data_source_id = ?"
+		params = append(params, dataSourceID)
+	}
+	query += ") ards using(aws_data_source_id)"
 	data := []dataSource{}
 	if err := a.SlaveDB.WithContext(ctx).Raw(query, params...).Scan(&data).Error; err != nil {
 		return nil, err
