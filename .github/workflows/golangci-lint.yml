@@ -1,0 +1,130 @@
+name: golangci-lint
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+permissions:
+  contents: read
+  # Optional: allow read access to pull request. Use with `only-new-issues` option.
+  # pull-requests: read
+jobs:
+  golangci:
+    env:
+      GOLANGCI_LINT_VERSION: v1.43.0
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+
+      - name: Set token for access internal repository
+        run: git config --global url."https://${{ secrets.GO_MODULES_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+
+      - name: lint common pkg
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+          # Optional: working directory, useful for monorepos
+          working-directory: pkg/common
+
+      - name: lint message pkg
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+          # Optional: working directory, useful for monorepos
+          working-directory: pkg/message
+
+      - name: lint model pkg
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+          # Optional: working directory, useful for monorepos
+          working-directory: pkg/model
+
+      - name: lint activity proto
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+          # Optional: working directory, useful for monorepos
+          working-directory: proto/activity
+
+      - name: lint aws proto
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+          # Optional: working directory, useful for monorepos
+          working-directory: proto/aws
+
+      - name: lint access-analyzer module
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+          # Optional: working directory, useful for monorepos
+          working-directory: src/access-analyzer
+
+      - name: lint activity module
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+          # Optional: working directory, useful for monorepos
+          working-directory: src/activity
+
+      - name: lint admin-checker module
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+          # Optional: working directory, useful for monorepos
+          working-directory: src/admin-checker
+
+      - name: lint aws module
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+          # Optional: working directory, useful for monorepos
+          working-directory: src/aws
+
+      - name: lint cloudspoit module
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+          # Optional: working directory, useful for monorepos
+          working-directory: src/cloudsploit
+
+      - name: lint guard-duty module
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+          # Optional: working directory, useful for monorepos
+          working-directory: src/guard-duty
+
+      - name: lint portscan module
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+          # Optional: working directory, useful for monorepos
+          working-directory: src/portscan
