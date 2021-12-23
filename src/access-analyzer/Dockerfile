@@ -1,11 +1,13 @@
 FROM golang:1.16 as builder
 WORKDIR /go/src/github.com/ca-risken/aws/src/access-analyzer/
 ADD *.go go.* ./
-ENV CGO_ENABLED=0 GOPRIVATE="github.com/ca-risken/*"
+ENV CGO_ENABLED=0 GOPRIVATE="github.com/CyberAgent/*,github.com/ca-risken/*"
 ARG ENV_INJECTOR_VERSION=v0.0.6
+ARG GITHUB_USER
+ARG GITHUB_TOKEN
 RUN echo "machine github.com" > ~/.netrc
-RUN --mount=type=secret,id=GITHUB_USER echo "login $(cat /run/secrets/GITHUB_USER)" >> ~/.netrc
-RUN --mount=type=secret,id=GITHUB_TOKEN echo "password $(cat /run/secrets/GITHUB_TOKEN)" >> ~/.netrc
+RUN echo "login $GITHUB_USER" >> ~/.netrc
+RUN echo "password $GITHUB_TOKEN" >> ~/.netrc
 RUN go build && cp access-analyzer /go/bin/
 
 WORKDIR /go/src/github.com/gassara-kys
