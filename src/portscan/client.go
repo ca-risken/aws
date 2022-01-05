@@ -31,7 +31,7 @@ func newFindingClient() finding.FindingServiceClient {
 }
 
 type alertConfig struct {
-	AlertSvcAddr string `required:"true" split_words:"true"`
+	AlertSvcAddr string `required:"true" split_words:"true" default:"alert.core.svc.cluster.local:8004"`
 }
 
 func newAlertClient() alert.AlertServiceClient {
@@ -50,7 +50,7 @@ func newAlertClient() alert.AlertServiceClient {
 }
 
 type awsConfig struct {
-	AWSSvcAddr string `required:"true" split_words:"true"`
+	AWSSvcAddr string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
 }
 
 func newAWSClient() aws.AWSServiceClient {
