@@ -46,8 +46,10 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 }
 
 func (s *sqsHandler) putFinding(ctx context.Context, cloudsploitFinding *finding.FindingForUpsert, result *cloudSploitResult, msg *message.AWSQueueMessage) error {
+	serviceTag := getServiceTag(cloudsploitFinding.ResourceName)
 	if cloudsploitFinding.OriginalScore == 0.0 {
-		_, err := s.findingClient.PutResource(ctx, &finding.PutResourceRequest{
+		res, err := s.findingClient.PutResource(ctx, &finding.PutResourceRequest{
+			ProjectId: cloudsploitFinding.ProjectId,
 			Resource: &finding.ResourceForUpsert{
 				ResourceName: cloudsploitFinding.ResourceName,
 				ProjectId:    cloudsploitFinding.ProjectId,
@@ -57,6 +59,9 @@ func (s *sqsHandler) putFinding(ctx context.Context, cloudsploitFinding *finding
 			appLogger.Errorf("Failed to put finding project_id=%d, resource=%s, err=%+v", cloudsploitFinding.ProjectId, cloudsploitFinding.ResourceName, err)
 			return err
 		}
+		s.tagResource(ctx, cloudsploitFinding.ProjectId, res.Resource.ResourceId, common.TagAWS)
+		s.tagResource(ctx, cloudsploitFinding.ProjectId, res.Resource.ResourceId, serviceTag)
+		s.tagResource(ctx, cloudsploitFinding.ProjectId, res.Resource.ResourceId, msg.AccountID)
 		return nil
 	}
 
@@ -70,7 +75,6 @@ func (s *sqsHandler) putFinding(ctx context.Context, cloudsploitFinding *finding
 	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagCloudsploit)
 	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, msg.AccountID)
 	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, result.Plugin)
-	serviceTag := getServiceTag(res.Finding.ResourceName)
 	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, serviceTag)
 	tags := getPluginTags(result.Category, result.Plugin)
 	for _, t := range tags {
@@ -95,6 +99,19 @@ func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID
 		}})
 	if err != nil {
 		appLogger.Errorf("Failed to TagFinding. error: %v", err)
+	}
+}
+
+func (s *sqsHandler) tagResource(ctx context.Context, projectID uint32, resourceID uint64, tag string) {
+	if _, err := s.findingClient.TagResource(ctx, &finding.TagResourceRequest{
+		ProjectId: projectID,
+		Tag: &finding.ResourceTagForUpsert{
+			ResourceId: resourceID,
+			ProjectId:  projectID,
+			Tag:        tag,
+		}},
+	); err != nil {
+		appLogger.Errorf("Failed to TagResource. error: %v", err)
 	}
 }
 
