@@ -124,31 +124,41 @@ func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 			return err
 		}
 		// finding-tag
-		s.tagFinding(ctx, common.TagAWS, resp.Finding.FindingId, resp.Finding.ProjectId)
-		s.tagFinding(ctx, common.TagAccessAnalyzer, resp.Finding.FindingId, resp.Finding.ProjectId)
-		s.tagFinding(ctx, msg.AccountID, resp.Finding.FindingId, resp.Finding.ProjectId)
+		if err := s.tagFinding(ctx, common.TagAWS, resp.Finding.FindingId, resp.Finding.ProjectId); err != nil {
+			return err
+		}
+		if err := s.tagFinding(ctx, common.TagAccessAnalyzer, resp.Finding.FindingId, resp.Finding.ProjectId); err != nil {
+			return err
+		}
+		if err := s.tagFinding(ctx, msg.AccountID, resp.Finding.FindingId, resp.Finding.ProjectId); err != nil {
+			return err
+		}
 		awsServiceType := common.GetAWSServiceTagByARN(resp.Finding.ResourceName)
 		if awsServiceType != common.TagUnknown {
-			s.tagFinding(ctx, awsServiceType, resp.Finding.FindingId, resp.Finding.ProjectId)
+			if err := s.tagFinding(ctx, awsServiceType, resp.Finding.FindingId, resp.Finding.ProjectId); err != nil {
+				return err
+			}
 		}
 		// recommend
-		s.putRecommend(ctx, resp.Finding.ProjectId, resp.Finding.FindingId, awsServiceType)
-		appLogger.Infof("Success to PutFinding, finding_id=%d", resp.Finding.FindingId)
+		if err := s.putRecommend(ctx, resp.Finding.ProjectId, resp.Finding.FindingId, awsServiceType); err != nil {
+			return err
+		}
+		appLogger.Debugf("Success to PutFinding, finding_id=%d", resp.Finding.FindingId)
 	}
 	return nil
 }
 
-func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint64, projectID uint32) {
-	_, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
+func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint64, projectID uint32) error {
+	if _, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
 		ProjectId: projectID,
 		Tag: &finding.FindingTagForUpsert{
 			FindingId: findingID,
 			ProjectId: projectID,
 			Tag:       tag,
-		}})
-	if err != nil {
-		appLogger.Errorf("Failed to TagFinding, finding_id=%d, tag=%s, error=%+v", findingID, tag, err)
+		}}); err != nil {
+		return fmt.Errorf("Failed to TagFinding, finding_id=%d, tag=%s, error=%+v", findingID, tag, err)
 	}
+	return nil
 }
 
 func (s *sqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {
@@ -182,11 +192,11 @@ func (s *sqsHandler) analyzeAlert(ctx context.Context, projectID uint32) error {
 	return err
 }
 
-func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, findingID uint64, findingType string) {
+func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, findingID uint64, findingType string) error {
 	r := getRecommend(findingType)
 	if r.Risk == "" && r.Recommendation == "" {
 		appLogger.Warnf("Failed to get recommendation, Unknown plugin=%s", findingType)
-		return
+		return nil
 	}
 	if _, err := s.findingClient.PutRecommend(ctx, &finding.PutRecommendRequest{
 		ProjectId:      projectID,
@@ -196,8 +206,9 @@ func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, finding
 		Risk:           r.Risk,
 		Recommendation: r.Recommendation,
 	}); err != nil {
-		appLogger.Errorf("Failed to TagFinding, finding_id=%d, finding_type=%s, error=%+v", findingID, findingType, err)
+		return fmt.Errorf("Failed to TagFinding, finding_id=%d, finding_type=%s, error=%+v", findingID, findingType, err)
 	}
+	return nil
 }
 
 func scoreAccessAnalyzerFinding(status string, isPublic bool, actions []*string) float32 {

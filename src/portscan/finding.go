@@ -77,12 +77,20 @@ func (s *sqsHandler) putFinding(ctx context.Context, f *finding.FindingForUpsert
 	if err != nil {
 		return err
 	}
-	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS)
-	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagPortscan)
-	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, msg.AccountID)
+	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS); err != nil {
+		return err
+	}
+	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagPortscan); err != nil {
+		return err
+	}
+	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, msg.AccountID); err != nil {
+		return err
+	}
 	tagService := common.GetAWSServiceTagByARN(res.Finding.ResourceName)
 	if !zero.IsZeroVal(tagService) {
-		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, tagService)
+		if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, tagService); err != nil {
+			return err
+		}
 	}
 	// recommend
 	if err = s.putRecommend(ctx, res.Finding.ProjectId, res.Finding.FindingId, category, tagService); err != nil {
@@ -94,17 +102,17 @@ func (s *sqsHandler) putFinding(ctx context.Context, f *finding.FindingForUpsert
 	return nil
 }
 
-func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID uint64, tag string) {
-	_, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
+func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID uint64, tag string) error {
+	if _, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
 		ProjectId: projectID,
 		Tag: &finding.FindingTagForUpsert{
 			FindingId: findingID,
 			ProjectId: projectID,
 			Tag:       tag,
-		}})
-	if err != nil {
-		appLogger.Errorf("Failed to TagFinding. error: %v", err)
+		}}); err != nil {
+		return fmt.Errorf("Failed to TagFinding. error: %v", err)
 	}
+	return nil
 }
 
 func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, findingID uint64, category, service string) error {

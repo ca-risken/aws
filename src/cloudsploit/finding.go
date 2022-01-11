@@ -56,29 +56,48 @@ func (s *sqsHandler) putFinding(ctx context.Context, cloudsploitFinding *finding
 			},
 		})
 		if err != nil {
-			appLogger.Errorf("Failed to put finding project_id=%d, resource=%s, err=%+v", cloudsploitFinding.ProjectId, cloudsploitFinding.ResourceName, err)
+			appLogger.Errorf("Failed to PutResource project_id=%d, resource=%s, err=%+v", cloudsploitFinding.ProjectId, cloudsploitFinding.ResourceName, err)
 			return err
 		}
-		s.tagResource(ctx, cloudsploitFinding.ProjectId, res.Resource.ResourceId, common.TagAWS)
-		s.tagResource(ctx, cloudsploitFinding.ProjectId, res.Resource.ResourceId, serviceTag)
-		s.tagResource(ctx, cloudsploitFinding.ProjectId, res.Resource.ResourceId, msg.AccountID)
+		if err := s.tagResource(ctx, cloudsploitFinding.ProjectId, res.Resource.ResourceId, common.TagAWS); err != nil {
+			return err
+		}
+		if err := s.tagResource(ctx, cloudsploitFinding.ProjectId, res.Resource.ResourceId, serviceTag); err != nil {
+			return err
+		}
+		if err := s.tagResource(ctx, cloudsploitFinding.ProjectId, res.Resource.ResourceId, msg.AccountID); err != nil {
+			return err
+		}
 		return nil
 	}
 
 	// finding
 	res, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: cloudsploitFinding})
 	if err != nil {
+		appLogger.Errorf("Failed to PutFinding project_id=%d, resource=%s, err=%+v", cloudsploitFinding.ProjectId, cloudsploitFinding.ResourceName, err)
 		return err
 	}
 	// finding tag
-	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS)
-	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagCloudsploit)
-	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, msg.AccountID)
-	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, result.Plugin)
-	s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, serviceTag)
+	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS); err != nil {
+		return err
+	}
+	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagCloudsploit); err != nil {
+		return err
+	}
+	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, msg.AccountID); err != nil {
+		return err
+	}
+	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, result.Plugin); err != nil {
+		return err
+	}
+	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, serviceTag); err != nil {
+		return err
+	}
 	tags := getPluginTags(result.Category, result.Plugin)
 	for _, t := range tags {
-		s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, t)
+		if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, t); err != nil {
+			return err
+		}
 	}
 	// recommend
 	if err := s.putRecommend(ctx, res.Finding.ProjectId, res.Finding.FindingId, result.Category, result.Plugin); err != nil {
@@ -89,20 +108,20 @@ func (s *sqsHandler) putFinding(ctx context.Context, cloudsploitFinding *finding
 	return nil
 }
 
-func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID uint64, tag string) {
-	_, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
+func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID uint64, tag string) error {
+	if _, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
 		ProjectId: projectID,
 		Tag: &finding.FindingTagForUpsert{
 			FindingId: findingID,
 			ProjectId: projectID,
 			Tag:       tag,
-		}})
-	if err != nil {
-		appLogger.Errorf("Failed to TagFinding. error: %v", err)
+		}}); err != nil {
+		return fmt.Errorf("Failed to TagFinding. finding_id=%d, error=%v", findingID, err)
 	}
+	return nil
 }
 
-func (s *sqsHandler) tagResource(ctx context.Context, projectID uint32, resourceID uint64, tag string) {
+func (s *sqsHandler) tagResource(ctx context.Context, projectID uint32, resourceID uint64, tag string) error {
 	if _, err := s.findingClient.TagResource(ctx, &finding.TagResourceRequest{
 		ProjectId: projectID,
 		Tag: &finding.ResourceTagForUpsert{
@@ -111,8 +130,9 @@ func (s *sqsHandler) tagResource(ctx context.Context, projectID uint32, resource
 			Tag:        tag,
 		}},
 	); err != nil {
-		appLogger.Errorf("Failed to TagResource. error: %v", err)
+		return fmt.Errorf("Failed to TagResource. error: %v", err)
 	}
+	return nil
 }
 
 func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, findingID uint64, category, plugin string) error {
