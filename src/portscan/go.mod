@@ -11,9 +11,10 @@ require (
 	github.com/ca-risken/aws/pkg/common v0.0.0-20211004102725-c7fcf33f3fd3
 	github.com/ca-risken/aws/pkg/message v0.0.0-20211004102725-c7fcf33f3fd3
 	github.com/ca-risken/aws/proto/aws v0.0.0-20211004102725-c7fcf33f3fd3
-	github.com/ca-risken/common/pkg/logging v0.0.0-20211118071101-9855266b50a1
+	github.com/ca-risken/common/pkg/logging v0.0.0-20220112094211-be132d247e2b
 	github.com/ca-risken/common/pkg/portscan v0.0.0-20211124090848-375c75e97506
-	github.com/ca-risken/common/pkg/sqs v0.0.0-20211210074045-79fdb4c61950
+	github.com/ca-risken/common/pkg/rpc v0.0.0-20220112094211-be132d247e2b // indirect
+	github.com/ca-risken/common/pkg/sqs v0.0.0-20220112094211-be132d247e2b
 	github.com/ca-risken/common/pkg/xray v0.0.0-20211118071101-9855266b50a1
 	github.com/ca-risken/core/proto/alert v0.0.0-20211129081226-f2531e88f350
 	github.com/ca-risken/core/proto/finding v0.0.0-20211129081226-f2531e88f350
@@ -27,7 +28,6 @@ require (
 	github.com/valyala/fasthttp v1.30.0 // indirect
 	github.com/vikyd/zero v0.0.0-20190921142904-0f738d0bc858
 	golang.org/x/net v0.0.0-20210903162142-ad29c8ab022f // indirect
-	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20211129164237-f09f9a12af12 // indirect
 	google.golang.org/grpc v1.42.0

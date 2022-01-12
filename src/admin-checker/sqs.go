@@ -4,9 +4,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/ca-risken/common/pkg/logging"
 	"github.com/gassara-kys/envconfig"
 	"github.com/gassara-kys/go-sqs-poller/worker/v4"
-	"github.com/sirupsen/logrus"
 	"github.com/vikyd/zero"
 )
 
@@ -30,7 +30,7 @@ func newSQSConsumer() *worker.Worker {
 	}
 
 	if conf.Debug == "true" {
-		appLogger.SetLevel(logrus.DebugLevel)
+		appLogger.SetLevel(logging.DebugLevel)
 	}
 	var sqsClient *sqs.SQS
 	sess, err := session.NewSessionWithOptions(session.Options{
