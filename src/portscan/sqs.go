@@ -30,7 +30,7 @@ func newSQSConsumer() *worker.Worker {
 	}
 
 	if conf.Debug == "true" {
-		appLogger.SetLevel(logging.DebugLevel)
+		appLogger.Level(logging.DebugLevel)
 	}
 	var sqsClient *sqs.SQS
 	sess, err := session.NewSessionWithOptions(session.Options{
