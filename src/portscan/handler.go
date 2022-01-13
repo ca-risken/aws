@@ -125,7 +125,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		return nil
 	}
 	if err := s.analyzeAlert(ctx, msg.ProjectID); err != nil {
-		appLogger.MustNotifyf(logging.ErrorLevel, "Failed to analyzeAlert, project_id=%d, err=%+v", msg.ProjectID, err)
+		appLogger.Notifyf(logging.ErrorLevel, "Failed to analyzeAlert, project_id=%d, err=%+v", msg.ProjectID, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
 	return nil
