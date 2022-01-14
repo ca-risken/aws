@@ -41,6 +41,7 @@ type portscanClient struct {
 	RDS                   *rds.RDS
 	Lightsail             *lightsail.Lightsail
 	SecurityGroups        []*targetSG
+	relSecurityGroupARNs  map[string]*relSecurityGroupArn
 	target                []*target
 	Region                string
 	ScanExcludePortNumber int
@@ -153,6 +154,15 @@ func (p *portscanClient) getResult(ctx context.Context, message *message.AWSQueu
 			appLogger.Infof("Failed to getInstances(lightsail). but region %v is not supported LightSail", p.Region)
 		}
 	}
+
+	for k, v := range p.relSecurityGroupARNs {
+		appLogger.Debugf("AllSG, key: %v, val: %v", k, *v)
+		appLogger.Debugf("SG: %v", v.securityGroup)
+		for _, arn := range v.referenceARNs {
+			appLogger.Debugf("Arn: %v", arn)
+		}
+	}
+
 	excludeList := p.excludeScan()
 	nmapResults, err := p.scan()
 	if err != nil {
@@ -164,6 +174,7 @@ func (p *portscanClient) getResult(ctx context.Context, message *message.AWSQueu
 
 func (p *portscanClient) listSecurityGroup(ctx context.Context) error {
 	var retSG []*targetSG
+	allSecurityGroup := map[string]*relSecurityGroupArn{}
 	input := &ec2.DescribeSecurityGroupsInput{}
 	result, err := p.EC2.DescribeSecurityGroupsWithContext(ctx, input)
 	if err != nil {
@@ -180,6 +191,7 @@ func (p *portscanClient) listSecurityGroup(ctx context.Context) error {
 				tPort = int(*ipPermission.ToPort)
 				ipProtocol = *ipPermission.IpProtocol
 			}
+			isPublic := false
 			for _, ipRange := range ipPermission.IpRanges {
 				if *ipRange.CidrIp == "0.0.0.0/0" {
 					retSG = append(retSG, &targetSG{
@@ -189,11 +201,18 @@ func (p *portscanClient) listSecurityGroup(ctx context.Context) error {
 						groupID:   *securityGroup.GroupId,
 						groupName: *securityGroup.GroupName,
 					})
+					isPublic = true
 				}
+			}
+			// for resource
+			allSecurityGroup[*securityGroup.GroupId] = &relSecurityGroupArn{
+				securityGroup: securityGroup,
+				isPublic:      isPublic,
 			}
 		}
 	}
 	p.SecurityGroups = retSG
+	p.relSecurityGroupARNs = allSecurityGroup
 	return nil
 }
 
@@ -223,6 +242,9 @@ func (p *portscanClient) listEC2(ctx context.Context, accountID string) error {
 		}
 	}
 	for _, ec2 := range listEC2 {
+		// for resource
+		p.addRelSecurityGroupARNs(ec2.GroupID, fmt.Sprintf("arn:aws:ec2:%v:%v:instance/%v", p.Region, accountID, ec2.InstanceID))
+
 		securityGroups := p.getMatchSecurityGroup(ec2.GroupID)
 		if zero.IsZeroVal(securityGroups) {
 			continue
@@ -240,9 +262,7 @@ func (p *portscanClient) listEC2(ctx context.Context, accountID string) error {
 			p.target = append(p.target, targetEC2)
 		}
 	}
-	//	for _, aaa := range retEC2 {
-	//		fmt.Printf("%v\n", aaa)
-	//	}
+
 	return nil
 }
 
@@ -262,6 +282,9 @@ func (p *portscanClient) listELB(ctx context.Context, accountID string) error {
 		})
 	}
 	for _, elb := range listELB {
+		// for resource
+		p.addRelSecurityGroupARNs(elb.GroupID, fmt.Sprintf("arn:aws:elasticloadbalancing:%v:%v:loadbalancer/%v", p.Region, accountID, elb.LoadBalancerName))
+
 		securityGroups := p.getMatchSecurityGroup(elb.GroupID)
 		if zero.IsZeroVal(securityGroups) {
 			continue
@@ -280,9 +303,6 @@ func (p *portscanClient) listELB(ctx context.Context, accountID string) error {
 		}
 	}
 
-	//	for _, aaa := range retELB {
-	//		fmt.Printf("%v\n", aaa)
-	//	}
 	return nil
 }
 
@@ -302,6 +322,9 @@ func (p *portscanClient) listELBv2(ctx context.Context) error {
 		})
 	}
 	for _, elbv2 := range listELBv2 {
+		// for resource
+		p.addRelSecurityGroupARNs(elbv2.GroupID, elbv2.LoadBalancerArn)
+
 		securityGroups := p.getMatchSecurityGroup(elbv2.GroupID)
 		if zero.IsZeroVal(securityGroups) {
 			continue
@@ -349,6 +372,9 @@ func (p *portscanClient) listRDS(ctx context.Context) error {
 	}
 
 	for _, rds := range listRDS {
+		// for resource
+		p.addRelSecurityGroupARNs(rds.GroupID, rds.DBInstanceArn)
+
 		securityGroups := p.getMatchSecurityGroup(rds.GroupID)
 		if zero.IsZeroVal(securityGroups) {
 			continue
@@ -367,9 +393,6 @@ func (p *portscanClient) listRDS(ctx context.Context) error {
 		}
 	}
 
-	//	for _, aaa := range retELBv2 {
-	//		fmt.Printf("%v\n", aaa)
-	//	}
 	return nil
 }
 
@@ -437,6 +460,16 @@ func (p *portscanClient) excludeScan() []*excludeResult {
 	return excludeList
 }
 
+func (p *portscanClient) addRelSecurityGroupARNs(targetSecurityGroups []*string, arn string) {
+	for _, sg := range targetSecurityGroups {
+		for groupID := range p.relSecurityGroupARNs {
+			if *sg == groupID {
+				p.relSecurityGroupARNs[groupID].referenceARNs = append(p.relSecurityGroupARNs[groupID].referenceARNs, arn)
+			}
+		}
+	}
+}
+
 func (p *portscanClient) getMatchSecurityGroup(targetSecurityGroups []*string) []*targetSG {
 	var ret []*targetSG
 	for _, sg := range targetSecurityGroups {
@@ -472,6 +505,12 @@ type targetSG struct {
 	protocol  string
 	groupID   string
 	groupName string
+}
+
+type relSecurityGroupArn struct {
+	securityGroup *ec2.SecurityGroup
+	referenceARNs []string
+	isPublic      bool
 }
 
 type target struct {
