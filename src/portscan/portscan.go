@@ -287,17 +287,25 @@ func (p *portscanClient) listELB(ctx context.Context, accountID string) error {
 }
 
 func (p *portscanClient) listELBv2(ctx context.Context) error {
-	var listELBv2 []*infoELBv2
 	input := &elbv2.DescribeLoadBalancersInput{}
 	result, err := p.ELBv2.DescribeLoadBalancersWithContext(ctx, input)
 	if err != nil {
 		appLogger.Errorf("error occured when DescribeLoadBalancers: %v", err)
 		return err
 	}
-	for _, l := range result.LoadBalancers {
+	p.setELBv2(result)
+	return nil
+}
+
+func (p *portscanClient) setELBv2(lbs *elbv2.DescribeLoadBalancersOutput) {
+	if lbs == nil {
+		return
+	}
+	var listELBv2 []*infoELBv2
+	for _, l := range lbs.LoadBalancers {
 		listELBv2 = append(listELBv2, &infoELBv2{
-			LoadBalancerArn: *l.LoadBalancerArn,
-			DNSName:         *l.DNSName,
+			LoadBalancerArn: convertNilString(l.LoadBalancerArn),
+			DNSName:         convertNilString(l.DNSName),
 			GroupID:         l.SecurityGroups,
 		})
 	}
@@ -319,7 +327,6 @@ func (p *portscanClient) listELBv2(ctx context.Context) error {
 			p.target = append(p.target, targetELB)
 		}
 	}
-	return nil
 }
 
 func (p *portscanClient) listRDS(ctx context.Context) error {
@@ -517,4 +524,11 @@ type excludeResult struct {
 	Arn           string
 	SecurityGroup string
 	Category      string
+}
+
+func convertNilString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
