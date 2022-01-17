@@ -91,7 +91,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 			appLogger.Errorf("Failed to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.handleErrorWithUpdateStatus(ctx, &status, err)
 		}
-		nmapResults, excludeList, err := portscan.getResult(ctx, msg)
+		nmapResults, excludeList, securityGroups, err := portscan.getResult(ctx, msg)
 		if err != nil {
 			appLogger.Errorf("Failed to get findings to AWS Portscan: AccountID=%+v, err=%+v", msg.AccountID, err)
 			return s.handleErrorWithUpdateStatus(ctx, &status, err)
@@ -110,7 +110,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		}
 
 		// Put finding to core
-		if err := s.putFindings(ctx, msg, nmapResults, excludeList); err != nil {
+		if err := s.putFindings(ctx, msg, nmapResults, excludeList, securityGroups); err != nil {
 			appLogger.Errorf("Failed to put findings: AccountID=%+v, err=%+v", msg.AccountID, err)
 			statusDetail = fmt.Sprintf("%v%v", statusDetail, err.Error())
 		}
