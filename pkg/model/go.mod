@@ -1,3 +1,3 @@
 module github.com/ca-risken/aws/pkg/model
 
-go 1.16
+go 1.17
