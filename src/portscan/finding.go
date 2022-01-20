@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/ca-risken/aws/pkg/common"
 	"github.com/ca-risken/aws/pkg/message"
@@ -48,7 +49,32 @@ func makeExcludeFindings(results []*excludeResult, message *message.AWSQueueMess
 	return findings, nil
 }
 
-func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessage, nmapResults []*portscan.NmapResult, excludeResults []*excludeResult) error {
+func makeSecurityGroupFindings(results map[string]*relSecurityGroupArn, message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
+	var findings []*finding.FindingForUpsert
+	for groupArn, r := range results {
+		data, err := json.Marshal(r)
+		if err != nil {
+			return nil, err
+		}
+		score := float32(1.0)
+		if r.IsPublic {
+			score = 3.0
+		}
+		findings = append(findings, &finding.FindingForUpsert{
+			Description:      getSecurityGroupDescription(groupArn, r.SecurityGroup.GroupId, r.IsPublic),
+			DataSource:       message.DataSource,
+			DataSourceId:     generateDataSourceID(fmt.Sprintf("%v:portscan_sg:%v", message.AWSID, groupArn)),
+			ResourceName:     groupArn,
+			ProjectId:        message.ProjectID,
+			OriginalScore:    score,
+			OriginalMaxScore: 10.0,
+			Data:             string(data),
+		})
+	}
+	return findings, nil
+}
+
+func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessage, nmapResults []*portscan.NmapResult, excludeResults []*excludeResult, securityGroups map[string]*relSecurityGroupArn) error {
 	findingsNmap, err := makeFindings(nmapResults, msg)
 	if err != nil {
 		return err
@@ -64,6 +90,16 @@ func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 		return err
 	}
 	for _, f := range findingsExclude {
+		err := s.putFinding(ctx, f, msg, categoryManyOpen)
+		if err != nil {
+			return err
+		}
+	}
+	findingsSecurityGroup, err := makeSecurityGroupFindings(securityGroups, msg)
+	if err != nil {
+		return err
+	}
+	for _, f := range findingsSecurityGroup {
 		err := s.putFinding(ctx, f, msg, categoryManyOpen)
 		if err != nil {
 			return err
@@ -88,6 +124,9 @@ func (s *sqsHandler) putFinding(ctx context.Context, f *finding.FindingForUpsert
 	}
 	tagService := common.GetAWSServiceTagByARN(res.Finding.ResourceName)
 	if !zero.IsZeroVal(tagService) {
+		if tagService == common.TagEC2 && strings.Contains(res.Finding.ResourceName, "security-group") {
+			tagService = "securitygroup"
+		}
 		if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, tagService); err != nil {
 			return err
 		}
@@ -144,6 +183,14 @@ func getExcludeDescription(target, protocol string, fPort, tPort int, securityGr
 		return fmt.Sprintf("Too many ports are exposed.target:%v protocol: %v, port %v-%v,securiry_group: %v", target, protocol, fPort, tPort, securityGroup)
 	}
 	return fmt.Sprintf("Too many ports are exposed.target:%v protocol: %v, port %v-%v", target, protocol, fPort, tPort)
+}
+
+func getSecurityGroupDescription(groupArn string, groupID *string, isPublic bool) string {
+	if groupID == nil {
+		return fmt.Sprintf("security group was found. groupArn: %v, Public: %v", groupArn, isPublic)
+	}
+	return fmt.Sprintf("security group was found. groupID: %v, Public: %v", *groupID, isPublic)
+
 }
 
 func generateDataSourceID(input string) string {
