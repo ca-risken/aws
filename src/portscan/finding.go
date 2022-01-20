@@ -51,20 +51,20 @@ func makeExcludeFindings(results []*excludeResult, message *message.AWSQueueMess
 
 func makeSecurityGroupFindings(results map[string]*relSecurityGroupArn, message *message.AWSQueueMessage) ([]*finding.FindingForUpsert, error) {
 	var findings []*finding.FindingForUpsert
-	for groupID, r := range results {
+	for groupArn, r := range results {
 		data, err := json.Marshal(r)
 		if err != nil {
 			return nil, err
 		}
 		score := float32(1.0)
 		if r.IsPublic {
-			score = 6.0
+			score = 3.0
 		}
 		findings = append(findings, &finding.FindingForUpsert{
-			Description:      getSecurityGroupDescription(groupID, r.IsPublic),
+			Description:      getSecurityGroupDescription(groupArn, r.SecurityGroup.GroupId, r.IsPublic),
 			DataSource:       message.DataSource,
-			DataSourceId:     generateDataSourceID(fmt.Sprintf("%v:portscan_sg:%v", message.AWSID, groupID)),
-			ResourceName:     groupID,
+			DataSourceId:     generateDataSourceID(fmt.Sprintf("%v:portscan_sg:%v", message.AWSID, groupArn)),
+			ResourceName:     groupArn,
 			ProjectId:        message.ProjectID,
 			OriginalScore:    score,
 			OriginalMaxScore: 10.0,
@@ -185,8 +185,12 @@ func getExcludeDescription(target, protocol string, fPort, tPort int, securityGr
 	return fmt.Sprintf("Too many ports are exposed.target:%v protocol: %v, port %v-%v", target, protocol, fPort, tPort)
 }
 
-func getSecurityGroupDescription(groupID string, isPublic bool) string {
-	return fmt.Sprintf("security group was found. groupID: %v, isEnabledPublicAccess: %v", groupID, isPublic)
+func getSecurityGroupDescription(groupArn string, groupID *string, isPublic bool) string {
+	if groupID == nil {
+		return fmt.Sprintf("security group was found. groupArn: %v, Public: %v", groupArn, isPublic)
+	}
+	return fmt.Sprintf("security group was found. groupID: %v, Public: %v", *groupID, isPublic)
+
 }
 
 func generateDataSourceID(input string) string {
