@@ -43,6 +43,8 @@ github.com/ca-risken/common/pkg/sqs v0.0.0-20220113015330-0e8462d52b5b h1:i3DKXw
 github.com/ca-risken/common/pkg/sqs v0.0.0-20220113015330-0e8462d52b5b/go.mod h1:TX6Wn+5I32GuOrEzO41b9VbQOxERSbI05Q0JHHdud3o=
 github.com/ca-risken/common/pkg/xray v0.0.0-20211118071101-9855266b50a1 h1:SjbAAb2H9yZu4Ecs9aL2tNdgifTzYTSxY4qjXFubnYI=
 github.com/ca-risken/common/pkg/xray v0.0.0-20211118071101-9855266b50a1/go.mod h1:1QELprYp9UidwqzB1253qA00l3umMen4njJMFRNq5Po=
+github.com/ca-risken/core/proto/project v0.0.0-20220120020932-292d4285ee31 h1:rLGNhjEn6DlPvvhjPHG6CUIFl0mSrPChocX5UjSW6Bw=
+github.com/ca-risken/core/proto/project v0.0.0-20220120020932-292d4285ee31/go.mod h1:2wvmStoiOXmoWx8TbXMJPRc+rN6uGA1uPEbDAVT5gDo=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/cespare/xxhash/v2 v2.1.1/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
@@ -63,6 +65,7 @@ github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1m
 github.com/envoyproxy/go-control-plane v0.9.9-0.20201210154907-fd9021fe5dad/go.mod h1:cXg6YxExXjJnVBQHBLXeUAgxn2UodCpnH306RInaBQk=
 github.com/envoyproxy/go-control-plane v0.9.9-0.20210512163311-63b5d3c536b0/go.mod h1:hliV/p42l8fGbc6Y9bQ70uLwIvmJyVE5k4iMKlh8wCQ=
 github.com/envoyproxy/go-control-plane v0.9.10-0.20210907150352-cf90f659a021/go.mod h1:AFq3mo9L8Lqqiid3OhADV3RfLJnjiw63cSpi+fDTRC0=
+github.com/envoyproxy/protoc-gen-validate v0.1.0 h1:EQciDnbrYxy13PgWoY8AqoxGiPrpgBZ1R8UNe3ddc+A=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
 github.com/gassara-kys/envconfig v1.4.4 h1:T80dkGadFnVOpQUnhJr4prSXtcHKXu8ajBUhyBpoup0=
 github.com/gassara-kys/envconfig v1.4.4/go.mod h1:wg0dgDDpjb5TSQNIgSG9TrOtDRUkcTTz+9kSx2nYw9s=
