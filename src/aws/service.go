@@ -10,19 +10,22 @@ import (
 	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/aws/pkg/model"
 	"github.com/ca-risken/aws/proto/aws"
+	"github.com/ca-risken/core/proto/project"
 	"github.com/golang/protobuf/ptypes/empty"
 	"gorm.io/gorm"
 )
 
 type awsService struct {
-	repository awsRepoInterface
-	sqs        sqsAPI
+	repository    awsRepoInterface
+	sqs           sqsAPI
+	projectClient project.ProjectServiceClient
 }
 
 func newAWSService() aws.AWSServiceServer {
 	return &awsService{
-		repository: newAWSRepository(),
-		sqs:        newSQSClient(),
+		repository:    newAWSRepository(),
+		sqs:           newSQSClient(),
+		projectClient: newProjectClient(),
 	}
 }
 
@@ -229,6 +232,13 @@ func (a *awsService) InvokeScanAll(ctx context.Context, req *aws.InvokeScanAllRe
 	}
 	for _, dataSource := range *list {
 		if skipScanDataSource(dataSource.DataSource) {
+			continue
+		}
+		if resp, err := a.projectClient.IsActive(ctx, &project.IsActiveRequest{ProjectId: dataSource.ProjectID}); err != nil {
+			appLogger.Errorf("Failed to project.IsActive API, err=%+v", err)
+			continue
+		} else if !resp.Active {
+			appLogger.Infof("Skip deactive project, project_id=%d", dataSource.ProjectID)
 			continue
 		}
 		if _, err := a.InvokeScan(ctx, &aws.InvokeScanRequest{

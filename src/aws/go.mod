@@ -12,6 +12,7 @@ require (
 	github.com/ca-risken/common/pkg/logging v0.0.0-20220113015330-0e8462d52b5b
 	github.com/ca-risken/common/pkg/rpc v0.0.0-20220113015330-0e8462d52b5b
 	github.com/ca-risken/common/pkg/xray v0.0.0-20211118071101-9855266b50a1
+	github.com/ca-risken/core/proto/project v0.0.0-20220120020932-292d4285ee31
 	github.com/gassara-kys/envconfig v1.4.4
 	github.com/golang/protobuf v1.5.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
@@ -26,6 +27,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/ca-risken/common/pkg/sqs v0.0.0-20220113015330-0e8462d52b5b // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/envoyproxy/protoc-gen-validate v0.1.0 // indirect
 	github.com/gassara-kys/go-sqs-poller/worker/v4 v4.0.0-20210215110542-0be358599a2f // indirect
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible // indirect
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
