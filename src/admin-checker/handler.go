@@ -128,7 +128,7 @@ func (s *sqsHandler) putUserFindings(ctx context.Context, msg *message.AWSQueueM
 		}
 		// Put finding to core
 		if err := s.putFindings(ctx, typeAdmin, msg, &finding.FindingForUpsert{
-			Description:      fmt.Sprintf("AdminChekcer: %s(admin=%t)", user.UserName, (user.IsUserAdmin || user.IsGroupAdmin)),
+			Description:      fmt.Sprintf("AdminChekcer: %s(admin=%t)", user.UserName, user.IsUserAdmin || user.IsGroupAdmin),
 			DataSource:       msg.DataSource,
 			DataSourceId:     user.UserArn,
 			ResourceName:     user.UserArn,

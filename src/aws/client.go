@@ -7,6 +7,7 @@ import (
 	"github.com/ca-risken/core/proto/project"
 	"github.com/gassara-kys/envconfig"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type projectConfig struct {
@@ -31,7 +32,7 @@ func newProjectClient() project.ProjectServiceClient {
 func getGRPCConn(ctx context.Context, addr string) (*grpc.ClientConn, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}

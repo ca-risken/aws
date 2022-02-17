@@ -8,6 +8,7 @@ import (
 	"github.com/ca-risken/aws/proto/aws"
 	"github.com/gassara-kys/envconfig"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type awsConfig struct {
@@ -33,7 +34,7 @@ func getGRPCConn(ctx context.Context, addr string) (*grpc.ClientConn, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, addr,
-		grpc.WithUnaryInterceptor(xray.UnaryClientInterceptor()), grpc.WithInsecure())
+		grpc.WithUnaryInterceptor(xray.UnaryClientInterceptor()), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		appLogger.Fatalf("Failed to connect backend gRPC server, addr=%s, err=%+v", addr, err)
 		return nil, err
