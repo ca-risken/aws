@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/ca-risken/aws/pkg/message"
-	"github.com/gassara-kys/envconfig"
 )
 
 type adminCheckerAPI interface {
@@ -27,19 +26,9 @@ type adminCheckerClient struct {
 	Svc  *iam.IAM
 }
 
-type adminCheckerConfig struct {
-	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"`
-}
-
-func newAdminCheckerClient(assumeRole, externalID string) (adminCheckerAPI, error) {
-	var conf adminCheckerConfig
-	err := envconfig.Process("", &conf)
-	if err != nil {
-		return nil, err
-	}
-
+func newAdminCheckerClient(awsRegion, assumeRole, externalID string) (adminCheckerAPI, error) {
 	a := adminCheckerClient{}
-	if err := a.newAWSSession(conf.AWSRegion, assumeRole, externalID); err != nil {
+	if err := a.newAWSSession(awsRegion, assumeRole, externalID); err != nil {
 		return nil, err
 	}
 	return &a, nil
