@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/guardduty"
 	"github.com/ca-risken/aws/pkg/message"
-	"github.com/gassara-kys/envconfig"
 )
 
 type guardDutyAPI interface {
@@ -31,20 +30,7 @@ type guardDutyClient struct {
 	EC2  *ec2.EC2
 }
 
-type guardDutyConfig struct {
-	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
-}
-
 func newGuardDutyClient(region, assumeRole, externalID string) (guardDutyAPI, error) {
-	if region == "" {
-		var conf guardDutyConfig
-		err := envconfig.Process("", &conf)
-		if err != nil {
-			return nil, err
-		}
-		region = conf.AWSRegion
-	}
-
 	g := guardDutyClient{}
 	if err := g.newAWSSession(region, assumeRole, externalID); err != nil {
 		return nil, err

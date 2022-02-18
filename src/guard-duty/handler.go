@@ -20,14 +20,7 @@ type sqsHandler struct {
 	findingClient finding.FindingServiceClient
 	alertClient   alert.AlertServiceClient
 	awsClient     awsClient.AWSServiceClient
-}
-
-func newHandler() *sqsHandler {
-	return &sqsHandler{
-		findingClient: newFindingClient(),
-		alertClient:   newAlertClient(),
-		awsClient:     newAWSClient(),
-	}
+	awsRegion     string
 }
 
 func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
@@ -47,7 +40,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	appLogger.Infof("start Scan, RequestID=%s", requestID)
 
 	status := common.InitScanStatus(msg)
-	guardduty, err := newGuardDutyClient("", msg.AssumeRoleArn, msg.ExternalID)
+	guardduty, err := newGuardDutyClient(s.awsRegion, msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create GuardDuty session: err=%+v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
