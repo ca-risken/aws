@@ -22,14 +22,7 @@ type sqsHandler struct {
 	findingClient finding.FindingServiceClient
 	alertClient   alert.AlertServiceClient
 	awsClient     awsClient.AWSServiceClient
-}
-
-func newHandler() *sqsHandler {
-	return &sqsHandler{
-		findingClient: newFindingClient(),
-		alertClient:   newAlertClient(),
-		awsClient:     newAWSClient(),
-	}
+	awsRegion     string
 }
 
 func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
@@ -49,7 +42,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	appLogger.Infof("start Scan, RequestID=%s", requestID)
 
 	status := common.InitScanStatus(msg)
-	accessAnalyzer, err := newAccessAnalyzerClient("", msg.AssumeRoleArn, msg.ExternalID)
+	accessAnalyzer, err := newAccessAnalyzerClient(s.awsRegion, msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create AccessAnalyzer session: err=%+v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
