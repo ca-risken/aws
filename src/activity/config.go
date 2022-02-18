@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/ca-risken/aws/proto/activity"
-	"github.com/gassara-kys/envconfig"
 	"github.com/vikyd/zero"
 )
 
@@ -20,22 +19,13 @@ type configServiceAPI interface {
 	listConfigHistory(ctx context.Context, req *activity.ListConfigHistoryRequest, role, externalID string) (*activity.ListConfigHistoryResponse, error)
 }
 
-type configServiceConfig struct {
-	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
-}
-
 type configServiceClient struct {
 	defaultRegion string
 }
 
-func newConfigServiceClient() configServiceAPI {
-	var conf configServiceConfig
-	err := envconfig.Process("", &conf)
-	if err != nil {
-		appLogger.Fatalf("Failed to load config, %+v", err)
-	}
+func newConfigServiceClient(defaultRegion string) configServiceAPI {
 	return &configServiceClient{
-		defaultRegion: conf.AWSRegion,
+		defaultRegion: defaultRegion,
 	}
 }
 

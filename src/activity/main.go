@@ -14,13 +14,19 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-type acitivityConfig struct {
+type AppConfig struct {
 	Port    string `default:"9007"`
 	EnvName string `default:"local" split_words:"true"`
+
+	// aws
+	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
+
+	// grpc
+	AWSSvcAddr string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
 }
 
 func main() {
-	var conf acitivityConfig
+	var conf AppConfig
 	err := envconfig.Process("", &conf)
 	if err != nil {
 		appLogger.Fatal(err.Error())
@@ -35,14 +41,18 @@ func main() {
 		appLogger.Fatal(err)
 	}
 
+	service := &activityService{}
+	service.awsClient = newAWSClient(conf.AWSSvcAddr)
+	service.cloudTrailClient = newCloudTrailClient(conf.AWSRegion)
+	service.configClient = newConfigServiceClient(conf.AWSRegion)
+
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
 			grpcmiddleware.ChainUnaryServer(
 				mimosarpc.LoggingUnaryServerInterceptor(appLogger),
 				xray.UnaryServerInterceptor(),
 				mimosaxray.AnnotateEnvTracingUnaryServerInterceptor(conf.EnvName))))
-	activityServer := newActivityService()
-	activity.RegisterActivityServiceServer(server, activityServer)
+	activity.RegisterActivityServiceServer(server, service)
 	reflection.Register(server)
 	appLogger.Infof("Starting gRPC server at :%s", conf.Port)
 	if err := server.Serve(l); err != nil {

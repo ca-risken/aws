@@ -17,14 +17,6 @@ type activityService struct {
 	configClient     configServiceAPI
 }
 
-func newActivityService() activity.ActivityServiceServer {
-	return &activityService{
-		awsClient:        newAWSClient(),
-		cloudTrailClient: newCloudTrailClient(),
-		configClient:     newConfigServiceClient(),
-	}
-}
-
 func (a *activityService) DescribeARN(ctx context.Context, req *activity.DescribeARNRequest) (*activity.DescribeARNResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
