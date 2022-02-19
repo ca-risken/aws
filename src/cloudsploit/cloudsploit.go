@@ -8,33 +8,17 @@ import (
 	"os"
 	"os/exec"
 	"time"
-
-	"github.com/gassara-kys/envconfig"
 )
 
-type cloudsploitConfig struct {
-	ResultDir      string `required:"true" split_words:"true" default:"/tmp"`
-	ConfigDir      string `required:"true" split_words:"true" default:"/tmp"`
-	CloudsploitDir string `required:"true" split_words:"true" default:"/opt/cloudsploit"`
-	AWSRegion      string `envconfig:"aws_region"             default:"ap-northeast-1"`
+type CloudsploitConfig struct {
+	ResultDir      string
+	ConfigDir      string
+	CloudsploitDir string
+	AWSRegion      string
 	ConfigPath     string
 }
 
-func newcloudsploitConfig(assumeRole, externalID string, awsID uint32, accountID string) (cloudsploitConfig, error) {
-	var conf cloudsploitConfig
-	err := envconfig.Process("", &conf)
-	if err != nil {
-		return conf, err
-	}
-	configPath, err := conf.makeConfig(conf.AWSRegion, assumeRole, externalID, awsID, accountID)
-	if err != nil {
-		return conf, err
-	}
-	conf.ConfigPath = configPath
-	return conf, nil
-}
-
-func (c *cloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) {
+func (c *CloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) {
 	now := time.Now().UnixNano()
 	filePath := fmt.Sprintf("%v/%v_%v.json", c.ResultDir, accountID, now)
 	cmd := exec.Command(fmt.Sprintf("%v/index.js", c.CloudsploitDir),
