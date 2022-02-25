@@ -9,26 +9,64 @@ import (
 	"github.com/gassara-kys/envconfig"
 )
 
-type serviceConfig struct {
+type AppConfig struct {
 	EnvName string `default:"local" split_words:"true"`
+
+	// grpc
+	FindingSvcAddr string `required:"true" split_words:"true" default:"finding.core.svc.cluster.local:8001"`
+
+	// aws
+	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
+
+	// accessAnalyzer
+	AlertSvcAddr string `required:"true" split_words:"true" default:"alert.core.svc.cluster.local:8004"`
+	AWSSvcAddr   string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
+
+	// sqs
+	Debug string `default:"false"`
+
+	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://queue.middleware.svc.cluster.local:9324"`
+
+	AccessAnalyzerQueueName string `split_words:"true" default:"aws-accessanalyzer"`
+	AccessAnalyzerQueueURL  string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-accessanalyzer"`
+	MaxNumberOfMessage      int64  `split_words:"true" default:"10"`
+	WaitTimeSecond          int64  `split_words:"true" default:"20"`
 }
 
 func main() {
-	var conf serviceConfig
+	var conf AppConfig
 	err := envconfig.Process("", &conf)
 	if err != nil {
 		appLogger.Fatal(err.Error())
 	}
-	ctx := context.Background()
 	err = mimosaxray.InitXRay(xray.Config{})
 	if err != nil {
 		appLogger.Fatal(err.Error())
 	}
-	consumer := newSQSConsumer()
+
+	handler := &sqsHandler{
+		awsRegion: conf.AWSRegion,
+	}
+	handler.findingClient = newFindingClient(conf.FindingSvcAddr)
+	handler.alertClient = newAlertClient(conf.AlertSvcAddr)
+	handler.awsClient = newAWSClient(conf.AWSSvcAddr)
+
+	sqsConf := &SQSConfig{
+		Debug:                   conf.Debug,
+		AWSRegion:               conf.AWSRegion,
+		SQSEndpoint:             conf.SQSEndpoint,
+		AccessAnalyzerQueueName: conf.AccessAnalyzerQueueName,
+		AccessAnalyzerQueueURL:  conf.AccessAnalyzerQueueURL,
+		MaxNumberOfMessage:      conf.MaxNumberOfMessage,
+		WaitTimeSecond:          conf.WaitTimeSecond,
+	}
+	consumer := newSQSConsumer(sqsConf)
+
 	appLogger.Info("Start the AWS AccessAnalyzer SQS consumer server...")
+	ctx := context.Background()
 	consumer.Start(ctx,
 		mimosasqs.InitializeHandler(
 			mimosasqs.RetryableErrorHandler(
 				mimosasqs.StatusLoggingHandler(appLogger,
-					mimosaxray.MessageTracingHandler(conf.EnvName, "aws.accessAnalyzer", newHandler())))))
+					mimosaxray.MessageTracingHandler(conf.EnvName, "aws.accessAnalyzer", handler)))))
 }

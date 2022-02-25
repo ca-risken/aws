@@ -5,30 +5,23 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/ca-risken/common/pkg/logging"
-	"github.com/gassara-kys/envconfig"
 	"github.com/gassara-kys/go-sqs-poller/worker/v4"
 	"github.com/vikyd/zero"
 )
 
-type sqsConfig struct {
-	Debug string `default:"false"`
+type SQSConfig struct {
+	Debug string
 
-	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
-	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://queue.middleware.svc.cluster.local:9324"`
+	AWSRegion   string
+	SQSEndpoint string
 
-	AccessAnalyzerQueueName string `split_words:"true" default:"aws-accessanalyzer"`
-	AccessAnalyzerQueueURL  string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-accessanalyzer"`
-	MaxNumberOfMessage      int64  `split_words:"true" default:"10"`
-	WaitTimeSecond          int64  `split_words:"true" default:"20"`
+	AccessAnalyzerQueueName string
+	AccessAnalyzerQueueURL  string
+	MaxNumberOfMessage      int64
+	WaitTimeSecond          int64
 }
 
-func newSQSConsumer() *worker.Worker {
-	var conf sqsConfig
-	err := envconfig.Process("", &conf)
-	if err != nil {
-		appLogger.Fatal(err.Error())
-	}
-
+func newSQSConsumer(conf *SQSConfig) *worker.Worker {
 	if conf.Debug == "true" {
 		appLogger.Level(logging.DebugLevel)
 	}

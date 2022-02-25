@@ -15,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/core/proto/finding"
-	"github.com/gassara-kys/envconfig"
 )
 
 type accessAnalyzerAPI interface {
@@ -31,19 +30,7 @@ type accessAnalyzerClient struct {
 	EC2  *ec2.EC2
 }
 
-type accessAnalyzerConfig struct {
-	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
-}
-
 func newAccessAnalyzerClient(region, assumeRole, externalID string) (accessAnalyzerAPI, error) {
-	if region == "" {
-		var conf accessAnalyzerConfig
-		err := envconfig.Process("", &conf)
-		if err != nil {
-			return nil, err
-		}
-		region = conf.AWSRegion
-	}
 	a := accessAnalyzerClient{}
 	if err := a.newAWSSession(region, assumeRole, externalID); err != nil {
 		return nil, err

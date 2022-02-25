@@ -21,14 +21,11 @@ type sqsHandler struct {
 	findingClient finding.FindingServiceClient
 	alertClient   alert.AlertServiceClient
 	awsClient     awsClient.AWSServiceClient
-}
-
-func newHandler() *sqsHandler {
-	return &sqsHandler{
-		findingClient: newFindingClient(),
-		alertClient:   newAlertClient(),
-		awsClient:     newAWSClient(),
-	}
+	// cloudsploit
+	resultDir      string
+	configDir      string
+	cloudsploitDir string
+	awsRegion      string
 }
 
 func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
@@ -54,7 +51,13 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		return s.handleErrorWithUpdateStatus(ctx, &status, fmt.Errorf("AssumeRoleArn for CloudSploit must be created in AWS AccountID: %v", msg.AccountID))
 	}
 
-	cloudsploitConfig, err := newcloudsploitConfig(msg.AssumeRoleArn, msg.ExternalID, msg.AWSID, msg.AccountID)
+	cloudsploitConf := &CloudsploitConfig{
+		ResultDir:      s.resultDir,
+		ConfigDir:      s.configDir,
+		CloudsploitDir: s.cloudsploitDir,
+		AWSRegion:      s.awsRegion,
+	}
+	err = cloudsploitConf.generate(msg.AssumeRoleArn, msg.ExternalID, msg.AWSID, msg.AccountID)
 	if err != nil {
 		appLogger.Errorf("Error occured when configure: %v, error: %v", msg, err)
 		return mimosasqs.WrapNonRetryable(err)
@@ -63,7 +66,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 
 	// Run cloudsploit
 	_, segment := xray.BeginSubsegment(ctx, "runCloudSploit")
-	cloudsploitResult, err := cloudsploitConfig.run(msg.AccountID)
+	cloudsploitResult, err := cloudsploitConf.run(msg.AccountID)
 	segment.Close(err)
 	if err != nil {
 		appLogger.Errorf("Failed to exec cloudsploit, error: %v", err)

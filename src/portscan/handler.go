@@ -18,17 +18,11 @@ import (
 )
 
 type sqsHandler struct {
-	findingClient finding.FindingServiceClient
-	alertClient   alert.AlertServiceClient
-	awsClient     awsClient.AWSServiceClient
-}
-
-func newHandler() *sqsHandler {
-	return &sqsHandler{
-		findingClient: newFindingClient(),
-		alertClient:   newAlertClient(),
-		awsClient:     newAWSClient(),
-	}
+	findingClient         finding.FindingServiceClient
+	alertClient           alert.AlertServiceClient
+	awsClient             awsClient.AWSServiceClient
+	awsRegion             string
+	scanExcludePortNumber int
 }
 
 func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
@@ -68,7 +62,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	}
 
 	// Get portscan
-	portscan, err := newPortscanClient("", msg.AssumeRoleArn, msg.ExternalID)
+	portscan, err := newPortscanClient(s.awsRegion, msg.AssumeRoleArn, msg.ExternalID, s.scanExcludePortNumber)
 	if err != nil {
 		appLogger.Errorf("Failed to create Portscan session: err=%+v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
@@ -86,7 +80,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 			return s.handleErrorWithUpdateStatus(ctx, &status, err)
 		}
 		appLogger.Infof("Start %s region search...", *region.RegionName)
-		portscan, err = newPortscanClient(*region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
+		portscan, err = newPortscanClient(*region.RegionName, msg.AssumeRoleArn, msg.ExternalID, s.scanExcludePortNumber)
 		if err != nil {
 			appLogger.Errorf("Failed to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.handleErrorWithUpdateStatus(ctx, &status, err)

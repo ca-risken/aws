@@ -10,18 +10,17 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/ca-risken/aws/pkg/message"
-	"github.com/gassara-kys/envconfig"
 )
 
-type sqsConfig struct {
-	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
-	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://queue.middleware.svc.cluster.local:9324"`
+type SQSConfig struct {
+	AWSRegion   string
+	SQSEndpoint string
 
-	GuardDutyQueueURL      string `split_words:"true" required:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-guardduty"`
-	AccessAnalyzerQueueURL string `split_words:"true" required:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-accessanalyzer"`
-	AdminCheckerQueueURL   string `split_words:"true" required:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-adminchecker"`
-	CloudsploitQueueURL    string `split_words:"true" required:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-cloudsploit"`
-	PortscanQueueURL       string `split_words:"true" required:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-portscan"`
+	GuardDutyQueueURL      string
+	AccessAnalyzerQueueURL string
+	AdminCheckerQueueURL   string
+	CloudsploitQueueURL    string
+	PortscanQueueURL       string
 }
 
 type sqsAPI interface {
@@ -33,12 +32,7 @@ type sqsClient struct {
 	queueURLMap map[string]string
 }
 
-func newSQSClient() *sqsClient {
-	var conf sqsConfig
-	err := envconfig.Process("", &conf)
-	if err != nil {
-		appLogger.Fatal(err.Error())
-	}
+func newSQSClient(conf *SQSConfig) *sqsClient {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	})

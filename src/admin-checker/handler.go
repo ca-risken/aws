@@ -20,14 +20,7 @@ type sqsHandler struct {
 	findingClient finding.FindingServiceClient
 	alertClient   alert.AlertServiceClient
 	awsClient     awsClient.AWSServiceClient
-}
-
-func newHandler() *sqsHandler {
-	return &sqsHandler{
-		findingClient: newFindingClient(),
-		alertClient:   newAlertClient(),
-		awsClient:     newAWSClient(),
-	}
+	awsRegion     string
 }
 
 func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
@@ -52,7 +45,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		return s.handleErrorWithUpdateStatus(ctx, &status, fmt.Errorf("AssumeRoleArn for admin-checker must be created in AWS AccountID: %v", msg.AccountID))
 	}
 	// IAM Admin Checker
-	adminChecker, err := newAdminCheckerClient(msg.AssumeRoleArn, msg.ExternalID)
+	adminChecker, err := newAdminCheckerClient(s.awsRegion, msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create AdminChecker session: err=%+v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
@@ -128,7 +121,7 @@ func (s *sqsHandler) putUserFindings(ctx context.Context, msg *message.AWSQueueM
 		}
 		// Put finding to core
 		if err := s.putFindings(ctx, typeAdmin, msg, &finding.FindingForUpsert{
-			Description:      fmt.Sprintf("AdminChekcer: %s(admin=%t)", user.UserName, (user.IsUserAdmin || user.IsGroupAdmin)),
+			Description:      fmt.Sprintf("AdminChekcer: %s(admin=%t)", user.UserName, user.IsUserAdmin || user.IsGroupAdmin),
 			DataSource:       msg.DataSource,
 			DataSourceId:     user.UserArn,
 			ResourceName:     user.UserArn,

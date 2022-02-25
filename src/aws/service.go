@@ -21,14 +21,6 @@ type awsService struct {
 	projectClient project.ProjectServiceClient
 }
 
-func newAWSService() aws.AWSServiceServer {
-	return &awsService{
-		repository:    newAWSRepository(),
-		sqs:           newSQSClient(),
-		projectClient: newProjectClient(),
-	}
-}
-
 func (a *awsService) ListAWS(ctx context.Context, req *aws.ListAWSRequest) (*aws.ListAWSResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err

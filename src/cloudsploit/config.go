@@ -14,30 +14,27 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 )
 
-func (c *cloudsploitConfig) makeConfig(region, assumeRole, externalID string, awsID uint32, accountID string) (string, error) {
+func (c *CloudsploitConfig) generate(assumeRole, externalID string, awsID uint32, accountID string) error {
 	if assumeRole == "" {
-		return "", errors.New("Required AWS AssumeRole")
+		return errors.New("Required AWS AssumeRole")
 	}
 	creds, err := getCredential(assumeRole, externalID, 3600)
 	if err != nil {
-		return "", err
+		return err
 	}
-	roleDuration, err := getRoleMaxSessionDuration(creds, region, assumeRole)
+	roleDuration, err := getRoleMaxSessionDuration(creds, c.AWSRegion, assumeRole)
 	if err == nil && roleDuration != 3600 {
 		creds, err = getCredential(assumeRole, externalID, roleDuration)
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
 	val, err := creds.Get()
 	if err != nil {
-		return "", err
+		return err
 	}
-	configPath, err := c.createConfigFile(val.AccessKeyID, val.SecretAccessKey, val.SessionToken, awsID, accountID)
-	if err != nil {
-		return "", err
-	}
-	return configPath, nil
+	c.ConfigPath, err = c.createConfigFile(val.AccessKeyID, val.SecretAccessKey, val.SessionToken, awsID, accountID)
+	return err
 }
 
 const awsCredential string = `
@@ -52,7 +49,7 @@ module.exports = {
 };
 `
 
-func (c *cloudsploitConfig) createConfigFile(accessKeyID, secretAccessKey, sessoinToken string, awsID uint32, accountID string) (string, error) {
+func (c *CloudsploitConfig) createConfigFile(accessKeyID, secretAccessKey, sessoinToken string, awsID uint32, accountID string) (string, error) {
 	now := time.Now().UnixNano()
 	file, err := os.Create(fmt.Sprintf("%v/%v_%v_%v_config.js", c.ConfigDir, awsID, accountID, now))
 	appLogger.Infof("Created config file. filename: %v", file.Name())

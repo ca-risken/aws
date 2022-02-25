@@ -17,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/common/pkg/portscan"
-	"github.com/gassara-kys/envconfig"
 	"github.com/vikyd/zero"
 )
 
@@ -48,27 +47,13 @@ type portscanClient struct {
 	ScanExcludePortNumber int
 }
 
-type portscanConfig struct {
-	AWSRegion             string `envconfig:"aws_region" default:"ap-northeast-1"`
-	ScanExcludePortNumber int    `split_words:"true"     default:"1000"`
-}
-
-func newPortscanClient(region, assumeRole, externalID string) (portscanAPI, error) {
-	var conf portscanConfig
-	err := envconfig.Process("", &conf)
-	if err != nil {
-		return nil, err
-	}
-	if region == "" {
-		region = conf.AWSRegion
-	}
-
+func newPortscanClient(region, assumeRole, externalID string, scanExcludePortNumber int) (portscanAPI, error) {
 	p := portscanClient{}
 	if err := p.newAWSSession(region, assumeRole, externalID); err != nil {
 		return nil, err
 	}
 	p.Region = region
-	p.ScanExcludePortNumber = conf.ScanExcludePortNumber
+	p.ScanExcludePortNumber = scanExcludePortNumber
 	return &p, nil
 }
 

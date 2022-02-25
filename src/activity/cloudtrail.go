@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/ca-risken/aws/proto/activity"
-	"github.com/gassara-kys/envconfig"
 	"github.com/vikyd/zero"
 )
 
@@ -20,22 +19,13 @@ type cloudTrailAPI interface {
 	lookupEvents(ctx context.Context, req *activity.ListCloudTrailRequest, role, externalID string) (*activity.ListCloudTrailResponse, error)
 }
 
-type cloudTrailClientConfig struct {
-	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
-}
-
 type cloudTrailClient struct {
 	defaultRegion string
 }
 
-func newCloudTrailClient() cloudTrailAPI {
-	var conf cloudTrailClientConfig
-	err := envconfig.Process("", &conf)
-	if err != nil {
-		appLogger.Fatalf("Failed to load config, %+v", err)
-	}
+func newCloudTrailClient(defaultRegion string) cloudTrailAPI {
 	return &cloudTrailClient{
-		defaultRegion: conf.AWSRegion,
+		defaultRegion: defaultRegion,
 	}
 }
 
