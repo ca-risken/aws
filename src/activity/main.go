@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/ca-risken/aws/proto/activity"
+	"github.com/ca-risken/common/pkg/profiler"
 	mimosarpc "github.com/ca-risken/common/pkg/rpc"
 	mimosaxray "github.com/ca-risken/common/pkg/xray"
 	"github.com/gassara-kys/envconfig"
@@ -15,14 +16,25 @@ import (
 )
 
 type AppConfig struct {
-	Port    string `default:"9007"`
-	EnvName string `default:"local" split_words:"true"`
+	Port            string   `default:"9007"`
+	EnvName         string   `default:"local" split_words:"true"`
+	ProfileExporter string   `split_words:"true" default:"nop"`
+	ProfileTypes    []string `split_words:"true"`
 
 	// aws
 	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
 
 	// grpc
 	AWSSvcAddr string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
+}
+
+const (
+	nameSpace   = "aws"
+	serviceName = "activity"
+)
+
+func getFullServiceName() string {
+	return fmt.Sprintf("%s.%s", nameSpace, serviceName)
 }
 
 func main() {
@@ -35,6 +47,26 @@ func main() {
 	if err != nil {
 		appLogger.Fatal(err.Error())
 	}
+
+	pTypes, err := profiler.ConvertProfileTypeFrom(conf.ProfileTypes)
+	if err != nil {
+		appLogger.Fatal(err.Error())
+	}
+	pExporter, err := profiler.ConvertExporterTypeFrom(conf.ProfileExporter)
+	if err != nil {
+		appLogger.Fatal(err.Error())
+	}
+	pc := profiler.Config{
+		ServiceName:  getFullServiceName(),
+		EnvName:      conf.EnvName,
+		ProfileTypes: pTypes,
+		ExporterType: pExporter,
+	}
+	err = pc.Start()
+	if err != nil {
+		appLogger.Fatal(err.Error())
+	}
+	defer pc.Stop()
 
 	l, err := net.Listen("tcp", fmt.Sprintf(":%s", conf.Port))
 	if err != nil {

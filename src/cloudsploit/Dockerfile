@@ -12,6 +12,8 @@ RUN go build && cp cloudsploit /go/bin/
 FROM public.ecr.aws/risken/base/cloudsploit-base:v0.0.1
 COPY --from=builder /go/bin/cloudsploit /usr/local/cloudsploit/bin/
 ENV DEBUG= \
+  PROFILE_EXPORTER= \
+  PROFILE_TYPES= \
   AWS_REGION= \
   AWS_ACCESS_KEY_ID= \
   AWS_SECRET_ACCESS_KEY= \

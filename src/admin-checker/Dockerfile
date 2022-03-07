@@ -12,6 +12,8 @@ RUN go build && cp admin-checker /go/bin/
 FROM public.ecr.aws/risken/base/risken-base:v0.0.1
 COPY --from=builder /go/bin/admin-checker /usr/local/admin-checker/bin/
 ENV DEBUG= \
+    PROFILE_EXPORTER= \
+    PROFILE_TYPES= \
     AWS_REGION= \
     AWS_ACCESS_KEY_ID= \
     AWS_SECRET_ACCESS_KEY= \

@@ -12,6 +12,8 @@ RUN go build && cp guard-duty /go/bin/
 FROM public.ecr.aws/risken/base/risken-base:v0.0.1
 COPY --from=builder /go/bin/guard-duty /usr/local/guard-duty/bin/
 ENV DEBUG= \
+    PROFILE_EXPORTER= \
+    PROFILE_TYPES= \
     AWS_REGION= \
     AWS_ACCESS_KEY_ID= \
     AWS_SECRET_ACCESS_KEY= \
