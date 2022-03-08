@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/ca-risken/aws/proto/aws"
+	"github.com/ca-risken/common/pkg/profiler"
 	mimosarpc "github.com/ca-risken/common/pkg/rpc"
 	mimosaxray "github.com/ca-risken/common/pkg/xray"
 	"github.com/gassara-kys/envconfig"
@@ -14,9 +15,20 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+const (
+	nameSpace   = "aws"
+	serviceName = "aws"
+)
+
+func getFullServiceName() string {
+	return fmt.Sprintf("%s.%s", nameSpace, serviceName)
+}
+
 type AppConfig struct {
-	Port    string `default:"9001"`
-	EnvName string `default:"local" split_words:"true"`
+	Port            string   `default:"9001"`
+	EnvName         string   `default:"local" split_words:"true"`
+	ProfileExporter string   `split_words:"true" default:"nop"`
+	ProfileTypes    []string `split_words:"true"`
 
 	// grpc
 	ProjectSvcAddr string `required:"true" split_words:"true" default:"project.core.svc.cluster.local:8003"`
@@ -55,6 +67,26 @@ func main() {
 	if err != nil {
 		appLogger.Fatal(err.Error())
 	}
+
+	pTypes, err := profiler.ConvertProfileTypeFrom(conf.ProfileTypes)
+	if err != nil {
+		appLogger.Fatal(err.Error())
+	}
+	pExporter, err := profiler.ConvertExporterTypeFrom(conf.ProfileExporter)
+	if err != nil {
+		appLogger.Fatal(err.Error())
+	}
+	pc := profiler.Config{
+		ServiceName:  getFullServiceName(),
+		EnvName:      conf.EnvName,
+		ProfileTypes: pTypes,
+		ExporterType: pExporter,
+	}
+	err = pc.Start()
+	if err != nil {
+		appLogger.Fatal(err.Error())
+	}
+	defer pc.Stop()
 
 	l, err := net.Listen("tcp", fmt.Sprintf(":%s", conf.Port))
 	if err != nil {
