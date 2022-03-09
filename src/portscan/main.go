@@ -13,7 +13,7 @@ import (
 
 const (
 	nameSpace   = "aws"
-	serviceName = "portScan"
+	serviceName = "portscan"
 )
 
 func getFullServiceName() string {
