@@ -1,7 +1,7 @@
 FROM golang:1.17 as builder
 WORKDIR /go/src/github.com/ca-risken/aws/src/admin-checker/
 ADD *.go go.* ./
-ENV CGO_ENABLED=0 GOPRIVATE="github.com/ca-risken/*"
+ENV CGO_ENABLED=0
 ARG GITHUB_USER
 ARG GITHUB_TOKEN
 RUN echo "machine github.com" > ~/.netrc
