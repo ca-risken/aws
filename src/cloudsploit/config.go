@@ -23,7 +23,7 @@ func (c *CloudsploitConfig) generate(assumeRole, externalID string, awsID uint32
 		return err
 	}
 	roleDuration, err := getRoleMaxSessionDuration(creds, c.AWSRegion, assumeRole)
-	if err == nil && roleDuration != 3600 {
+	if err == nil && roleDuration < 3600 {
 		creds, err = getCredential(assumeRole, externalID, roleDuration)
 		if err != nil {
 			return err
