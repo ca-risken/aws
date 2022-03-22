@@ -11,23 +11,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
 )
 
 func (c *CloudsploitConfig) generate(assumeRole, externalID string, awsID uint32, accountID string) error {
 	if assumeRole == "" {
 		return errors.New("Required AWS AssumeRole")
 	}
-	creds, err := getCredential(assumeRole, externalID, 3600)
+	creds, err := getCredential(assumeRole, externalID, 3600) // MaxSessionDuration(for API): min=3600, max=3600
 	if err != nil {
 		return err
-	}
-	roleDuration, err := getRoleMaxSessionDuration(creds, c.AWSRegion, assumeRole)
-	if err == nil && roleDuration < 3600 {
-		creds, err = getCredential(assumeRole, externalID, roleDuration)
-		if err != nil {
-			return err
-		}
 	}
 	val, err := creds.Get()
 	if err != nil {
@@ -90,23 +82,4 @@ func getCredential(assumeRole, externalID string, duration int) (*credentials.Cr
 		)
 	}
 	return creds, nil
-}
-
-func getRoleMaxSessionDuration(cred *credentials.Credentials, region, assumeRole string) (int, error) {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Config:            aws.Config{Region: &region, Credentials: cred},
-	})
-	if err != nil {
-		return 0, err
-	}
-	svc := iam.New(sess)
-	roleName := strings.Split(assumeRole, "/")[len(strings.Split(assumeRole, "/"))-1]
-	res, err := svc.GetRole(&iam.GetRoleInput{
-		RoleName: aws.String(roleName),
-	})
-	if err != nil {
-		return 0, err
-	}
-	return int(*res.Role.MaxSessionDuration), nil
 }
