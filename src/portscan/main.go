@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/common/pkg/profiler"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	mimosaxray "github.com/ca-risken/common/pkg/xray"
@@ -14,6 +15,7 @@ import (
 const (
 	nameSpace   = "aws"
 	serviceName = "portscan"
+	settingURL  = "https://docs.security-hub.jp/aws/overview_datasource/"
 )
 
 func getFullServiceName() string {
@@ -94,6 +96,10 @@ func main() {
 	handler.findingClient = newFindingClient(conf.FindingSvcAddr)
 	handler.alertClient = newAlertClient(conf.AlertSvcAddr)
 	handler.awsClient = newAWSClient(conf.AWSSvcAddr)
+	f, err := mimosasqs.NewFinalizer(message.PortscanDataSource, settingURL, conf.FindingSvcAddr, nil)
+	if err != nil {
+		appLogger.Fatalf("Failed to create Finalizer, err=%+v", err)
+	}
 
 	appLogger.Info("Start the portscan SQS consumer server...")
 	ctx := context.Background()
@@ -101,5 +107,6 @@ func main() {
 		mimosasqs.InitializeHandler(
 			mimosasqs.RetryableErrorHandler(
 				mimosasqs.StatusLoggingHandler(appLogger,
-					mimosaxray.MessageTracingHandler(conf.EnvName, getFullServiceName(), handler)))))
+					mimosaxray.MessageTracingHandler(conf.EnvName, getFullServiceName(),
+						f.FinalizeHandler(handler))))))
 }
