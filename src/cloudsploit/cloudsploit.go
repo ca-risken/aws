@@ -16,10 +16,14 @@ type CloudsploitConfig struct {
 	CloudsploitDir string
 	AWSRegion      string
 	ConfigPath     string
+	MaxMemSizeMB   int
 }
 
 func (c *CloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) {
 	now := time.Now().UnixNano()
+	if c.MaxMemSizeMB > 0 {
+		os.Setenv("NODE_OPTIONS", fmt.Sprintf("--max-old-space-size=%d", c.MaxMemSizeMB))
+	}
 	filePath := fmt.Sprintf("%v/%v_%v.json", c.ResultDir, accountID, now)
 	cmd := exec.Command(fmt.Sprintf("%v/index.js", c.CloudsploitDir),
 		"--config", c.ConfigPath,

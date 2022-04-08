@@ -31,6 +31,7 @@ ENV DEBUG= \
   RESULT_DIR=/tmp \
   CONFIG_DIR=/tmp \
   CLOUDSPLOIT_DIR="/opt/cloudsploit" \
+  MAX_MEM_SIZE_MB= \
   TZ=Asia/Tokyo
 WORKDIR /usr/local/cloudsploit
 ENTRYPOINT ["/usr/local/bin/env-injector"]

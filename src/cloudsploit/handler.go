@@ -26,6 +26,7 @@ type sqsHandler struct {
 	configDir      string
 	cloudsploitDir string
 	awsRegion      string
+	maxMemSizeMB   int
 }
 
 func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
@@ -56,6 +57,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		ConfigDir:      s.configDir,
 		CloudsploitDir: s.cloudsploitDir,
 		AWSRegion:      s.awsRegion,
+		MaxMemSizeMB:   s.maxMemSizeMB,
 	}
 	err = cloudsploitConf.generate(msg.AssumeRoleArn, msg.ExternalID, msg.AWSID, msg.AccountID)
 	if err != nil {

@@ -47,6 +47,7 @@ type AppConfig struct {
 	ResultDir      string `required:"true" split_words:"true" default:"/tmp"`
 	ConfigDir      string `required:"true" split_words:"true" default:"/tmp"`
 	CloudsploitDir string `required:"true" split_words:"true" default:"/opt/cloudsploit"`
+	MaxMemSizeMB   int    `split_words:"true"`
 }
 
 func main() {
@@ -85,6 +86,7 @@ func main() {
 		configDir:      conf.ConfigDir,
 		cloudsploitDir: conf.CloudsploitDir,
 		awsRegion:      conf.AWSRegion,
+		maxMemSizeMB:   conf.MaxMemSizeMB,
 	}
 	handler.findingClient = newFindingClient(conf.FindingSvcAddr)
 	handler.alertClient = newAlertClient(conf.AlertSvcAddr)
