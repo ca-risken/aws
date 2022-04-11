@@ -1056,13 +1056,13 @@ var recommendMap = map[string]recommend{
 		Recommendation: `Recreate Glue security configurations and enable job bookmark encryption
 		- https://docs.aws.amazon.com/glue/latest/dg/console-security-configurations.html`,
 	},
-	categoryGuardDuty + "/guarddutyEnabled": {
+	categoryGuardDuty + "/guardDutyEnabled": {
 		Risk: `GuardDuty is Enabled
 		- GuardDuty provides threat intelligence by analyzing several AWS data sources for security risks and should be enabled in all accounts.`,
 		Recommendation: `Enable GuardDuty for all AWS accounts.
 		- https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html`,
 	},
-	categoryGuardDuty + "/guarddutyMaster": {
+	categoryGuardDuty + "/guardDutyMaster": {
 		Risk: `GuardDuty Master Account
 		- Ensures GuardDuty master account is correct
 		- Organizations with large numbers of AWS accounts should configure GuardDuty findings from all member accounts to be sent to a consistent master account.`,
