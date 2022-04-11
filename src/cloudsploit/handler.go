@@ -64,16 +64,17 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		appLogger.Errorf("Error occured when configure: %v, error: %v", msg, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
-	appLogger.Info("Start cloudsploit Client")
 
 	// Run cloudsploit
 	_, segment := xray.BeginSubsegment(ctx, "runCloudSploit")
+	appLogger.Infof("start cloudsploit scan, RequestID=%s", requestID)
 	cloudsploitResult, err := cloudsploitConf.run(msg.AccountID)
 	segment.Close(err)
 	if err != nil {
 		appLogger.Errorf("Failed to exec cloudsploit, error: %v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
+	appLogger.Infof("end cloudsploit scan, RequestID=%s", requestID)
 
 	// Clear finding score
 	if _, err := s.findingClient.ClearScore(ctx, &finding.ClearScoreRequest{
