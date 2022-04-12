@@ -73,7 +73,8 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 	statusDetail := ""
-	isFirstRegion := true
+	targetsAllRegion := []*target{}
+	securityGroupsAllRegion := make(map[string]*relSecurityGroupArn)
 	for _, region := range regions {
 		if region == nil || *region.RegionName == "" {
 			appLogger.Warnf("Invalid region in AccountID=%s", msg.AccountID)
@@ -85,30 +86,34 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 			appLogger.Errorf("Failed to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.handleErrorWithUpdateStatus(ctx, &status, err)
 		}
-		nmapResults, excludeList, securityGroups, err := portscan.getResult(ctx, msg)
+		targets, securityGroups, err := portscan.getTargets(ctx, msg)
+		targetsAllRegion = append(targetsAllRegion, targets...)
+		securityGroupsAllRegion = mergeSecurityGroups(securityGroupsAllRegion, securityGroups)
 		if err != nil {
 			appLogger.Errorf("Failed to get findings to AWS Portscan: AccountID=%+v, err=%+v", msg.AccountID, err)
 			return s.handleErrorWithUpdateStatus(ctx, &status, err)
 		}
+	}
+	scanTargetList, excludeList := excludeScan(s.scanExcludePortNumber, targetsAllRegion)
+	nmapResults, err := scan(scanTargetList)
+	if err != nil {
+		appLogger.Errorf("Error occured when scanning. err: %v", err)
+		return s.handleErrorWithUpdateStatus(ctx, &status, err)
+	}
 
-		// Clear finding score
-		if isFirstRegion {
-			if _, err := s.findingClient.ClearScore(ctx, &finding.ClearScoreRequest{
-				DataSource: msg.DataSource,
-				ProjectId:  msg.ProjectID,
-				Tag:        []string{msg.AccountID},
-			}); err != nil {
-				appLogger.Errorf("Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
-				return s.handleErrorWithUpdateStatus(ctx, &status, err)
-			}
-		}
+	if _, err := s.findingClient.ClearScore(ctx, &finding.ClearScoreRequest{
+		DataSource: msg.DataSource,
+		ProjectId:  msg.ProjectID,
+		Tag:        []string{msg.AccountID},
+	}); err != nil {
+		appLogger.Errorf("Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
+		return s.handleErrorWithUpdateStatus(ctx, &status, err)
+	}
 
-		// Put finding to core
-		if err := s.putFindings(ctx, msg, nmapResults, excludeList, securityGroups); err != nil {
-			appLogger.Errorf("Failed to put findings: AccountID=%+v, err=%+v", msg.AccountID, err)
-			statusDetail = fmt.Sprintf("%v%v", statusDetail, err.Error())
-		}
-		isFirstRegion = false
+	// Put finding to core
+	if err := s.putFindings(ctx, msg, nmapResults, excludeList, securityGroupsAllRegion); err != nil {
+		appLogger.Errorf("Failed to put findings: AccountID=%+v, err=%+v", msg.AccountID, err)
+		statusDetail = fmt.Sprintf("%v%v", statusDetail, err.Error())
 	}
 
 	if err := s.updateScanStatusSuccess(ctx, &status, statusDetail); err != nil {
@@ -161,4 +166,11 @@ func (s *sqsHandler) analyzeAlert(ctx context.Context, projectID uint32) error {
 		ProjectId: projectID,
 	})
 	return err
+}
+
+func mergeSecurityGroups(base map[string]*relSecurityGroupArn, addition map[string]*relSecurityGroupArn) map[string]*relSecurityGroupArn {
+	for k, v := range addition {
+		base[k] = v
+	}
+	return base
 }

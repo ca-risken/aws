@@ -114,6 +114,87 @@ func TestSetELBv2(t *testing.T) {
 	}
 }
 
+func TestExcludeScan(t *testing.T) {
+	cases := []struct {
+		name                  string
+		scanExcludePortNumber int
+		targets               []*target
+		wantTarget            []*target
+		wantExclude           []*excludeResult
+	}{
+		{
+			name:                  "OK All Excluded",
+			scanExcludePortNumber: -1,
+			targets:               []*target{{Arn: "a1", Target: "t1", Protocol: "tcp", ToPort: 80, FromPort: 80, Category: "ec2", SecurityGroup: "sg1"}},
+			wantTarget:            []*target{},
+			wantExclude:           []*excludeResult{{Protocol: "tcp", FromPort: 80, ToPort: 80, Target: "t1", Arn: "a1", SecurityGroup: "sg1", Category: "ec2"}},
+		},
+		{
+			name:                  "OK All Included",
+			scanExcludePortNumber: 0,
+			targets:               []*target{{Arn: "t1", Target: "t1", ToPort: 80, FromPort: 80, Category: "ec2", SecurityGroup: "t1"}},
+			wantTarget:            []*target{{Arn: "t1", Target: "t1", ToPort: 80, FromPort: 80, Category: "ec2", SecurityGroup: "t1"}},
+			wantExclude:           []*excludeResult{},
+		},
+		{
+			name:                  "OK one Excluded",
+			scanExcludePortNumber: 0,
+			targets: []*target{{Arn: "a1", Target: "t1", Protocol: "tcp", ToPort: 80, FromPort: 80, Category: "ec2", SecurityGroup: "sg1"},
+				{Arn: "a2", Target: "t2", Protocol: "tcp", ToPort: 81, FromPort: 80, Category: "ec2", SecurityGroup: "sg2"}},
+			wantTarget:  []*target{{Arn: "t1", Target: "t1", ToPort: 80, FromPort: 80, Category: "ec2", SecurityGroup: "t1"}},
+			wantExclude: []*excludeResult{{Protocol: "tcp", FromPort: 80, ToPort: 81, Target: "t2", Arn: "a2", SecurityGroup: "sg2", Category: "ec2"}},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			gotTarget, gotExclude := excludeScan(c.scanExcludePortNumber, c.targets)
+			if len(c.wantTarget) != len(gotTarget) {
+				t.Fatalf("Unexpected target: want=%+v, got=%+v", c.wantTarget, gotTarget)
+			}
+			if len(c.wantExclude) != len(gotExclude) {
+				t.Fatalf("Unexpected exclude: want=%+v, got=%+v", c.wantExclude, gotExclude)
+			}
+		})
+	}
+}
+
+func TestMergeSecurityGroups(t *testing.T) {
+	cases := []struct {
+		name            string
+		inputBase       map[string]*relSecurityGroupArn
+		inputAdditional map[string]*relSecurityGroupArn
+		want            map[string]*relSecurityGroupArn
+	}{
+		{
+			name: "OK",
+			inputBase: map[string]*relSecurityGroupArn{
+				"hoge": {
+					ReferenceARNs: []string{"hoge1"},
+				},
+			},
+			inputAdditional: map[string]*relSecurityGroupArn{
+				"fuga": {
+					ReferenceARNs: []string{"fuga"},
+				}},
+			want: map[string]*relSecurityGroupArn{
+				"hoge": {
+					ReferenceARNs: []string{"hoge1"},
+				},
+				"fuga": {
+					ReferenceARNs: []string{"fuga"},
+				}},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := mergeSecurityGroups(c.inputBase, c.inputAdditional)
+			if !reflect.DeepEqual(c.want, got) {
+				t.Fatalf("Unexpected data: want=%+v, got=%+v", c.want, got)
+			}
+		})
+	}
+}
+
 func TestConvertNilString(t *testing.T) {
 	cases := []struct {
 		name  string
