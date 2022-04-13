@@ -158,43 +158,6 @@ func TestExcludeScan(t *testing.T) {
 	}
 }
 
-func TestMergeSecurityGroups(t *testing.T) {
-	cases := []struct {
-		name            string
-		inputBase       map[string]*relSecurityGroupArn
-		inputAdditional map[string]*relSecurityGroupArn
-		want            map[string]*relSecurityGroupArn
-	}{
-		{
-			name: "OK",
-			inputBase: map[string]*relSecurityGroupArn{
-				"hoge": {
-					ReferenceARNs: []string{"hoge1"},
-				},
-			},
-			inputAdditional: map[string]*relSecurityGroupArn{
-				"fuga": {
-					ReferenceARNs: []string{"fuga"},
-				}},
-			want: map[string]*relSecurityGroupArn{
-				"hoge": {
-					ReferenceARNs: []string{"hoge1"},
-				},
-				"fuga": {
-					ReferenceARNs: []string{"fuga"},
-				}},
-		},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			got := mergeSecurityGroups(c.inputBase, c.inputAdditional)
-			if !reflect.DeepEqual(c.want, got) {
-				t.Fatalf("Unexpected data: want=%+v, got=%+v", c.want, got)
-			}
-		})
-	}
-}
-
 func TestConvertNilString(t *testing.T) {
 	cases := []struct {
 		name  string

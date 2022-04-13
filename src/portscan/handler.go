@@ -88,7 +88,9 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		}
 		targets, securityGroups, err := portscan.getTargets(ctx, msg)
 		targetsAllRegion = append(targetsAllRegion, targets...)
-		securityGroupsAllRegion = mergeSecurityGroups(securityGroupsAllRegion, securityGroups)
+		for k, v := range securityGroups {
+			securityGroupsAllRegion[k] = v
+		}
 		if err != nil {
 			appLogger.Errorf("Failed to get findings to AWS Portscan: AccountID=%+v, err=%+v", msg.AccountID, err)
 			return s.handleErrorWithUpdateStatus(ctx, &status, err)
@@ -166,11 +168,4 @@ func (s *sqsHandler) analyzeAlert(ctx context.Context, projectID uint32) error {
 		ProjectId: projectID,
 	})
 	return err
-}
-
-func mergeSecurityGroups(base map[string]*relSecurityGroupArn, addition map[string]*relSecurityGroupArn) map[string]*relSecurityGroupArn {
-	for k, v := range addition {
-		base[k] = v
-	}
-	return base
 }
