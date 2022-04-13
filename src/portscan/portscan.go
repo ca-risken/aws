@@ -21,7 +21,7 @@ import (
 )
 
 type portscanAPI interface {
-	getResult(context.Context, *message.AWSQueueMessage) ([]*portscan.NmapResult, []*excludeResult, map[string]*relSecurityGroupArn, error)
+	getTargets(context.Context, *message.AWSQueueMessage) ([]*target, map[string]*relSecurityGroupArn, error)
 	listAvailableRegion(ctx context.Context) ([]*ec2.Region, error)
 	listEC2(context.Context, string) error
 	listSecurityGroup(context.Context, string) error
@@ -29,22 +29,19 @@ type portscanAPI interface {
 	listELBv2(context.Context) error
 	listRDS(context.Context) error
 	listLightsail(context.Context) error
-	excludeScan() []*excludeResult
-	scan() ([]*portscan.NmapResult, error)
 }
 
 type portscanClient struct {
-	Sess                  *session.Session
-	EC2                   *ec2.EC2
-	ELB                   *elb.ELB
-	ELBv2                 *elbv2.ELBV2
-	RDS                   *rds.RDS
-	Lightsail             *lightsail.Lightsail
-	SecurityGroups        []*targetSG
-	relSecurityGroupARNs  map[string]*relSecurityGroupArn
-	target                []*target
-	Region                string
-	ScanExcludePortNumber int
+	Sess                 *session.Session
+	EC2                  *ec2.EC2
+	ELB                  *elb.ELB
+	ELBv2                *elbv2.ELBV2
+	RDS                  *rds.RDS
+	Lightsail            *lightsail.Lightsail
+	SecurityGroups       []*targetSG
+	relSecurityGroupARNs map[string]*relSecurityGroupArn
+	target               []*target
+	Region               string
 }
 
 func newPortscanClient(region, assumeRole, externalID string, scanExcludePortNumber int) (portscanAPI, error) {
@@ -53,7 +50,6 @@ func newPortscanClient(region, assumeRole, externalID string, scanExcludePortNum
 		return nil, err
 	}
 	p.Region = region
-	p.ScanExcludePortNumber = scanExcludePortNumber
 	return &p, nil
 }
 
@@ -104,49 +100,43 @@ func (p *portscanClient) listAvailableRegion(ctx context.Context) ([]*ec2.Region
 	return out.Regions, nil
 }
 
-func (p *portscanClient) getResult(ctx context.Context, message *message.AWSQueueMessage) ([]*portscan.NmapResult, []*excludeResult, map[string]*relSecurityGroupArn, error) {
+func (p *portscanClient) getTargets(ctx context.Context, message *message.AWSQueueMessage) ([]*target, map[string]*relSecurityGroupArn, error) {
 	err := p.listSecurityGroup(ctx, message.AccountID)
 	if err != nil {
 		appLogger.Errorf("Failed to describeSecurityGroups: err=%+v", err)
-		return []*portscan.NmapResult{}, []*excludeResult{}, map[string]*relSecurityGroupArn{}, err
+		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
 	err = p.listEC2(ctx, message.AccountID)
 	if err != nil {
 		appLogger.Errorf("Failed to describeInstances: err=%+v", err)
-		return []*portscan.NmapResult{}, []*excludeResult{}, map[string]*relSecurityGroupArn{}, err
+		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
 	err = p.listELB(ctx, message.AccountID)
 	if err != nil {
 		appLogger.Errorf("Failed to describeLoadBalancers: err=%+v", err)
-		return []*portscan.NmapResult{}, []*excludeResult{}, map[string]*relSecurityGroupArn{}, err
+		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
 	err = p.listELBv2(ctx)
 	if err != nil {
 		appLogger.Errorf("Failed to describeLoadBalancers(elbv2): err=%+v", err)
-		return []*portscan.NmapResult{}, []*excludeResult{}, map[string]*relSecurityGroupArn{}, err
+		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
 	err = p.listRDS(ctx)
 	if err != nil {
 		appLogger.Errorf("Failed to describeDBInstances(rds): err=%+v", err)
-		return []*portscan.NmapResult{}, []*excludeResult{}, map[string]*relSecurityGroupArn{}, err
+		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
 	err = p.listLightsail(ctx)
 	if err != nil {
-		appLogger.Infof("Region:%v", p.Region)
 		if isAvailableRegionLightSail(p.Region) {
 			appLogger.Errorf("Failed to getInstances(lightsail): err=%+v", err)
-			return []*portscan.NmapResult{}, []*excludeResult{}, map[string]*relSecurityGroupArn{}, err
+			return []*target{}, map[string]*relSecurityGroupArn{}, err
 		} else {
 			appLogger.Infof("Failed to getInstances(lightsail). but region %v is not supported LightSail", p.Region)
 		}
 	}
-	excludeList := p.excludeScan()
-	nmapResults, err := p.scan()
-	if err != nil {
-		appLogger.Errorf("Failed to execute nmap: err=%+v", err)
-		return []*portscan.NmapResult{}, []*excludeResult{}, map[string]*relSecurityGroupArn{}, err
-	}
-	return nmapResults, excludeList, p.relSecurityGroupARNs, nil
+
+	return p.target, p.relSecurityGroupARNs, nil
 }
 
 func (p *portscanClient) listSecurityGroup(ctx context.Context, accountID string) error {
@@ -240,9 +230,6 @@ func (p *portscanClient) listEC2(ctx context.Context, accountID string) error {
 			p.target = append(p.target, targetEC2)
 		}
 	}
-	//	for _, aaa := range retEC2 {
-	//		fmt.Printf("%v\n", aaa)
-	//	}
 	return nil
 }
 
@@ -282,10 +269,6 @@ func (p *portscanClient) listELB(ctx context.Context, accountID string) error {
 			p.target = append(p.target, targetELB)
 		}
 	}
-
-	//	for _, aaa := range retELB {
-	//		fmt.Printf("%v\n", aaa)
-	//	}
 	return nil
 }
 
@@ -382,10 +365,6 @@ func (p *portscanClient) listRDS(ctx context.Context) error {
 			p.target = append(p.target, targetRDS)
 		}
 	}
-
-	//	for _, aaa := range retELBv2 {
-	//		fmt.Printf("%v\n", aaa)
-	//	}
 	return nil
 }
 
@@ -411,7 +390,6 @@ func (p *portscanClient) listLightsail(ctx context.Context) error {
 			})
 		}
 	}
-
 	inputLB := &lightsail.GetLoadBalancersInput{}
 	resultLB, err := p.Lightsail.GetLoadBalancersWithContext(ctx, inputLB)
 	if err != nil {
@@ -431,11 +409,11 @@ func (p *portscanClient) listLightsail(ctx context.Context) error {
 	return nil
 }
 
-func (p *portscanClient) excludeScan() []*excludeResult {
+func excludeScan(scanExcludePortNumber int, targets []*target) ([]*target, []*excludeResult) {
 	var excludeList []*excludeResult
-	var excludedTarget []*target
-	for _, t := range p.target {
-		if (t.ToPort - t.FromPort) > p.ScanExcludePortNumber {
+	var scanTarget []*target
+	for _, t := range targets {
+		if (t.ToPort - t.FromPort) > scanExcludePortNumber {
 			excludeList = append(excludeList, &excludeResult{
 				FromPort:      t.FromPort,
 				ToPort:        t.ToPort,
@@ -446,11 +424,10 @@ func (p *portscanClient) excludeScan() []*excludeResult {
 				Category:      t.Category,
 			})
 		} else {
-			excludedTarget = append(excludedTarget, t)
+			scanTarget = append(scanTarget, t)
 		}
 	}
-	p.target = excludedTarget
-	return excludeList
+	return scanTarget, excludeList
 }
 
 func (p *portscanClient) addRelSecurityGroupARNs(targetSecurityGroups []*string, arn string) {
@@ -475,9 +452,9 @@ func (p *portscanClient) getMatchSecurityGroup(targetSecurityGroups []*string) [
 	return ret
 }
 
-func (p *portscanClient) scan() ([]*portscan.NmapResult, error) {
+func scan(targets []*target) ([]*portscan.NmapResult, error) {
 	var nmapResults []*portscan.NmapResult
-	for _, target := range p.target {
+	for _, target := range targets {
 		results, err := portscan.Scan(target.Target, target.Protocol, target.FromPort, target.ToPort)
 		if err != nil {
 			appLogger.Warnf("Error occured when scanning. err: %v", err)
