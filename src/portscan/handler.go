@@ -23,6 +23,7 @@ type sqsHandler struct {
 	awsClient             awsClient.AWSServiceClient
 	awsRegion             string
 	scanExcludePortNumber int
+	scanConcurrency       int64
 }
 
 func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
@@ -96,8 +97,10 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 			return s.handleErrorWithUpdateStatus(ctx, &status, err)
 		}
 	}
+	appLogger.Info("completed target search for all regions")
+
 	scanTargetList, excludeList := excludeScan(s.scanExcludePortNumber, targetsAllRegion)
-	nmapResults, err := scan(scanTargetList)
+	nmapResults, err := scan(ctx, scanTargetList, s.scanConcurrency)
 	if err != nil {
 		appLogger.Errorf("Error occured when scanning. err: %v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)

@@ -44,12 +44,14 @@ type AppConfig struct {
 	AWSSvcAddr     string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
 
 	// portsan
-	ScanExcludePortNumber int `split_words:"true"     default:"1000"`
+	ScanExcludePortNumber int   `split_words:"true"     default:"1000"`
+	ScanConcurrency       int64 `split_words:"true" default:"10"`
 }
 
 func main() {
 	var conf AppConfig
 	err := envconfig.Process("", &conf)
+	appLogger.Infof("env: %#v", conf)
 	if err != nil {
 		appLogger.Fatal(err.Error())
 	}
@@ -86,7 +88,9 @@ func main() {
 		PortscanQueueURL:   conf.PortscanQueueURL,
 		MaxNumberOfMessage: conf.MaxNumberOfMessage,
 		WaitTimeSecond:     conf.WaitTimeSecond,
+		ScanConcurrency:    conf.ScanConcurrency,
 	}
+	appLogger.Infof("sqsConf: %#v", sqsConf)
 	consumer := newSQSConsumer(sqsConf)
 
 	handler := &sqsHandler{
@@ -96,6 +100,7 @@ func main() {
 	handler.findingClient = newFindingClient(conf.FindingSvcAddr)
 	handler.alertClient = newAlertClient(conf.AlertSvcAddr)
 	handler.awsClient = newAWSClient(conf.AWSSvcAddr)
+	handler.scanConcurrency = conf.ScanConcurrency
 	f, err := mimosasqs.NewFinalizer(message.PortscanDataSource, settingURL, conf.FindingSvcAddr, nil)
 	if err != nil {
 		appLogger.Fatalf("Failed to create Finalizer, err=%+v", err)
