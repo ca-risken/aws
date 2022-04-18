@@ -14,6 +14,8 @@ import (
 	"github.com/ca-risken/core/proto/finding"
 )
 
+const putFindingBatchAPILimit = 50
+
 func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResult, message *message.AWSQueueMessage) error {
 	maxScore, err := s.getCloudSploitMaxScore(ctx, message)
 	if err != nil {
@@ -28,12 +30,12 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 		if result.Resource == cloudsploitNA {
 			result.Resource = cloudsploitUnknown
 		}
-		resrouceName := getResourceName(result.Resource, result.Category, message.AccountID)
-		serviceTag := getServiceTag(resrouceName)
+		resourceName := getResourceName(result.Resource, result.Category, message.AccountID)
+		serviceTag := getServiceTag(resourceName)
 		tags := []string{common.TagAWS, serviceTag, message.AccountID}
 		score := getScore(result.Status, result.Category, result.Plugin)
 		if score == 0.0 {
-			if err = s.putResource(ctx, resrouceName, message.ProjectID, tags); err != nil {
+			if err = s.putResource(ctx, resourceName, message.ProjectID, tags); err != nil {
 				return err
 			}
 			continue
@@ -44,7 +46,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 			Description:      result.Description,
 			DataSource:       message.DataSource,
 			DataSourceId:     generateDataSourceID(fmt.Sprintf("description_%v_%v_%v", result.Description, result.Region, result.Resource)),
-			ResourceName:     resrouceName,
+			ResourceName:     resourceName,
 			ProjectId:        message.ProjectID,
 			OriginalScore:    score,
 			OriginalMaxScore: maxScore,
@@ -81,8 +83,6 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 	}
 	return s.putFindingBatch(ctx, message.ProjectID, params)
 }
-
-const putFindingBatchAPILimit = 50
 
 func (s *sqsHandler) putFindingBatch(ctx context.Context, projectID uint32, params []*finding.FindingBatchForUpsert) error {
 	appLogger.Infof("Putting findings(%d)...", len(params))
