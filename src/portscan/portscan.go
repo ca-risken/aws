@@ -465,28 +465,27 @@ func scan(ctx context.Context, targets []*target, scanConcurrency int64) ([]*por
 			appLogger.Errorf("failed to acquire semaphore: %v", err)
 			return nmapResults, err
 		}
-		func(t *target) {
-			eg.Go(func() error {
-				defer sem.Release(1)
-				select {
-				case <-errGroupCtx.Done():
-					appLogger.Debugf("scan cancel. target: %v", t.Target)
-					return nil
-				default:
-					results, err := portscan.Scan(t.Target, t.Protocol, t.FromPort, t.ToPort)
-					if err != nil {
-						return err
-					}
-					for _, result := range results {
-						result.ResourceName = t.Arn
-					}
-					mutex.Lock()
-					nmapResults = append(nmapResults, results...)
-					mutex.Unlock()
-					return nil
+		t := t
+		eg.Go(func() error {
+			defer sem.Release(1)
+			select {
+			case <-errGroupCtx.Done():
+				appLogger.Debugf("scan cancel. target: %v", t.Target)
+				return nil
+			default:
+				results, err := portscan.Scan(t.Target, t.Protocol, t.FromPort, t.ToPort)
+				if err != nil {
+					return err
 				}
-			})
-		}(t)
+				for _, result := range results {
+					result.ResourceName = t.Arn
+				}
+				mutex.Lock()
+				nmapResults = append(nmapResults, results...)
+				mutex.Unlock()
+				return nil
+			}
+		})
 	}
 	if err := eg.Wait(); err != nil {
 		appLogger.Errorf("failed to exec portscan: %v", err)
