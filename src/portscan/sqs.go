@@ -19,6 +19,7 @@ type sqsConfig struct {
 	PortscanQueueURL   string
 	MaxNumberOfMessage int64
 	WaitTimeSecond     int64
+	ScanConcurrency    int64
 }
 
 func newSQSConsumer(conf *sqsConfig) *worker.Worker {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -18,6 +19,8 @@ import (
 	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/common/pkg/portscan"
 	"github.com/vikyd/zero"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
 
 type portscanAPI interface {
@@ -452,18 +455,42 @@ func (p *portscanClient) getMatchSecurityGroup(targetSecurityGroups []*string) [
 	return ret
 }
 
-func scan(targets []*target) ([]*portscan.NmapResult, error) {
+func scan(ctx context.Context, targets []*target, scanConcurrency int64) ([]*portscan.NmapResult, error) {
+	eg, errGroupCtx := errgroup.WithContext(ctx)
 	var nmapResults []*portscan.NmapResult
-	for _, target := range targets {
-		results, err := portscan.Scan(target.Target, target.Protocol, target.FromPort, target.ToPort)
-		if err != nil {
-			appLogger.Warnf("Error occured when scanning. err: %v", err)
-			return nmapResults, nil
+	mutex := &sync.Mutex{}
+	sem := semaphore.NewWeighted(scanConcurrency)
+	for _, t := range targets {
+		if err := sem.Acquire(ctx, 1); err != nil {
+			appLogger.Errorf("failed to acquire semaphore: %v", err)
+			return nmapResults, err
 		}
-		for _, result := range results {
-			result.ResourceName = target.Arn
-			nmapResults = append(nmapResults, result)
-		}
+		func(t *target) {
+			eg.Go(func() error {
+				defer sem.Release(1)
+				select {
+				case <-errGroupCtx.Done():
+					appLogger.Debugf("scan cancel. target: %v", t.Target)
+					return nil
+				default:
+					results, err := portscan.Scan(t.Target, t.Protocol, t.FromPort, t.ToPort)
+					if err != nil {
+						return err
+					}
+					for _, result := range results {
+						result.ResourceName = t.Arn
+					}
+					mutex.Lock()
+					nmapResults = append(nmapResults, results...)
+					mutex.Unlock()
+					return nil
+				}
+			})
+		}(t)
+	}
+	if err := eg.Wait(); err != nil {
+		appLogger.Errorf("failed to exec portscan: %v", err)
+		return nmapResults, err
 	}
 
 	return nmapResults, nil
