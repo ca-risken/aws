@@ -82,23 +82,21 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 	return s.putFindingBatch(ctx, message.ProjectID, params)
 }
 
+const putFindingBatchAPILimit = 50
+
 func (s *sqsHandler) putFindingBatch(ctx context.Context, projectID uint32, params []*finding.FindingBatchForUpsert) error {
-	idx := 0
-	for {
-		if idx > len(params)-1 {
-			break
-		}
-		lastIdx := idx + 50
+	appLogger.Infof("Putting findings(%d)...", len(params))
+	for idx := 0; idx < len(params); idx = idx + putFindingBatchAPILimit {
+		lastIdx := idx + putFindingBatchAPILimit
 		if lastIdx > len(params) {
 			lastIdx = len(params)
 		}
-		// request per 50 items (API limit)
+		// request per API limits
 		appLogger.Debugf("Call PutFindingBatch API, (%d ~ %d / %d)", idx+1, lastIdx+1, len(params))
 		req := &finding.PutFindingBatchRequest{ProjectId: projectID, Finding: params[idx:lastIdx]}
 		if _, err := s.findingClient.PutFindingBatch(ctx, req); err != nil {
 			return err
 		}
-		idx = idx + 50
 	}
 	return nil
 }
