@@ -467,9 +467,7 @@ func scan(ctx context.Context, targets []*target, scanConcurrency int64) ([]*por
 		}
 		func(t *target) {
 			eg.Go(func() error {
-				defer func() {
-					sem.Release(1)
-				}()
+				defer sem.Release(1)
 				select {
 				case <-errGroupCtx.Done():
 					appLogger.Debugf("scan cancel. target: %v", t.Target)
