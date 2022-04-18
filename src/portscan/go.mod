@@ -18,6 +18,7 @@ require (
 	github.com/gassara-kys/envconfig v1.4.4
 	github.com/gassara-kys/go-sqs-poller/worker/v4 v4.0.0-20210215110542-0be358599a2f
 	github.com/vikyd/zero v0.0.0-20190921142904-0f738d0bc858
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.45.0
 )
 
@@ -42,7 +43,6 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.30.0 // indirect
 	golang.org/x/net v0.0.0-20210903162142-ad29c8ab022f // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20220111092808-5a964db01320 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20211129164237-f09f9a12af12 // indirect

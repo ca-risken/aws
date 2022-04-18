@@ -456,7 +456,7 @@ func (p *portscanClient) getMatchSecurityGroup(targetSecurityGroups []*string) [
 }
 
 func scan(ctx context.Context, targets []*target, scanConcurrency int64) ([]*portscan.NmapResult, error) {
-	eg := new(errgroup.Group)
+	eg, errGroupCtx := errgroup.WithContext(ctx)
 	var nmapResults []*portscan.NmapResult
 	mutex := &sync.Mutex{}
 	sem := semaphore.NewWeighted(scanConcurrency)
@@ -470,25 +470,29 @@ func scan(ctx context.Context, targets []*target, scanConcurrency int64) ([]*por
 				defer func() {
 					sem.Release(1)
 				}()
-				results, err := portscan.Scan(t.Target, t.Protocol, t.FromPort, t.ToPort)
-
-				if err != nil {
-					return err
+				select {
+				case <-errGroupCtx.Done():
+					appLogger.Debugf("scan cancel. target: %v", t.Target)
+					return nil
+				default:
+					results, err := portscan.Scan(t.Target, t.Protocol, t.FromPort, t.ToPort)
+					if err != nil {
+						return err
+					}
+					for _, result := range results {
+						result.ResourceName = t.Arn
+					}
+					mutex.Lock()
+					nmapResults = append(nmapResults, results...)
+					mutex.Unlock()
+					return nil
 				}
-				for _, result := range results {
-					result.ResourceName = t.Arn
-				}
-				mutex.Lock()
-				nmapResults = append(nmapResults, results...)
-				mutex.Unlock()
-				return nil
 			})
 		}(t)
 	}
 	if err := eg.Wait(); err != nil {
 		appLogger.Errorf("failed to exec portscan: %v", err)
 		return nmapResults, err
-
 	}
 
 	return nmapResults, nil

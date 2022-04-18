@@ -45,7 +45,7 @@ type AppConfig struct {
 
 	// portsan
 	ScanExcludePortNumber int   `split_words:"true"     default:"1000"`
-	ScanConcurrency       int64 `split_words:"true" default:"10"`
+	ScanConcurrency       int64 `split_words:"true" default:"5"`
 }
 
 func main() {
