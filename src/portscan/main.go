@@ -51,7 +51,6 @@ type AppConfig struct {
 func main() {
 	var conf AppConfig
 	err := envconfig.Process("", &conf)
-	appLogger.Infof("env: %#v", conf)
 	if err != nil {
 		appLogger.Fatal(err.Error())
 	}
@@ -90,7 +89,6 @@ func main() {
 		WaitTimeSecond:     conf.WaitTimeSecond,
 		ScanConcurrency:    conf.ScanConcurrency,
 	}
-	appLogger.Infof("sqsConf: %#v", sqsConf)
 	consumer := newSQSConsumer(sqsConf)
 
 	handler := &sqsHandler{
