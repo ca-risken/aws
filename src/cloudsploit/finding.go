@@ -14,11 +14,14 @@ import (
 	"github.com/ca-risken/core/proto/finding"
 )
 
+const putFindingBatchAPILimit = 50
+
 func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResult, message *message.AWSQueueMessage) error {
 	maxScore, err := s.getCloudSploitMaxScore(ctx, message)
 	if err != nil {
 		return err
 	}
+	var params []*finding.FindingBatchForUpsert
 	for _, result := range *results {
 		data, err := json.Marshal(map[string]cloudSploitResult{"data": result})
 		if err != nil {
@@ -27,96 +30,93 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 		if result.Resource == cloudsploitNA {
 			result.Resource = cloudsploitUnknown
 		}
-		finding := &finding.FindingForUpsert{
+		resourceName := getResourceName(result.Resource, result.Category, message.AccountID)
+		serviceTag := getServiceTag(resourceName)
+		tags := []string{common.TagAWS, serviceTag, message.AccountID}
+		score := getScore(result.Status, result.Category, result.Plugin)
+		if score == 0.0 {
+			if err = s.putResource(ctx, resourceName, message.ProjectID, tags); err != nil {
+				return err
+			}
+			continue
+		}
+
+		// finding
+		f := &finding.FindingForUpsert{
 			Description:      result.Description,
 			DataSource:       message.DataSource,
 			DataSourceId:     generateDataSourceID(fmt.Sprintf("description_%v_%v_%v", result.Description, result.Region, result.Resource)),
-			ResourceName:     getResourceName(result.Resource, result.Category, message.AccountID),
+			ResourceName:     resourceName,
 			ProjectId:        message.ProjectID,
-			OriginalScore:    getScore(result.Status, result.Category, result.Plugin),
+			OriginalScore:    score,
 			OriginalMaxScore: maxScore,
 			Data:             string(data),
 		}
-		err = s.putFinding(ctx, finding, &result, message)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
-func (s *sqsHandler) putFinding(ctx context.Context, cloudsploitFinding *finding.FindingForUpsert, result *cloudSploitResult, msg *message.AWSQueueMessage) error {
-	serviceTag := getServiceTag(cloudsploitFinding.ResourceName)
-	if cloudsploitFinding.OriginalScore == 0.0 {
-		res, err := s.findingClient.PutResource(ctx, &finding.PutResourceRequest{
-			ProjectId: cloudsploitFinding.ProjectId,
-			Resource: &finding.ResourceForUpsert{
-				ResourceName: cloudsploitFinding.ResourceName,
-				ProjectId:    cloudsploitFinding.ProjectId,
-			},
+		// tag
+		tags = append(tags, common.TagCloudsploit, result.Plugin)
+		tags = append(tags, getPluginTags(result.Category, result.Plugin)...)
+		var tagForBatch []*finding.FindingTagForBatch
+		for _, tag := range tags {
+			tagForBatch = append(tagForBatch, &finding.FindingTagForBatch{Tag: tag})
+		}
+
+		// recommend
+		var recommend *finding.RecommendForBatch
+		recommendType := fmt.Sprintf("%s/%s", result.Category, result.Plugin)
+		r := getRecommend(result.Category, result.Plugin)
+		if r.Risk == "" && r.Recommendation == "" {
+			appLogger.Warnf("Failed to get recommendation, Unknown plugin=%s", recommendType)
+		} else {
+			recommend = &finding.RecommendForBatch{
+				Type:           recommendType,
+				Risk:           r.Risk,
+				Recommendation: r.Recommendation,
+			}
+		}
+
+		params = append(params, &finding.FindingBatchForUpsert{
+			Finding:   f,
+			Tag:       tagForBatch,
+			Recommend: recommend,
 		})
-		if err != nil {
-			appLogger.Errorf("Failed to PutResource project_id=%d, resource=%s, err=%+v", cloudsploitFinding.ProjectId, cloudsploitFinding.ResourceName, err)
-			return err
-		}
-		if err := s.tagResource(ctx, cloudsploitFinding.ProjectId, res.Resource.ResourceId, common.TagAWS); err != nil {
-			return err
-		}
-		if err := s.tagResource(ctx, cloudsploitFinding.ProjectId, res.Resource.ResourceId, serviceTag); err != nil {
-			return err
-		}
-		if err := s.tagResource(ctx, cloudsploitFinding.ProjectId, res.Resource.ResourceId, msg.AccountID); err != nil {
-			return err
-		}
-		return nil
 	}
+	return s.putFindingBatch(ctx, message.ProjectID, params)
+}
 
-	// finding
-	res, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: cloudsploitFinding})
-	if err != nil {
-		appLogger.Errorf("Failed to PutFinding project_id=%d, resource=%s, err=%+v", cloudsploitFinding.ProjectId, cloudsploitFinding.ResourceName, err)
-		return err
-	}
-	// finding tag
-	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS); err != nil {
-		return err
-	}
-	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagCloudsploit); err != nil {
-		return err
-	}
-	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, msg.AccountID); err != nil {
-		return err
-	}
-	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, result.Plugin); err != nil {
-		return err
-	}
-	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, serviceTag); err != nil {
-		return err
-	}
-	tags := getPluginTags(result.Category, result.Plugin)
-	for _, t := range tags {
-		if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, t); err != nil {
+func (s *sqsHandler) putFindingBatch(ctx context.Context, projectID uint32, params []*finding.FindingBatchForUpsert) error {
+	appLogger.Infof("Putting findings(%d)...", len(params))
+	for idx := 0; idx < len(params); idx = idx + putFindingBatchAPILimit {
+		lastIdx := idx + putFindingBatchAPILimit
+		if lastIdx > len(params) {
+			lastIdx = len(params)
+		}
+		// request per API limits
+		appLogger.Debugf("Call PutFindingBatch API, (%d ~ %d / %d)", idx+1, lastIdx+1, len(params))
+		req := &finding.PutFindingBatchRequest{ProjectId: projectID, Finding: params[idx:lastIdx]}
+		if _, err := s.findingClient.PutFindingBatch(ctx, req); err != nil {
 			return err
 		}
-	}
-	// recommend
-	if err := s.putRecommend(ctx, res.Finding.ProjectId, res.Finding.FindingId, result.Category, result.Plugin); err != nil {
-		appLogger.Errorf("Failed to put recommend project_id=%d, finding_id=%d, plugin=%s, err=%+v",
-			res.Finding.ProjectId, res.Finding.FindingId, result.Plugin, err)
-		return err
 	}
 	return nil
 }
 
-func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID uint64, tag string) error {
-	if _, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
+func (s *sqsHandler) putResource(ctx context.Context, resourceName string, projectID uint32, tags []string) error {
+	res, err := s.findingClient.PutResource(ctx, &finding.PutResourceRequest{
 		ProjectId: projectID,
-		Tag: &finding.FindingTagForUpsert{
-			FindingId: findingID,
-			ProjectId: projectID,
-			Tag:       tag,
-		}}); err != nil {
-		return fmt.Errorf("Failed to TagFinding. finding_id=%d, error=%v", findingID, err)
+		Resource: &finding.ResourceForUpsert{
+			ResourceName: resourceName,
+			ProjectId:    projectID,
+		},
+	})
+	if err != nil {
+		appLogger.Errorf("Failed to PutResource project_id=%d, resource=%s, err=%+w", projectID, resourceName, err)
+		return err
+	}
+	for _, tag := range tags {
+		if err := s.tagResource(ctx, projectID, res.Resource.ResourceId, tag); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -131,26 +131,6 @@ func (s *sqsHandler) tagResource(ctx context.Context, projectID uint32, resource
 		}},
 	); err != nil {
 		return fmt.Errorf("Failed to TagResource. error: %v", err)
-	}
-	return nil
-}
-
-func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, findingID uint64, category, plugin string) error {
-	recommendType := fmt.Sprintf("%s/%s", category, plugin)
-	r := recommendMap[recommendType]
-	if r.Risk == "" && r.Recommendation == "" {
-		appLogger.Warnf("Failed to get recommendation, Unknown plugin=%s", recommendType)
-		return nil
-	}
-	if _, err := s.findingClient.PutRecommend(ctx, &finding.PutRecommendRequest{
-		ProjectId:      projectID,
-		FindingId:      findingID,
-		DataSource:     message.CloudsploitDataSource,
-		Type:           recommendType,
-		Risk:           r.Risk,
-		Recommendation: r.Recommendation,
-	}); err != nil {
-		return err
 	}
 	return nil
 }
