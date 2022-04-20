@@ -62,6 +62,8 @@ github.com/ca-risken/core/proto/alert v0.0.0-20211129081226-f2531e88f350/go.mod 
 github.com/ca-risken/core/proto/finding v0.0.0-20220309052852-c058b4e5cb84/go.mod h1:3KZ1YanhizuVyAqMnCG7sI8Rt2mTvsWfB1GieIvoGRI=
 github.com/ca-risken/core/proto/finding v0.0.0-20220412093922-1f5c2ba990ad h1:kodGYiT/yMEJed7DjpKTjtFF+mwSixVw7sprk4/yR0I=
 github.com/ca-risken/core/proto/finding v0.0.0-20220412093922-1f5c2ba990ad/go.mod h1:3KZ1YanhizuVyAqMnCG7sI8Rt2mTvsWfB1GieIvoGRI=
+github.com/ca-risken/core/proto/finding v0.0.0-20220420021419-f62e1a1e6a9b h1:k+TDoe6H7cNmb45aybqYZZUldCD4YYBi5gZfgcAtgWM=
+github.com/ca-risken/core/proto/finding v0.0.0-20220420021419-f62e1a1e6a9b/go.mod h1:3KZ1YanhizuVyAqMnCG7sI8Rt2mTvsWfB1GieIvoGRI=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=

@@ -14,14 +14,16 @@ import (
 	"github.com/ca-risken/core/proto/finding"
 )
 
-const putFindingBatchAPILimit = 50
-
 func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResult, message *message.AWSQueueMessage) error {
 	maxScore, err := s.getCloudSploitMaxScore(ctx, message)
 	if err != nil {
 		return err
 	}
-	var params []*finding.FindingBatchForUpsert
+	var (
+		findingBatchParam  []*finding.FindingBatchForUpsert
+		resourceBatchParam []*finding.ResourceBatchForUpsert
+	)
+
 	for _, result := range *results {
 		data, err := json.Marshal(map[string]cloudSploitResult{"data": result})
 		if err != nil {
@@ -35,9 +37,18 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 		tags := []string{common.TagAWS, serviceTag, message.AccountID}
 		score := getScore(result.Status, result.Category, result.Plugin)
 		if score == 0.0 {
-			if err = s.putResource(ctx, resourceName, message.ProjectID, tags); err != nil {
-				return err
+			// resource
+			var resourceTagForBatch []*finding.ResourceTagForBatch
+			for _, tag := range tags {
+				resourceTagForBatch = append(resourceTagForBatch, &finding.ResourceTagForBatch{Tag: tag})
 			}
+			resourceBatchParam = append(resourceBatchParam, &finding.ResourceBatchForUpsert{
+				Resource: &finding.ResourceForUpsert{
+					ProjectId:    message.ProjectID,
+					ResourceName: resourceName,
+				},
+				Tag: resourceTagForBatch,
+			})
 			continue
 		}
 
@@ -52,13 +63,11 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 			OriginalMaxScore: maxScore,
 			Data:             string(data),
 		}
-
-		// tag
 		tags = append(tags, common.TagCloudsploit, result.Plugin)
 		tags = append(tags, getPluginTags(result.Category, result.Plugin)...)
-		var tagForBatch []*finding.FindingTagForBatch
+		var findingTagForBatch []*finding.FindingTagForBatch
 		for _, tag := range tags {
-			tagForBatch = append(tagForBatch, &finding.FindingTagForBatch{Tag: tag})
+			findingTagForBatch = append(findingTagForBatch, &finding.FindingTagForBatch{Tag: tag})
 		}
 
 		// recommend
@@ -75,19 +84,28 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 			}
 		}
 
-		params = append(params, &finding.FindingBatchForUpsert{
+		findingBatchParam = append(findingBatchParam, &finding.FindingBatchForUpsert{
 			Finding:   f,
-			Tag:       tagForBatch,
+			Tag:       findingTagForBatch,
 			Recommend: recommend,
 		})
 	}
-	return s.putFindingBatch(ctx, message.ProjectID, params)
+
+	// put
+	if err = s.putResourceBatch(ctx, message.ProjectID, resourceBatchParam); err != nil {
+		return err
+	}
+	if err = s.putFindingBatch(ctx, message.ProjectID, findingBatchParam); err != nil {
+		return err
+	}
+	appLogger.Infof("putFindings(%d) succeeded", len(*results))
+	return nil
 }
 
 func (s *sqsHandler) putFindingBatch(ctx context.Context, projectID uint32, params []*finding.FindingBatchForUpsert) error {
 	appLogger.Infof("Putting findings(%d)...", len(params))
-	for idx := 0; idx < len(params); idx = idx + putFindingBatchAPILimit {
-		lastIdx := idx + putFindingBatchAPILimit
+	for idx := 0; idx < len(params); idx = idx + finding.PutFindingBatchMaxLength {
+		lastIdx := idx + finding.PutFindingBatchMaxLength
 		if lastIdx > len(params) {
 			lastIdx = len(params)
 		}
@@ -101,36 +119,19 @@ func (s *sqsHandler) putFindingBatch(ctx context.Context, projectID uint32, para
 	return nil
 }
 
-func (s *sqsHandler) putResource(ctx context.Context, resourceName string, projectID uint32, tags []string) error {
-	res, err := s.findingClient.PutResource(ctx, &finding.PutResourceRequest{
-		ProjectId: projectID,
-		Resource: &finding.ResourceForUpsert{
-			ResourceName: resourceName,
-			ProjectId:    projectID,
-		},
-	})
-	if err != nil {
-		appLogger.Errorf("Failed to PutResource project_id=%d, resource=%s, err=%+w", projectID, resourceName, err)
-		return err
-	}
-	for _, tag := range tags {
-		if err := s.tagResource(ctx, projectID, res.Resource.ResourceId, tag); err != nil {
+func (s *sqsHandler) putResourceBatch(ctx context.Context, projectID uint32, params []*finding.ResourceBatchForUpsert) error {
+	appLogger.Infof("Putting resources(%d)...", len(params))
+	for idx := 0; idx < len(params); idx = idx + finding.PutResourceBatchMaxLength {
+		lastIdx := idx + finding.PutResourceBatchMaxLength
+		if lastIdx > len(params) {
+			lastIdx = len(params)
+		}
+		// request per API limits
+		appLogger.Debugf("Call PutResourceBatch API, (%d ~ %d / %d)", idx+1, lastIdx+1, len(params))
+		req := &finding.PutResourceBatchRequest{ProjectId: projectID, Resource: params[idx:lastIdx]}
+		if _, err := s.findingClient.PutResourceBatch(ctx, req); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func (s *sqsHandler) tagResource(ctx context.Context, projectID uint32, resourceID uint64, tag string) error {
-	if _, err := s.findingClient.TagResource(ctx, &finding.TagResourceRequest{
-		ProjectId: projectID,
-		Tag: &finding.ResourceTagForUpsert{
-			ResourceId: resourceID,
-			ProjectId:  projectID,
-			Tag:        tag,
-		}},
-	); err != nil {
-		return fmt.Errorf("Failed to TagResource. error: %v", err)
 	}
 	return nil
 }
