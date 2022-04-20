@@ -13,7 +13,7 @@ require (
 	github.com/ca-risken/common/pkg/sqs v0.0.0-20220405112424-88b993567364
 	github.com/ca-risken/common/pkg/xray v0.0.0-20211118071101-9855266b50a1
 	github.com/ca-risken/core/proto/alert v0.0.0-20211129081226-f2531e88f350
-	github.com/ca-risken/core/proto/finding v0.0.0-20220412093922-1f5c2ba990ad
+	github.com/ca-risken/core/proto/finding v0.0.0-20220420021419-f62e1a1e6a9b
 	github.com/gassara-kys/envconfig v1.4.4
 	github.com/gassara-kys/go-sqs-poller/worker/v4 v4.0.0-20210215110542-0be358599a2f
 	github.com/stretchr/testify v1.7.0
