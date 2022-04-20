@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/ca-risken/aws/pkg/message"
 )
 
@@ -22,46 +22,79 @@ type adminCheckerAPI interface {
 }
 
 type adminCheckerClient struct {
-	Sess *session.Session
-	Svc  *iam.IAM
+	// Sess *session.Session
+	Svc *iam.Client
 }
 
-func newAdminCheckerClient(awsRegion, assumeRole, externalID string) (adminCheckerAPI, error) {
+func newAdminCheckerClient(ctx context.Context, awsRegion, assumeRole, externalID string) (adminCheckerAPI, error) {
 	a := adminCheckerClient{}
-	if err := a.newAWSSession(awsRegion, assumeRole, externalID); err != nil {
+	if err := a.newAWSSession(ctx, awsRegion, assumeRole, externalID); err != nil {
 		return nil, err
 	}
 	return &a, nil
 }
 
-func (a *adminCheckerClient) newAWSSession(region, assumeRole, externalID string) error {
+func (a *adminCheckerClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string) error {
 	if assumeRole == "" {
 		return errors.New("Required AWS AssumeRole")
 	}
-	sess, err := session.NewSession()
-	if err != nil {
-		appLogger.Errorf("Failed to create session, err=%+v", err)
-		return err
+	if externalID == "" {
+		return errors.New("Required AWS ExternalID")
 	}
-	var cred *credentials.Credentials
-	if externalID != "" {
-		cred = stscreds.NewCredentials(
-			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
-				p.ExternalID = aws.String(externalID)
-			},
-		)
-	} else {
-		cred = stscreds.NewCredentials(sess, assumeRole)
-	}
-	sessWithCred, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Config:            aws.Config{Region: &region, Credentials: cred},
-	})
-	if err != nil {
-		return err
-	}
-	a.Sess = sessWithCred
-	a.Svc = iam.New(a.Sess)
+	assumecnf, _ := config.LoadDefaultConfig(
+		ctx,
+		config.WithCredentialsProvider(aws.NewCredentialsCache(
+			credentials.NewStaticCredentialsProvider()),
+		),
+	)
+
+	stsclient := sts.NewFromConfig(assumecnf)
+	cnf, _ := config.LoadDefaultConfig(
+		ctx, config.WithRegion("{aws-region}"),
+		config.WithCredentialsProvider(aws.NewCredentialsCache(
+			stscredsv2.NewAssumeRoleProvider(
+				stsclient,
+				"{rolearn-to-assume}",
+			)),
+		),
+	)
+
+	client := s3.NewFromConfig(cnf)
+	// cfg, err := config.LoadDefaultConfig(ctx)
+	// if err != nil {
+	// 	appLogger.Errorf("Failed to load deault configuration, err=%+v", err)
+	// 	return err
+	// }
+	// client := sts.NewFromConfig(cfg)
+	// assumeRoleResult, err := client.AssumeRole(ctx, &sts.AssumeRoleInput{
+	// 	RoleArn:         aws.String(assumeRole),
+	// 	RoleSessionName: aws.String("RISKEN"),
+	// 	ExternalId:      aws.String(externalID),
+	// })
+	// if err != nil {
+	// 	return err
+	// }
+	// cfg.Credentials = assumeRoleResult.Credentials.
+	// a.Svc = iam.NewFromConfig(cfg)
+
+	// client := sts.NewFromConfig(cfg,
+	// 	config.WithAssumeRoleCredentialOptions(opt *stscreds.AssumeRoleOptions){
+	// 		opt.RoleARN = aws.String(assumeRole)
+	// 		opt.ExternalID = aws.String(externalID)
+	// 	},
+	// )
+	// var appCreds *stscreds.AssumeRoleProvider
+	// appCreds = stscreds.NewAssumeRoleProvider(client, assumeRole,
+	// 	func(p *stscreds.AssumeRoleOptions) {
+	// 		p.ExternalID = aws.String(externalID)
+	// 	},
+	// )
+	// creds, err := appCreds.Retrieve(ctx)
+	// if err != nil {
+	// 	return err
+	// }
+	// a.Sess = creds
+	// a.Svc = iam.New(a.Sess)
 	return nil
 }
 

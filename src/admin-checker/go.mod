@@ -4,6 +4,10 @@ go 1.17
 
 require (
 	github.com/aws/aws-sdk-go v1.42.22
+	github.com/aws/aws-sdk-go-v2 v1.16.2
+	github.com/aws/aws-sdk-go-v2/config v1.15.3
+	github.com/aws/aws-sdk-go-v2/credentials v1.11.2
+	github.com/aws/aws-sdk-go-v2/service/iam v1.18.3
 	github.com/aws/aws-xray-sdk-go v1.6.0
 	github.com/ca-risken/aws/pkg/common v0.0.0-20210907034232-c56f481434cd
 	github.com/ca-risken/aws/pkg/message v0.0.0-20210907034232-c56f481434cd
@@ -26,6 +30,14 @@ require (
 	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.3 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.9 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.3 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.10 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.11.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.16.3 // indirect
+	github.com/aws/smithy-go v1.11.2 // indirect
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible // indirect
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
