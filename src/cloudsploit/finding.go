@@ -23,7 +23,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 		findingBatchParam  []*finding.FindingBatchForUpsert
 		resourceBatchParam []*finding.ResourceBatchForUpsert
 	)
-
+	resourceNameMap := map[string]bool{}
 	for _, result := range *results {
 		data, err := json.Marshal(map[string]cloudSploitResult{"data": result})
 		if err != nil {
@@ -38,6 +38,10 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 		score := getScore(result.Status, result.Category, result.Plugin)
 		if score == 0.0 {
 			// resource
+			if _, ok := resourceNameMap[resourceName]; ok {
+				continue // skip duplicated resource
+			}
+			resourceNameMap[resourceName] = true
 			var resourceTagForBatch []*finding.ResourceTagForBatch
 			for _, tag := range tags {
 				resourceTagForBatch = append(resourceTagForBatch, &finding.ResourceTagForBatch{Tag: tag})
