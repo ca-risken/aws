@@ -75,105 +75,83 @@ func makeSecurityGroupFindings(results map[string]*relSecurityGroupArn, message 
 }
 
 func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessage, nmapResults []*portscan.NmapResult, excludeResults []*excludeResult, securityGroups map[string]*relSecurityGroupArn) error {
+	findingBatchParam := []*finding.FindingBatchForUpsert{}
 	findingsNmap, err := makeFindings(nmapResults, msg)
 	if err != nil {
 		return err
 	}
 	for _, f := range findingsNmap {
-		err := s.putFinding(ctx, f, msg, categoryNmap)
-		if err != nil {
-			return err
-		}
+		findingBatchParam = append(findingBatchParam, generateFindingBatch(msg.AccountID, categoryNmap, f))
 	}
+
 	findingsExclude, err := makeExcludeFindings(excludeResults, msg)
 	if err != nil {
 		return err
 	}
 	for _, f := range findingsExclude {
-		err := s.putFinding(ctx, f, msg, categoryManyOpen)
-		if err != nil {
-			return err
-		}
+		findingBatchParam = append(findingBatchParam, generateFindingBatch(msg.AccountID, categoryManyOpen, f))
 	}
+
 	findingsSecurityGroup, err := makeSecurityGroupFindings(securityGroups, msg)
 	if err != nil {
 		return err
 	}
 	for _, f := range findingsSecurityGroup {
-		err := s.putFinding(ctx, f, msg, categoryManyOpen)
-		if err != nil {
-			return err
-		}
+		findingBatchParam = append(findingBatchParam, generateFindingBatch(msg.AccountID, categoryManyOpen, f))
 	}
+	if err := s.putFindingBatch(ctx, msg.ProjectID, findingBatchParam); err != nil {
+		return err
+	}
+	appLogger.Infof("putFindings(%d) succeeded", len(findingBatchParam))
 	return nil
 }
 
-func (s *sqsHandler) putFinding(ctx context.Context, f *finding.FindingForUpsert, msg *message.AWSQueueMessage, category string) error {
-	res, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
-	if err != nil {
-		return err
+func generateFindingBatch(awsAccountID, category string, f *finding.FindingForUpsert) *finding.FindingBatchForUpsert {
+	data := &finding.FindingBatchForUpsert{Finding: f}
+	// tag
+	tags := []*finding.FindingTagForBatch{
+		{Tag: common.TagAWS},
+		{Tag: common.TagPortscan},
+		{Tag: awsAccountID},
 	}
-	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagAWS); err != nil {
-		return err
+	service := common.GetAWSServiceTagByARN(f.ResourceName)
+	if service == common.TagEC2 && strings.Contains(f.ResourceName, "security-group") {
+		tags = append(tags, &finding.FindingTagForBatch{Tag: "securitygroup"})
 	}
-	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, common.TagPortscan); err != nil {
-		return err
-	}
-	if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, msg.AccountID); err != nil {
-		return err
-	}
-	tagService := common.GetAWSServiceTagByARN(res.Finding.ResourceName)
-	if !zero.IsZeroVal(tagService) {
-		if tagService == common.TagEC2 && strings.Contains(res.Finding.ResourceName, "security-group") {
-			tagService = "securitygroup"
-		}
-		if err := s.tagFinding(ctx, res.Finding.ProjectId, res.Finding.FindingId, tagService); err != nil {
-			return err
-		}
-	}
+	data.Tag = tags
+
 	// recommend
-	if err = s.putRecommend(ctx, res.Finding.ProjectId, res.Finding.FindingId, category, tagService); err != nil {
-		appLogger.Errorf("Failed to put recommend project_id=%d, finding_id=%d, category=%s,service=%s, err=%+v",
-			res.Finding.ProjectId, res.Finding.FindingId, category, tagService, err)
-		return err
-	}
-
-	return nil
-}
-
-func (s *sqsHandler) tagFinding(ctx context.Context, projectID uint32, findingID uint64, tag string) error {
-	if _, err := s.findingClient.TagFinding(ctx, &finding.TagFindingRequest{
-		ProjectId: projectID,
-		Tag: &finding.FindingTagForUpsert{
-			FindingId: findingID,
-			ProjectId: projectID,
-			Tag:       tag,
-		}}); err != nil {
-		return fmt.Errorf("Failed to TagFinding. error: %v", err)
-	}
-	return nil
-}
-
-func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, findingID uint64, category, service string) error {
 	recommendType := getRecommendType(category, service)
 	if zero.IsZeroVal(recommendType) {
 		appLogger.Warnf("Failed to get recommendation, Unknown category,service=%s", fmt.Sprintf("%v:%v", category, service))
-		return nil
+		return data
 	}
 	r := getRecommend(recommendType, service)
 	if r.Risk == "" && r.Recommendation == "" {
 		appLogger.Warnf("Failed to get recommendation, Unknown reccomendType,service=%s", fmt.Sprintf("%v:%v", category, service))
-		return nil
+		return data
 	}
-	if _, err := s.findingClient.PutRecommend(ctx, &finding.PutRecommendRequest{
-		ProjectId:      projectID,
-		FindingId:      findingID,
-		DataSource:     message.PortscanDataSource,
+	data.Recommend = &finding.RecommendForBatch{
 		Type:           recommendType,
 		Risk:           r.Risk,
 		Recommendation: r.Recommendation,
-	}); err != nil {
-		return err
+	}
+	return data
+}
+
+func (s *sqsHandler) putFindingBatch(ctx context.Context, projectID uint32, params []*finding.FindingBatchForUpsert) error {
+	appLogger.Infof("Putting findings(%d)...", len(params))
+	for idx := 0; idx < len(params); idx = idx + finding.PutFindingBatchMaxLength {
+		lastIdx := idx + finding.PutFindingBatchMaxLength
+		if lastIdx > len(params) {
+			lastIdx = len(params)
+		}
+		// request per API limits
+		appLogger.Debugf("Call PutFindingBatch API, (%d ~ %d / %d)", idx+1, lastIdx, len(params))
+		req := &finding.PutFindingBatchRequest{ProjectId: projectID, Finding: params[idx:lastIdx]}
+		if _, err := s.findingClient.PutFindingBatch(ctx, req); err != nil {
+			return err
+		}
 	}
 	return nil
 }
