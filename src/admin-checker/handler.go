@@ -45,7 +45,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		return s.handleErrorWithUpdateStatus(ctx, &status, fmt.Errorf("AssumeRoleArn for admin-checker must be created in AWS AccountID: %v", msg.AccountID))
 	}
 	// IAM Admin Checker
-	adminChecker, err := newAdminCheckerClient(s.awsRegion, msg.AssumeRoleArn, msg.ExternalID)
+	adminChecker, err := newAdminCheckerClient(ctx, s.awsRegion, msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create AdminChecker session: err=%+v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)

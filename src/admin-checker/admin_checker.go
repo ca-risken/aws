@@ -10,8 +10,9 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/ca-risken/aws/pkg/message"
 )
@@ -22,7 +23,6 @@ type adminCheckerAPI interface {
 }
 
 type adminCheckerClient struct {
-	// Sess *session.Session
 	Svc *iam.Client
 }
 
@@ -41,60 +41,24 @@ func (a *adminCheckerClient) newAWSSession(ctx context.Context, region, assumeRo
 	if externalID == "" {
 		return errors.New("Required AWS ExternalID")
 	}
-	assumecnf, _ := config.LoadDefaultConfig(
-		ctx,
-		config.WithCredentialsProvider(aws.NewCredentialsCache(
-			credentials.NewStaticCredentialsProvider()),
-		),
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	if err != nil {
+		return err
+	}
+	stsClient := sts.NewFromConfig(cfg)
+	provider := stscreds.NewAssumeRoleProvider(stsClient, assumeRole,
+		func(p *stscreds.AssumeRoleOptions) {
+			p.RoleARN = assumeRole
+			p.RoleSessionName = "RISKEN"
+			p.ExternalID = &externalID
+		},
 	)
-
-	stsclient := sts.NewFromConfig(assumecnf)
-	cnf, _ := config.LoadDefaultConfig(
-		ctx, config.WithRegion("{aws-region}"),
-		config.WithCredentialsProvider(aws.NewCredentialsCache(
-			stscredsv2.NewAssumeRoleProvider(
-				stsclient,
-				"{rolearn-to-assume}",
-			)),
-		),
-	)
-
-	client := s3.NewFromConfig(cnf)
-	// cfg, err := config.LoadDefaultConfig(ctx)
-	// if err != nil {
-	// 	appLogger.Errorf("Failed to load deault configuration, err=%+v", err)
-	// 	return err
-	// }
-	// client := sts.NewFromConfig(cfg)
-	// assumeRoleResult, err := client.AssumeRole(ctx, &sts.AssumeRoleInput{
-	// 	RoleArn:         aws.String(assumeRole),
-	// 	RoleSessionName: aws.String("RISKEN"),
-	// 	ExternalId:      aws.String(externalID),
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-	// cfg.Credentials = assumeRoleResult.Credentials.
-	// a.Svc = iam.NewFromConfig(cfg)
-
-	// client := sts.NewFromConfig(cfg,
-	// 	config.WithAssumeRoleCredentialOptions(opt *stscreds.AssumeRoleOptions){
-	// 		opt.RoleARN = aws.String(assumeRole)
-	// 		opt.ExternalID = aws.String(externalID)
-	// 	},
-	// )
-	// var appCreds *stscreds.AssumeRoleProvider
-	// appCreds = stscreds.NewAssumeRoleProvider(client, assumeRole,
-	// 	func(p *stscreds.AssumeRoleOptions) {
-	// 		p.ExternalID = aws.String(externalID)
-	// 	},
-	// )
-	// creds, err := appCreds.Retrieve(ctx)
-	// if err != nil {
-	// 	return err
-	// }
-	// a.Sess = creds
-	// a.Svc = iam.New(a.Sess)
+	cfg.Credentials = aws.NewCredentialsCache(provider)
+	_, err = cfg.Credentials.Retrieve(ctx)
+	if err != nil {
+		return err
+	}
+	a.Svc = iam.New(iam.Options{Credentials: cfg.Credentials, Region: region})
 	return nil
 }
 
@@ -129,15 +93,12 @@ func (a *adminCheckerClient) listUserFinding(ctx context.Context, msg *message.A
 }
 
 func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
-	users, err := a.Svc.ListUsersWithContext(ctx, &iam.ListUsersInput{})
+	users, err := a.Svc.ListUsers(ctx, &iam.ListUsersInput{})
 	if err != nil {
 		return nil, err
 	}
 	var iamUsers []iamUser
 	for _, user := range users.Users {
-		if user == nil {
-			continue
-		}
 		jobID, err := a.generateServiceLastAccessedDetails(ctx, *user.Arn)
 		if err != nil {
 			return nil, err
@@ -188,9 +149,9 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 }
 
 func (a *adminCheckerClient) generateServiceLastAccessedDetails(ctx context.Context, arn string) (string, error) {
-	out, err := a.Svc.GenerateServiceLastAccessedDetailsWithContext(ctx, &iam.GenerateServiceLastAccessedDetailsInput{
+	out, err := a.Svc.GenerateServiceLastAccessedDetails(ctx, &iam.GenerateServiceLastAccessedDetailsInput{
 		Arn:         &arn,
-		Granularity: aws.String("SERVICE_LEVEL"), // or ACTION_LEVEL
+		Granularity: types.AccessAdvisorUsageGranularityTypeServiceLevel,
 	})
 	if err != nil {
 		return "", err
@@ -207,20 +168,20 @@ func (a *adminCheckerClient) analyzeServiceLastAccessedDetails(ctx context.Conte
 	retry := 0
 BREAK:
 	for {
-		out, err := a.Svc.GetServiceLastAccessedDetailsWithContext(ctx, &iam.GetServiceLastAccessedDetailsInput{
+		out, err := a.Svc.GetServiceLastAccessedDetails(ctx, &iam.GetServiceLastAccessedDetailsInput{
 			JobId: &jobID,
 		})
 		if err != nil {
 			return nil, err
 		}
-		switch *out.JobStatus {
-		case iam.JobStatusTypeFailed:
+		switch out.JobStatus {
+		case types.JobStatusTypeFailed:
 			errMsg := fmt.Sprintf("Failed to GetServiceLastAccessedDetails, jobID=%s", jobID)
 			if out.Error != nil {
 				errMsg += fmt.Sprintf(" error_code=%s, message=%s", *out.Error.Code, *out.Error.Message)
 			}
 			return nil, errors.New(errMsg)
-		case iam.JobStatusTypeInProgress:
+		case types.JobStatusTypeInProgress:
 			retry++
 			if retry > maxRetry {
 				resp.JobStatus = "TIMEOUT"
@@ -228,8 +189,8 @@ BREAK:
 			}
 			time.Sleep(time.Millisecond * 1000)
 			continue
-		case iam.JobStatusTypeCompleted:
-			resp.JobStatus = iam.JobStatusTypeCompleted
+		case types.JobStatusTypeCompleted:
+			resp.JobStatus = "COMPLETED"
 			resp.AllowedServices = len(out.ServicesLastAccessed)
 			for _, accessed := range out.ServicesLastAccessed {
 				appLogger.Debugf("ServicesLastAccessed: %+v", accessed)
@@ -246,7 +207,7 @@ BREAK:
 			appLogger.Debugf("serviceAccessedReport: %+v", resp)
 			break BREAK
 		default:
-			return nil, fmt.Errorf("Unknown Job Status for GetServiceLastAccessedDetails: jobID=%s, status=%s", jobID, *out.JobStatus)
+			return nil, fmt.Errorf("Unknown Job Status for GetServiceLastAccessedDetails: jobID=%s, status=%s", jobID, out.JobStatus)
 		}
 	}
 	return &resp, nil
@@ -254,14 +215,14 @@ BREAK:
 
 func (a *adminCheckerClient) listActiveAccessKeyID(ctx context.Context, userName *string) (*[]string, error) {
 	var accessKeyIDs []string
-	result, err := a.Svc.ListAccessKeysWithContext(ctx, &iam.ListAccessKeysInput{
+	result, err := a.Svc.ListAccessKeys(ctx, &iam.ListAccessKeysInput{
 		UserName: userName,
 	})
 	if err != nil {
 		return &accessKeyIDs, err
 	}
 	for _, key := range result.AccessKeyMetadata {
-		if *key.Status == iam.StatusTypeActive {
+		if key.Status == types.StatusTypeActive {
 			accessKeyIDs = append(accessKeyIDs, *key.AccessKeyId)
 		}
 	}
@@ -270,7 +231,7 @@ func (a *adminCheckerClient) listActiveAccessKeyID(ctx context.Context, userName
 
 // ※ Permission Boundoryが有効かどうかだけ見ます（内容までは見ない）
 func (a *adminCheckerClient) getEnabledPermissionBoundory(ctx context.Context, userName *string) (string, error) {
-	result, err := a.Svc.GetUserWithContext(ctx, &iam.GetUserInput{
+	result, err := a.Svc.GetUser(ctx, &iam.GetUserInput{
 		UserName: userName,
 	})
 	if err != nil {
@@ -286,7 +247,7 @@ func (a *adminCheckerClient) getEnabledPermissionBoundory(ctx context.Context, u
 func (a *adminCheckerClient) getUserAdminPolicy(ctx context.Context, userName *string) (*[]string, error) {
 	var adminPolicy []string
 	// Managed policies
-	mngPolicies, err := a.Svc.ListAttachedUserPoliciesWithContext(
+	mngPolicies, err := a.Svc.ListAttachedUserPolicies(
 		ctx,
 		&iam.ListAttachedUserPoliciesInput{
 			UserName: userName,
@@ -303,7 +264,7 @@ func (a *adminCheckerClient) getUserAdminPolicy(ctx context.Context, userName *s
 	}
 
 	// Inline policies
-	inlinePolicies, err := a.Svc.ListUserPoliciesWithContext(
+	inlinePolicies, err := a.Svc.ListUserPolicies(
 		ctx,
 		&iam.ListUserPoliciesInput{
 			UserName: userName,
@@ -312,11 +273,11 @@ func (a *adminCheckerClient) getUserAdminPolicy(ctx context.Context, userName *s
 		return nil, err
 	}
 	for _, policyNm := range inlinePolicies.PolicyNames {
-		if isAdmin, err := a.isAdminUserInlinePolicy(ctx, userName, policyNm); err != nil {
+		if isAdmin, err := a.isAdminUserInlinePolicy(ctx, userName, &policyNm); err != nil {
 			return nil, err
 
 		} else if isAdmin {
-			adminPolicy = append(adminPolicy, *policyNm)
+			adminPolicy = append(adminPolicy, policyNm)
 		}
 	}
 	return &adminPolicy, nil
@@ -324,7 +285,7 @@ func (a *adminCheckerClient) getUserAdminPolicy(ctx context.Context, userName *s
 
 func (a *adminCheckerClient) getGroupAdminPolicy(ctx context.Context, userName *string) (*[]string, error) {
 	var adminPolicy []string
-	gs, err := a.Svc.ListGroupsForUserWithContext(
+	gs, err := a.Svc.ListGroupsForUser(
 		ctx,
 		&iam.ListGroupsForUserInput{
 			UserName: userName,
@@ -334,7 +295,7 @@ func (a *adminCheckerClient) getGroupAdminPolicy(ctx context.Context, userName *
 	}
 	for _, g := range gs.Groups {
 		// Managed Policy
-		mngPolicies, err := a.Svc.ListAttachedGroupPoliciesWithContext(
+		mngPolicies, err := a.Svc.ListAttachedGroupPolicies(
 			ctx,
 			&iam.ListAttachedGroupPoliciesInput{
 				GroupName: aws.String(*g.GroupName),
@@ -351,7 +312,7 @@ func (a *adminCheckerClient) getGroupAdminPolicy(ctx context.Context, userName *
 		}
 
 		// Inline Policy
-		inlinePolicies, err := a.Svc.ListGroupPoliciesWithContext(
+		inlinePolicies, err := a.Svc.ListGroupPolicies(
 			ctx,
 			&iam.ListGroupPoliciesInput{
 				GroupName: aws.String(*g.GroupName),
@@ -360,11 +321,11 @@ func (a *adminCheckerClient) getGroupAdminPolicy(ctx context.Context, userName *
 			return nil, err
 		}
 		for _, policyNm := range inlinePolicies.PolicyNames {
-			if isAdmin, err := a.isAdminGroupInlinePolicy(ctx, g.GroupName, policyNm); err != nil {
+			if isAdmin, err := a.isAdminGroupInlinePolicy(ctx, g.GroupName, &policyNm); err != nil {
 				return nil, err
 
 			} else if isAdmin {
-				adminPolicy = append(adminPolicy, *policyNm)
+				adminPolicy = append(adminPolicy, policyNm)
 			}
 		}
 	}
@@ -418,13 +379,13 @@ func (a *adminCheckerClient) isAdminManagedPolicy(ctx context.Context, policyArn
 	}
 
 	// Check for Customer Managed policy
-	p, err := a.Svc.GetPolicyWithContext(ctx, &iam.GetPolicyInput{
+	p, err := a.Svc.GetPolicy(ctx, &iam.GetPolicyInput{
 		PolicyArn: aws.String(policyArn),
 	})
 	if err != nil {
 		return false, err
 	}
-	pv, err := a.Svc.GetPolicyVersionWithContext(ctx, &iam.GetPolicyVersionInput{
+	pv, err := a.Svc.GetPolicyVersion(ctx, &iam.GetPolicyVersionInput{
 		PolicyArn: aws.String(policyArn),
 		VersionId: p.Policy.DefaultVersionId,
 	})
@@ -440,7 +401,7 @@ func (a *adminCheckerClient) isAdminManagedPolicy(ctx context.Context, policyArn
 
 // isAdminUserInlinePolicy Inline PolicyのAdmin判定
 func (a *adminCheckerClient) isAdminUserInlinePolicy(ctx context.Context, userNm, policyNm *string) (bool, error) {
-	p, err := a.Svc.GetUserPolicyWithContext(ctx, &iam.GetUserPolicyInput{
+	p, err := a.Svc.GetUserPolicy(ctx, &iam.GetUserPolicyInput{
 		UserName:   userNm,
 		PolicyName: policyNm,
 	})
@@ -456,7 +417,7 @@ func (a *adminCheckerClient) isAdminUserInlinePolicy(ctx context.Context, userNm
 
 // isAdminGroupInlinePolicy Inline PolicyのAdmin判定
 func (a *adminCheckerClient) isAdminGroupInlinePolicy(ctx context.Context, group, policy *string) (bool, error) {
-	p, err := a.Svc.GetGroupPolicyWithContext(ctx, &iam.GetGroupPolicyInput{
+	p, err := a.Svc.GetGroupPolicy(ctx, &iam.GetGroupPolicyInput{
 		GroupName:  group,
 		PolicyName: policy,
 	})
@@ -490,13 +451,13 @@ func (a *adminCheckerClient) listRoleFinding(ctx context.Context, msg *message.A
 }
 
 func (a *adminCheckerClient) listRole(ctx context.Context) (*[]iamRole, error) {
-	roles, err := a.Svc.ListRolesWithContext(ctx, &iam.ListRolesInput{})
+	roles, err := a.Svc.ListRoles(ctx, &iam.ListRolesInput{})
 	if err != nil {
 		return nil, err
 	}
 	var iamRoles []iamRole
 	for _, role := range roles.Roles {
-		if role == nil || strings.HasPrefix(*role.Path, "/aws-service-role/") {
+		if role.Path == nil || strings.HasPrefix(*role.Path, "/aws-service-role/") {
 			continue
 		}
 		jobID, err := a.generateServiceLastAccessedDetails(ctx, *role.Arn)
