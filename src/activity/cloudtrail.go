@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/ca-risken/aws/proto/activity"
 	"github.com/vikyd/zero"
 )
@@ -59,7 +58,6 @@ func (c *cloudTrailClient) newSession(region, assumeRole, externalID string) (*c
 		return nil, err
 	}
 	ct := cloudtrail.New(sessWithCred, aws.NewConfig().WithRegion(region))
-	xray.AWS(ct.Client)
 	return ct, nil
 }
 
