@@ -40,7 +40,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	appLogger.Infof("start Scan, RequestID=%s", requestID)
 
 	status := common.InitScanStatus(msg)
-	guardduty, err := newGuardDutyClient(s.awsRegion, msg.AssumeRoleArn, msg.ExternalID)
+	guardduty, err := newGuardDutyClient(ctx, s.awsRegion, msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create GuardDuty session: err=%+v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
@@ -52,8 +52,8 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	}
 
 	guardDutyEnabled := false
-	for _, region := range regions {
-		if region == nil || *region.RegionName == "" {
+	for _, region := range *regions {
+		if region.RegionName == nil || *region.RegionName == "" {
 			appLogger.Warnf("Invalid region in AccountID=%s", msg.AccountID)
 			continue
 		}
@@ -62,7 +62,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 			continue
 		}
 		appLogger.Infof("Start %s region search...", *region.RegionName)
-		guardduty, err = newGuardDutyClient(*region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
+		guardduty, err = newGuardDutyClient(ctx, *region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
 		if err != nil {
 			appLogger.Errorf("Faild to create GuardDuty session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.handleErrorWithUpdateStatus(ctx, &status, err)

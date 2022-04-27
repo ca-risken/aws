@@ -7,66 +7,64 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/guardduty"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/aws-sdk-go-v2/service/guardduty"
+	"github.com/aws/aws-sdk-go-v2/service/guardduty/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/ca-risken/aws/pkg/message"
 )
 
 type guardDutyAPI interface {
 	getGuardDuty(ctx context.Context, message *message.AWSQueueMessage) ([]*guardDutyFinding, *[]string, error)
-	listAvailableRegion(ctx context.Context) ([]*ec2.Region, error)
+	listAvailableRegion(ctx context.Context) (*[]ec2types.Region, error)
 	listDetectors(ctx context.Context) (*[]string, error)
-	listFindings(ctx context.Context, accountID, detectorID string) ([]*string, error)
-	getFindings(ctx context.Context, detectorID string, findingIDs []*string) ([]*guardduty.Finding, error)
+	listFindings(ctx context.Context, accountID, detectorID string) (*[]string, error)
+	getFindings(ctx context.Context, detectorID string, findingIDs []string) (*[]types.Finding, error)
 }
 
 type guardDutyClient struct {
-	Sess *session.Session
-	Svc  *guardduty.GuardDuty
-	EC2  *ec2.EC2
+	Svc *guardduty.Client
+	EC2 *ec2.Client
 }
 
-func newGuardDutyClient(region, assumeRole, externalID string) (guardDutyAPI, error) {
+func newGuardDutyClient(ctx context.Context, region, assumeRole, externalID string) (guardDutyAPI, error) {
 	g := guardDutyClient{}
-	if err := g.newAWSSession(region, assumeRole, externalID); err != nil {
+	if err := g.newAWSSession(ctx, region, assumeRole, externalID); err != nil {
 		return nil, err
 	}
 	return &g, nil
 }
 
-func (g *guardDutyClient) newAWSSession(region, assumeRole, externalID string) error {
+func (g *guardDutyClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string) error {
 	if assumeRole == "" {
 		return errors.New("Required AWS AssumeRole")
 	}
-	sess, err := session.NewSession()
-	if err != nil {
-		appLogger.Errorf("Failed to create session, err=%+v", err)
-		return err
+	if externalID == "" {
+		return errors.New("Required AWS ExternalID")
 	}
-	var cred *credentials.Credentials
-	if externalID != "" {
-		cred = stscreds.NewCredentials(
-			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
-				p.ExternalID = aws.String(externalID)
-			},
-		)
-	} else {
-		cred = stscreds.NewCredentials(sess, assumeRole)
-	}
-	sessWithCred, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Config:            aws.Config{Region: &region, Credentials: cred},
-	})
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		return err
 	}
-	g.Sess = sessWithCred
-	g.Svc = guardduty.New(g.Sess, aws.NewConfig().WithRegion(region))
-	g.EC2 = ec2.New(g.Sess, aws.NewConfig().WithRegion(region))
+	stsClient := sts.NewFromConfig(cfg)
+	provider := stscreds.NewAssumeRoleProvider(stsClient, assumeRole,
+		func(p *stscreds.AssumeRoleOptions) {
+			p.RoleARN = assumeRole
+			p.RoleSessionName = "RISKEN"
+			p.ExternalID = &externalID
+		},
+	)
+	cfg.Credentials = aws.NewCredentialsCache(provider)
+	_, err = cfg.Credentials.Retrieve(ctx)
+	if err != nil {
+		return err
+	}
+	g.Svc = guardduty.New(guardduty.Options{Credentials: cfg.Credentials, Region: region})
+	g.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region})
 	return nil
 }
 
@@ -100,27 +98,27 @@ func (g *guardDutyClient) getGuardDuty(ctx context.Context, message *message.AWS
 				"GuardDuty.ListDetectors error: detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)
 			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
 		}
-		if len(findingIDs) == 0 {
+		if findingIDs == nil || len(*findingIDs) == 0 {
 			appLogger.Infof("No findings: accountID=%s", message.AccountID)
 			continue
 		}
-		findings, err := g.getFindings(ctx, id, findingIDs)
+		findings, err := g.getFindings(ctx, id, *findingIDs)
 		if err != nil {
 			appLogger.Warnf(
 				"GuardDuty.GetFindings error:detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)
 			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
 		}
-		for _, data := range findings {
+		for _, data := range *findings {
 			buf, err := json.Marshal(data)
 			if err != nil {
 				appLogger.Errorf("Failed to json encoding error: err=%+v", err)
 				return nil, detecterIDs, err
 			}
 			var score float32
-			if *data.Service.Archived {
+			if data.Service.Archived {
 				score = 1.0
 			} else {
-				score = float32(*data.Severity)
+				score = float32(data.Severity)
 			}
 			putData = append(putData, &guardDutyFinding{
 				Description:      *data.Title,
@@ -138,8 +136,8 @@ func (g *guardDutyClient) getGuardDuty(ctx context.Context, message *message.AWS
 	return putData, detecterIDs, nil
 }
 
-func (g *guardDutyClient) listAvailableRegion(ctx context.Context) ([]*ec2.Region, error) {
-	out, err := g.EC2.DescribeRegionsWithContext(ctx, &ec2.DescribeRegionsInput{})
+func (g *guardDutyClient) listAvailableRegion(ctx context.Context) (*[]ec2types.Region, error) {
+	out, err := g.EC2.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -147,23 +145,21 @@ func (g *guardDutyClient) listAvailableRegion(ctx context.Context) ([]*ec2.Regio
 		appLogger.Warn("Got no regions")
 		return nil, nil
 	}
-	return out.Regions, nil
+	return &out.Regions, nil
 }
 
 func (g *guardDutyClient) listDetectors(ctx context.Context) (*[]string, error) {
 	var nextToken string
 	var detectorIDs []string
 	for {
-		out, err := g.Svc.ListDetectorsWithContext(ctx, &guardduty.ListDetectorsInput{
-			MaxResults: aws.Int64(50),
+		out, err := g.Svc.ListDetectors(ctx, &guardduty.ListDetectorsInput{
+			MaxResults: int32(50),
 			NextToken:  &nextToken,
 		})
 		if err != nil {
 			return nil, err
 		}
-		for _, id := range out.DetectorIds {
-			detectorIDs = append(detectorIDs, *id)
-		}
+		detectorIDs = append(detectorIDs, out.DetectorIds...)
 		if out.NextToken == nil || *out.NextToken == "" {
 			break
 		}
@@ -172,24 +168,24 @@ func (g *guardDutyClient) listDetectors(ctx context.Context) (*[]string, error) 
 	return &detectorIDs, nil
 }
 
-func (g *guardDutyClient) listFindings(ctx context.Context, accountID, detectorID string) ([]*string, error) {
+func (g *guardDutyClient) listFindings(ctx context.Context, accountID, detectorID string) (*[]string, error) {
 	var nextToken string
-	var findingIDs []*string
+	var findingIDs []string
 
 	// filter condition for aws accountId
-	cond := guardduty.Condition{
-		Equals: []*string{aws.String(accountID)},
+	cond := types.Condition{
+		Equals: []string{accountID},
 	}
 
 	for {
-		out, err := g.Svc.ListFindingsWithContext(ctx, &guardduty.ListFindingsInput{
+		out, err := g.Svc.ListFindings(ctx, &guardduty.ListFindingsInput{
 			DetectorId: &detectorID,
-			FindingCriteria: &guardduty.FindingCriteria{
-				Criterion: map[string]*guardduty.Condition{
-					"accountId": &cond,
+			FindingCriteria: &types.FindingCriteria{
+				Criterion: map[string]types.Condition{
+					"accountId": cond,
 				},
 			},
-			MaxResults: aws.Int64(50),
+			MaxResults: int32(50),
 			NextToken:  &nextToken,
 		})
 		if err != nil {
@@ -201,15 +197,15 @@ func (g *guardDutyClient) listFindings(ctx context.Context, accountID, detectorI
 		}
 		nextToken = *out.NextToken
 	}
-	return findingIDs, nil
+	return &findingIDs, nil
 }
 
 const findingIdsPerRequest = 50
 
-func (g *guardDutyClient) getFindings(ctx context.Context, detectorID string, findingIDs []*string) ([]*guardduty.Finding, error) {
+func (g *guardDutyClient) getFindings(ctx context.Context, detectorID string, findingIDs []string) (*[]types.Finding, error) {
 	// The `FindingIds` parameter of the GetFindings API allows numbers from 0 to 50
 	// @see https://docs.aws.amazon.com/ja_jp/guardduty/latest/APIReference/API_GetFindings.html
-	var guardDutyFindings []*guardduty.Finding
+	var guardDutyFindings []types.Finding
 	for i := 0; i < len(findingIDs); i += findingIdsPerRequest {
 		var end int
 		if findingIdsPerRequest < len(findingIDs)-i {
@@ -217,7 +213,7 @@ func (g *guardDutyClient) getFindings(ctx context.Context, detectorID string, fi
 		} else {
 			end = len(findingIDs)
 		}
-		finding, err := g.Svc.GetFindingsWithContext(ctx, &guardduty.GetFindingsInput{
+		finding, err := g.Svc.GetFindings(ctx, &guardduty.GetFindingsInput{
 			DetectorId: &detectorID,
 			FindingIds: findingIDs[i:end],
 		})
@@ -227,5 +223,5 @@ func (g *guardDutyClient) getFindings(ctx context.Context, detectorID string, fi
 		guardDutyFindings = append(guardDutyFindings, finding.Findings...)
 		time.Sleep(time.Millisecond * 500)
 	}
-	return guardDutyFindings, nil
+	return &guardDutyFindings, nil
 }
