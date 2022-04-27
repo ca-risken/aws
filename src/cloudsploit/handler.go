@@ -59,7 +59,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		AWSRegion:      s.awsRegion,
 		MaxMemSizeMB:   s.maxMemSizeMB,
 	}
-	err = cloudsploitConf.generate(msg.AssumeRoleArn, msg.ExternalID, msg.AWSID, msg.AccountID)
+	err = cloudsploitConf.generate(ctx, msg.AssumeRoleArn, msg.ExternalID, msg.AWSID, msg.AccountID)
 	if err != nil {
 		appLogger.Errorf("Error occured when configure: %v, error: %v", msg, err)
 		return mimosasqs.WrapNonRetryable(err)

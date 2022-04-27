@@ -1,31 +1,31 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
-func (c *CloudsploitConfig) generate(assumeRole, externalID string, awsID uint32, accountID string) error {
+func (c *CloudsploitConfig) generate(ctx context.Context, assumeRole, externalID string, awsID uint32, accountID string) error {
 	if assumeRole == "" {
 		return errors.New("Required AWS AssumeRole")
 	}
-	creds, err := getCredential(assumeRole, externalID, 3600) // MaxSessionDuration(for API): min=3600, max=3600
+	if externalID == "" {
+		return errors.New("Required AWS ExternalID")
+	}
+	creds, err := getCredential(ctx, assumeRole, externalID, time.Duration(3600)*time.Second) // MaxSessionDuration(for API): min=3600, max=3600
 	if err != nil {
 		return err
 	}
-	val, err := creds.Get()
-	if err != nil {
-		return err
-	}
-	c.ConfigPath, err = c.createConfigFile(val.AccessKeyID, val.SecretAccessKey, val.SessionToken, awsID, accountID)
+	c.ConfigPath, err = c.createConfigFile(creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, awsID, accountID)
 	return err
 }
 
@@ -59,27 +59,24 @@ func (c *CloudsploitConfig) createConfigFile(accessKeyID, secretAccessKey, sesso
 	return file.Name(), nil
 }
 
-func getCredential(assumeRole, externalID string, duration int) (*credentials.Credentials, error) {
-	sess, err := session.NewSession()
+func getCredential(ctx context.Context, assumeRole, externalID string, duration time.Duration) (*aws.Credentials, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		appLogger.Errorf("Failed to create session, err=%+v", err)
 		return nil, err
 	}
-
-	var creds *credentials.Credentials
-	if externalID != "" {
-		creds = stscreds.NewCredentials(
-			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
-				p.ExternalID = aws.String(externalID)
-				p.Duration = time.Duration(duration) * time.Second
-			},
-		)
-	} else {
-		creds = stscreds.NewCredentials(
-			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
-				p.Duration = time.Duration(duration) * time.Second
-			},
-		)
+	stsClient := sts.NewFromConfig(cfg)
+	provider := stscreds.NewAssumeRoleProvider(stsClient, assumeRole,
+		func(p *stscreds.AssumeRoleOptions) {
+			p.RoleARN = assumeRole
+			p.RoleSessionName = "RISKEN"
+			p.ExternalID = &externalID
+			p.Duration = duration
+		},
+	)
+	cfg.Credentials = aws.NewCredentialsCache(provider)
+	creds, err := cfg.Credentials.Retrieve(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return creds, nil
+	return &creds, nil
 }
