@@ -4,17 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	awsClient "github.com/ca-risken/aws/proto/aws"
-	mimosasqs "github.com/ca-risken/common/pkg/sqs"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/ca-risken/aws/pkg/common"
 	"github.com/ca-risken/aws/pkg/message"
+	awsClient "github.com/ca-risken/aws/proto/aws"
 	"github.com/ca-risken/common/pkg/logging"
+	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	"github.com/ca-risken/core/proto/alert"
 	"github.com/ca-risken/core/proto/finding"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 type sqsHandler struct {
@@ -66,10 +65,10 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	}
 
 	// Run cloudsploit
-	_, segment := xray.BeginSubsegment(ctx, "runCloudSploit")
+	tspan, _ := tracer.StartSpanFromContext(ctx, "runCloudSploit")
 	appLogger.Infof("start cloudsploit scan, RequestID=%s", requestID)
 	cloudsploitResult, err := cloudsploitConf.run(msg.AccountID)
-	segment.Close(err)
+	tspan.Finish(tracer.WithError(err))
 	if err != nil {
 		appLogger.Errorf("Failed to exec cloudsploit, error: %v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)

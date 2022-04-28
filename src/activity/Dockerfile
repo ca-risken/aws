@@ -19,8 +19,6 @@ ENV PORT= \
     AWS_SECRET_ACCESS_KEY= \
     AWS_SESSION_TOKEN= \
     AWS_SVC_ADDR= \
-    AWS_XRAY_SDK_DISABLED=TRUE \
-    AWS_XRAY_CONTEXT_MISSING=LOG_ERROR \
     TZ=Asia/Tokyo
 WORKDIR /usr/local/activity
 ENTRYPOINT ["/usr/local/bin/env-injector"]

@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/ca-risken/aws/proto/aws"
 	"github.com/ca-risken/common/pkg/profiler"
 	mimosarpc "github.com/ca-risken/common/pkg/rpc"
-	mimosaxray "github.com/ca-risken/common/pkg/xray"
+	"github.com/ca-risken/common/pkg/tracer"
 	"github.com/gassara-kys/envconfig"
 	grpcmiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	grpctrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/google.golang.org/grpc"
 )
 
 const (
@@ -29,6 +29,7 @@ type AppConfig struct {
 	EnvName         string   `default:"local" split_words:"true"`
 	ProfileExporter string   `split_words:"true" default:"nop"`
 	ProfileTypes    []string `split_words:"true"`
+	TraceDebug      bool     `split_words:"true" default:"false"`
 
 	// grpc
 	ProjectSvcAddr string `required:"true" split_words:"true" default:"project.core.svc.cluster.local:8003"`
@@ -63,10 +64,6 @@ func main() {
 	if err != nil {
 		appLogger.Fatal(err.Error())
 	}
-	err = mimosaxray.InitXRay(xray.Config{})
-	if err != nil {
-		appLogger.Fatal(err.Error())
-	}
 
 	pTypes, err := profiler.ConvertProfileTypeFrom(conf.ProfileTypes)
 	if err != nil {
@@ -87,6 +84,14 @@ func main() {
 		appLogger.Fatal(err.Error())
 	}
 	defer pc.Stop()
+
+	tc := &tracer.Config{
+		ServiceName: getFullServiceName(),
+		Environment: conf.EnvName,
+		Debug:       conf.TraceDebug,
+	}
+	tracer.Start(tc)
+	defer tracer.Stop()
 
 	l, err := net.Listen("tcp", fmt.Sprintf(":%s", conf.Port))
 	if err != nil {
@@ -123,8 +128,7 @@ func main() {
 		grpc.UnaryInterceptor(
 			grpcmiddleware.ChainUnaryServer(
 				mimosarpc.LoggingUnaryServerInterceptor(appLogger),
-				xray.UnaryServerInterceptor(),
-				mimosaxray.AnnotateEnvTracingUnaryServerInterceptor(conf.EnvName))))
+				grpctrace.UnaryServerInterceptor())))
 	aws.RegisterAWSServiceServer(server, service)
 
 	reflection.Register(server) // enable reflection API

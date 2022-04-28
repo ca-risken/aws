@@ -26,8 +26,6 @@ ENV DEBUG= \
     FINDING_SVC_ADDR= \
     ALERT_SVC_ADDR= \
     AWS_SVC_ADDR= \
-    AWS_XRAY_SDK_DISABLED=TRUE \
-    AWS_XRAY_CONTEXT_MISSING=LOG_ERROR \
     TZ=Asia/Tokyo
 WORKDIR /usr/local/guard-duty
 ENTRYPOINT ["/usr/local/bin/env-injector"]
