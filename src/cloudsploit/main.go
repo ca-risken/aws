@@ -47,7 +47,7 @@ type AppConfig struct {
 	ResultDir      string `required:"true" split_words:"true" default:"/tmp"`
 	ConfigDir      string `required:"true" split_words:"true" default:"/tmp"`
 	CloudsploitDir string `required:"true" split_words:"true" default:"/opt/cloudsploit"`
-	MaxMemSizeMB   int    `split_words:"true"`
+	MaxMemSizeMB   int    `split_words:"true" default:"0"`
 }
 
 func main() {
