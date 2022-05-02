@@ -53,7 +53,6 @@ func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, region, assume
 	stsClient := sts.NewFromConfig(cfg)
 	provider := stscreds.NewAssumeRoleProvider(stsClient, assumeRole,
 		func(p *stscreds.AssumeRoleOptions) {
-			p.RoleARN = assumeRole
 			p.RoleSessionName = "RISKEN"
 			p.ExternalID = &externalID
 		},
