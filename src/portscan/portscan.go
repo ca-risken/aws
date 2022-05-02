@@ -380,14 +380,16 @@ func (p *portscanClient) listLightsail(ctx context.Context) error {
 			if *n.AccessFrom == "Custom" {
 				continue
 			}
-			p.target = append(p.target, &target{
-				Arn:      *i.Arn,
-				Target:   *i.PublicIpAddress,
-				Protocol: lightsailProtocol(n.Protocol),
-				FromPort: int(n.FromPort),
-				ToPort:   int(n.ToPort),
-				Category: "lightsail",
-			})
+			for _, protocal := range getTargetProtocolFromlightsailProtocol(n.Protocol) {
+				p.target = append(p.target, &target{
+					Arn:      *i.Arn,
+					Target:   *i.PublicIpAddress,
+					Protocol: protocal,
+					FromPort: int(n.FromPort),
+					ToPort:   int(n.ToPort),
+					Category: "lightsail",
+				})
+			}
 		}
 	}
 	inputLB := &lightsail.GetLoadBalancersInput{}
@@ -409,17 +411,15 @@ func (p *portscanClient) listLightsail(ctx context.Context) error {
 	return nil
 }
 
-func lightsailProtocol(p lightsailtypes.NetworkProtocol) string {
-	protocol := ""
+func getTargetProtocolFromlightsailProtocol(p lightsailtypes.NetworkProtocol) []string {
+	protocol := []string{}
 	switch p {
 	case lightsailtypes.NetworkProtocolTcp:
-		protocol = "tcp"
+		protocol = append(protocol, "tcp")
 	case lightsailtypes.NetworkProtocolUdp:
-		protocol = "udp"
+		protocol = append(protocol, "udp")
 	case lightsailtypes.NetworkProtocolAll:
-		protocol = "all" // TODO both tcp and udp should be scanned.
-	case lightsailtypes.NetworkProtocolIcmp:
-		protocol = "icmp" // TODO No need for scan.
+		protocol = append(protocol, "tcp", "udp")
 	}
 	return protocol
 }
