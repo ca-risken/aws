@@ -379,6 +379,9 @@ func (p *portscanClient) listLightsail(ctx context.Context) error {
 		return err
 	}
 	for _, i := range result.Instances {
+		if i.PublicIpAddress == nil {
+			continue
+		}
 		for _, n := range (*i.Networking).Ports {
 			if *n.AccessFrom == "Custom" {
 				continue
