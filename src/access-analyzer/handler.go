@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/service/accessanalyzer/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/accessanalyzer"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/ca-risken/aws/pkg/common"
 	"github.com/ca-risken/aws/pkg/message"
@@ -42,7 +42,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	appLogger.Infof("start Scan, RequestID=%s", requestID)
 
 	status := common.InitScanStatus(msg)
-	accessAnalyzer, err := newAccessAnalyzerClient(s.awsRegion, msg.AssumeRoleArn, msg.ExternalID)
+	accessAnalyzer, err := newAccessAnalyzerClient(ctx, s.awsRegion, msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		appLogger.Errorf("Faild to create AccessAnalyzer session: err=%+v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
@@ -54,8 +54,8 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	}
 
 	analyzerEnabled := false
-	for _, region := range regions {
-		if region == nil || *region.RegionName == "" {
+	for _, region := range *regions {
+		if *region.RegionName == "" {
 			appLogger.Warnf("Invalid region in AccountID=%s", msg.AccountID)
 			continue
 		}
@@ -65,7 +65,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		}
 		appLogger.Infof("Start %s region search...", *region.RegionName)
 		// AccessAnalyzer
-		accessAnalyzer, err = newAccessAnalyzerClient(*region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
+		accessAnalyzer, err = newAccessAnalyzerClient(ctx, *region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
 		if err != nil {
 			appLogger.Errorf("Faild to create AccessAnalyzer session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.handleErrorWithUpdateStatus(ctx, &status, err)
@@ -205,8 +205,8 @@ func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, finding
 	return nil
 }
 
-func scoreAccessAnalyzerFinding(status string, isPublic bool, actions []*string) float32 {
-	if status != accessanalyzer.FindingStatusActive {
+func scoreAccessAnalyzerFinding(status types.FindingStatus, isPublic bool, actions []string) float32 {
+	if status != types.FindingStatusActive {
 		return 0.1
 	}
 	if !isPublic {
@@ -215,9 +215,9 @@ func scoreAccessAnalyzerFinding(status string, isPublic bool, actions []*string)
 	readable := false
 	writable := false
 	for _, action := range actions {
-		if strings.Contains(*action, "List") ||
-			strings.Contains(*action, "Get") ||
-			strings.Contains(*action, "Describe") {
+		if strings.Contains(action, "List") ||
+			strings.Contains(action, "Get") ||
+			strings.Contains(action, "Describe") {
 			readable = true
 			continue
 		}

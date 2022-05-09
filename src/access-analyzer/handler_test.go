@@ -3,61 +3,60 @@ package main
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/accessanalyzer"
+	"github.com/aws/aws-sdk-go-v2/service/accessanalyzer/types"
 )
 
 func TestScoreAccessAnalyzerFinding(t *testing.T) {
 	cases := []struct {
 		name     string
-		status   string
+		status   types.FindingStatus
 		isPublic bool
-		actions  []*string
+		actions  []string
 		want     float32
 	}{
 		{
 			name:     "Not active status score",
-			status:   accessanalyzer.FindingStatusArchived,
+			status:   types.FindingStatusArchived,
 			isPublic: true,
-			actions:  []*string{aws.String("s3:ListBucket")},
+			actions:  []string{"s3:ListBucket"},
 			want:     0.1,
 		},
 		{
 			name:     "Not public resource score",
-			status:   accessanalyzer.FindingStatusActive,
+			status:   types.FindingStatusActive,
 			isPublic: false,
-			actions:  []*string{aws.String("s3:ListBucket")},
+			actions:  []string{"s3:ListBucket"},
 			want:     0.3,
 		},
 		{
 			name:     "Public (readable)",
-			status:   accessanalyzer.FindingStatusActive,
+			status:   types.FindingStatusActive,
 			isPublic: true,
-			actions: []*string{
-				aws.String("s3:ListBucket"),
-				aws.String("s3:ListObject"),
-				aws.String("s3:DescribeBucketPolicy"),
+			actions: []string{
+				"s3:ListBucket",
+				"s3:ListObject",
+				"s3:DescribeBucketPolicy",
 			},
 			want: 0.7,
 		},
 		{
 			name:     "Public (writable)",
-			status:   accessanalyzer.FindingStatusActive,
+			status:   types.FindingStatusActive,
 			isPublic: true,
-			actions: []*string{
-				aws.String("s3:PutObject"),
-				aws.String("s3:DeleteBucket"),
+			actions: []string{
+				"s3:PutObject",
+				"s3:DeleteBucket",
 			},
 			want: 0.9,
 		},
 		{
 			name:     "Public (readable / writable)",
-			status:   accessanalyzer.FindingStatusActive,
+			status:   types.FindingStatusActive,
 			isPublic: true,
-			actions: []*string{
-				aws.String("s3:ListBucket"),
-				aws.String("s3:GetObject"),
-				aws.String("s3:PutObject"),
+			actions: []string{
+				"s3:ListBucket",
+				"s3:GetObject",
+				"s3:PutObject",
 			},
 			want: 1.0,
 		},

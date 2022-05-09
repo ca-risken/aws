@@ -7,15 +7,17 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/aws/aws-sdk-go/service/elbv2"
-	"github.com/aws/aws-sdk-go/service/lightsail"
-	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
+	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
+	"github.com/aws/aws-sdk-go-v2/service/lightsail"
+	lightsailtypes "github.com/aws/aws-sdk-go-v2/service/lightsail/types"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/common/pkg/portscan"
 	"github.com/vikyd/zero"
@@ -25,7 +27,7 @@ import (
 
 type portscanAPI interface {
 	getTargets(context.Context, *message.AWSQueueMessage) ([]*target, map[string]*relSecurityGroupArn, error)
-	listAvailableRegion(ctx context.Context) ([]*ec2.Region, error)
+	listAvailableRegion(ctx context.Context) (*[]ec2types.Region, error)
 	listEC2(context.Context, string) error
 	listSecurityGroup(context.Context, string) error
 	listELB(context.Context, string) error
@@ -35,64 +37,59 @@ type portscanAPI interface {
 }
 
 type portscanClient struct {
-	Sess                 *session.Session
-	EC2                  *ec2.EC2
-	ELB                  *elb.ELB
-	ELBv2                *elbv2.ELBV2
-	RDS                  *rds.RDS
-	Lightsail            *lightsail.Lightsail
+	EC2                  *ec2.Client
+	ELB                  *elb.Client
+	ELBv2                *elbv2.Client
+	RDS                  *rds.Client
+	Lightsail            *lightsail.Client
 	SecurityGroups       []*targetSG
 	relSecurityGroupARNs map[string]*relSecurityGroupArn
 	target               []*target
 	Region               string
 }
 
-func newPortscanClient(region, assumeRole, externalID string, scanExcludePortNumber int) (portscanAPI, error) {
+func newPortscanClient(ctx context.Context, region, assumeRole, externalID string, scanExcludePortNumber int) (portscanAPI, error) {
 	p := portscanClient{}
-	if err := p.newAWSSession(region, assumeRole, externalID); err != nil {
+	if err := p.newAWSSession(ctx, region, assumeRole, externalID); err != nil {
 		return nil, err
 	}
 	p.Region = region
 	return &p, nil
 }
 
-func (p *portscanClient) newAWSSession(region, assumeRole, externalID string) error {
+func (p *portscanClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string) error {
 	if assumeRole == "" {
 		return errors.New("Required AWS AssumeRole")
 	}
-	sess, err := session.NewSession()
-	if err != nil {
-		appLogger.Errorf("Failed to create session, err=%+v", err)
-		return err
+	if externalID == "" {
+		return errors.New("Required AWS ExternalID")
 	}
-	var cred *credentials.Credentials
-	if externalID != "" {
-		cred = stscreds.NewCredentials(
-			sess, assumeRole, func(p *stscreds.AssumeRoleProvider) {
-				p.ExternalID = aws.String(externalID)
-			},
-		)
-	} else {
-		cred = stscreds.NewCredentials(sess, assumeRole)
-	}
-	sessWithCred, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Config:            aws.Config{Region: &region, Credentials: cred},
-	})
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		return err
 	}
-	p.Sess = sessWithCred
-	p.EC2 = ec2.New(p.Sess, aws.NewConfig().WithRegion(region))
-	p.ELB = elb.New(p.Sess, aws.NewConfig().WithRegion(region))
-	p.ELBv2 = elbv2.New(p.Sess, aws.NewConfig().WithRegion(region))
-	p.RDS = rds.New(p.Sess, aws.NewConfig().WithRegion(region))
-	p.Lightsail = lightsail.New(p.Sess, aws.NewConfig().WithRegion(region))
+	stsClient := sts.NewFromConfig(cfg)
+	provider := stscreds.NewAssumeRoleProvider(stsClient, assumeRole,
+		func(p *stscreds.AssumeRoleOptions) {
+			p.RoleSessionName = "RISKEN"
+			p.ExternalID = &externalID
+		},
+	)
+	cfg.Credentials = aws.NewCredentialsCache(provider)
+	_, err = cfg.Credentials.Retrieve(ctx)
+	if err != nil {
+		return err
+	}
+	p.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region})
+	p.ELB = elb.New(elb.Options{Credentials: cfg.Credentials, Region: region})
+	p.ELBv2 = elbv2.New(elbv2.Options{Credentials: cfg.Credentials, Region: region})
+	p.RDS = rds.New(rds.Options{Credentials: cfg.Credentials, Region: region})
+	p.Lightsail = lightsail.New(lightsail.Options{Credentials: cfg.Credentials, Region: region})
 	return nil
 }
 
-func (p *portscanClient) listAvailableRegion(ctx context.Context) ([]*ec2.Region, error) {
-	out, err := p.EC2.DescribeRegionsWithContext(ctx, &ec2.DescribeRegionsInput{})
+func (p *portscanClient) listAvailableRegion(ctx context.Context) (*[]ec2types.Region, error) {
+	out, err := p.EC2.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +97,7 @@ func (p *portscanClient) listAvailableRegion(ctx context.Context) ([]*ec2.Region
 		appLogger.Warn("Got no regions")
 		return nil, nil
 	}
-	return out.Regions, nil
+	return &out.Regions, nil
 }
 
 func (p *portscanClient) getTargets(ctx context.Context, message *message.AWSQueueMessage) ([]*target, map[string]*relSecurityGroupArn, error) {
@@ -146,7 +143,7 @@ func (p *portscanClient) listSecurityGroup(ctx context.Context, accountID string
 	var retSG []*targetSG
 	allSecurityGroup := map[string]*relSecurityGroupArn{}
 	input := &ec2.DescribeSecurityGroupsInput{}
-	result, err := p.EC2.DescribeSecurityGroupsWithContext(ctx, input)
+	result, err := p.EC2.DescribeSecurityGroups(ctx, input)
 	if err != nil {
 		appLogger.Errorf("error occured when DescribeSecurityGroups: %v", err)
 		return err
@@ -177,7 +174,7 @@ func (p *portscanClient) listSecurityGroup(ctx context.Context, accountID string
 			// for resource
 			securityGroupARN := fmt.Sprintf("arn:aws:ec2:%v:%v:security-group/%v", p.Region, accountID, *securityGroup.GroupId)
 			allSecurityGroup[securityGroupARN] = &relSecurityGroupArn{
-				SecurityGroup: securityGroup,
+				SecurityGroup: &securityGroup,
 				IsPublic:      isPublic,
 			}
 		}
@@ -190,7 +187,7 @@ func (p *portscanClient) listSecurityGroup(ctx context.Context, accountID string
 func (p *portscanClient) listEC2(ctx context.Context, accountID string) error {
 	var listEC2 []*infoEC2
 	input := &ec2.DescribeInstancesInput{}
-	result, err := p.EC2.DescribeInstancesWithContext(ctx, input)
+	result, err := p.EC2.DescribeInstances(ctx, input)
 	if err != nil {
 		appLogger.Errorf("error occured when DescribeInstances: %v", err)
 		return err
@@ -199,14 +196,14 @@ func (p *portscanClient) listEC2(ctx context.Context, accountID string) error {
 		for _, instance := range reservation.Instances {
 			for _, networkInterface := range instance.NetworkInterfaces {
 				if networkInterface.Association != nil {
-					var securityGroups []*string
+					var securityGroups []string
 					for _, group := range networkInterface.Groups {
-						securityGroups = append(securityGroups, group.GroupId)
+						securityGroups = append(securityGroups, *group.GroupId)
 					}
 					listEC2 = append(listEC2, &infoEC2{
 						InstanceID: *instance.InstanceId,
 						PublicIP:   *networkInterface.Association.PublicIp,
-						GroupID:    securityGroups,
+						GroupID:    &securityGroups,
 					})
 				}
 			}
@@ -239,7 +236,7 @@ func (p *portscanClient) listEC2(ctx context.Context, accountID string) error {
 func (p *portscanClient) listELB(ctx context.Context, accountID string) error {
 	var listELB []*infoELB
 	input := &elb.DescribeLoadBalancersInput{}
-	result, err := p.ELB.DescribeLoadBalancersWithContext(ctx, input)
+	result, err := p.ELB.DescribeLoadBalancers(ctx, input)
 	if err != nil {
 		appLogger.Errorf("error occured when DescribeLoadBalancers: %v", err)
 		return err
@@ -248,7 +245,7 @@ func (p *portscanClient) listELB(ctx context.Context, accountID string) error {
 		listELB = append(listELB, &infoELB{
 			DNSName:          *l.DNSName,
 			LoadBalancerName: *l.LoadBalancerName,
-			GroupID:          l.SecurityGroups,
+			GroupID:          &l.SecurityGroups,
 		})
 	}
 	for _, elb := range listELB {
@@ -277,7 +274,7 @@ func (p *portscanClient) listELB(ctx context.Context, accountID string) error {
 
 func (p *portscanClient) listELBv2(ctx context.Context) error {
 	input := &elbv2.DescribeLoadBalancersInput{}
-	result, err := p.ELBv2.DescribeLoadBalancersWithContext(ctx, input)
+	result, err := p.ELBv2.DescribeLoadBalancers(ctx, input)
 	if err != nil {
 		appLogger.Errorf("error occured when DescribeLoadBalancers: %v", err)
 		return err
@@ -295,7 +292,7 @@ func (p *portscanClient) setELBv2(lbs *elbv2.DescribeLoadBalancersOutput) {
 		listELBv2 = append(listELBv2, &infoELBv2{
 			LoadBalancerArn: convertNilString(l.LoadBalancerArn),
 			DNSName:         convertNilString(l.DNSName),
-			GroupID:         l.SecurityGroups,
+			GroupID:         &l.SecurityGroups,
 		})
 	}
 	for _, elbv2 := range listELBv2 {
@@ -324,25 +321,25 @@ func (p *portscanClient) setELBv2(lbs *elbv2.DescribeLoadBalancersOutput) {
 func (p *portscanClient) listRDS(ctx context.Context) error {
 	var listRDS []*infoRDS
 	input := &rds.DescribeDBInstancesInput{}
-	result, err := p.RDS.DescribeDBInstancesWithContext(ctx, input)
+	result, err := p.RDS.DescribeDBInstances(ctx, input)
 	if err != nil {
 		appLogger.Errorf("error occured when DescribeDBInstances: %v", err)
 		return err
 	}
 	for _, i := range result.DBInstances {
-		if !*i.PubliclyAccessible {
+		if !i.PubliclyAccessible {
 			continue
 		}
-		var groupIDs []*string
+		var groupIDs []string
 		for _, s := range i.VpcSecurityGroups {
-			groupIDs = append(groupIDs, s.VpcSecurityGroupId)
+			groupIDs = append(groupIDs, *s.VpcSecurityGroupId)
 		}
 		if !zero.IsZeroVal(groupIDs) {
 			listRDS = append(listRDS, &infoRDS{
 				DBInstanceArn:      *i.DBInstanceArn,
-				PubliclyAccessible: *i.PubliclyAccessible,
+				PubliclyAccessible: i.PubliclyAccessible,
 				Endpoint:           *i.Endpoint.Address,
-				GroupID:            groupIDs,
+				GroupID:            &groupIDs,
 			})
 		}
 	}
@@ -373,7 +370,7 @@ func (p *portscanClient) listRDS(ctx context.Context) error {
 
 func (p *portscanClient) listLightsail(ctx context.Context) error {
 	input := &lightsail.GetInstancesInput{}
-	result, err := p.Lightsail.GetInstancesWithContext(ctx, input)
+	result, err := p.Lightsail.GetInstances(ctx, input)
 	if err != nil {
 		appLogger.Errorf("error occured when GetInstances(lightsail) : %v", err)
 		return err
@@ -386,18 +383,20 @@ func (p *portscanClient) listLightsail(ctx context.Context) error {
 			if *n.AccessFrom == "Custom" {
 				continue
 			}
-			p.target = append(p.target, &target{
-				Arn:      *i.Arn,
-				Target:   *i.PublicIpAddress,
-				Protocol: *n.Protocol,
-				FromPort: int(*n.FromPort),
-				ToPort:   int(*n.ToPort),
-				Category: "lightsail",
-			})
+			for _, protocal := range getTargetProtocolFromlightsailProtocol(n.Protocol) {
+				p.target = append(p.target, &target{
+					Arn:      *i.Arn,
+					Target:   *i.PublicIpAddress,
+					Protocol: protocal,
+					FromPort: int(n.FromPort),
+					ToPort:   int(n.ToPort),
+					Category: "lightsail",
+				})
+			}
 		}
 	}
 	inputLB := &lightsail.GetLoadBalancersInput{}
-	resultLB, err := p.Lightsail.GetLoadBalancersWithContext(ctx, inputLB)
+	resultLB, err := p.Lightsail.GetLoadBalancers(ctx, inputLB)
 	if err != nil {
 		appLogger.Errorf("error occured when GetLoadBalancers(lightsail): %v", err)
 		return err
@@ -406,13 +405,28 @@ func (p *portscanClient) listLightsail(ctx context.Context) error {
 		p.target = append(p.target, &target{
 			Arn:      *l.Arn,
 			Target:   *l.DnsName,
-			Protocol: *l.Protocol,
+			Protocol: "tcp", // lightsailtypes.LoadBalancer(HTTP or HTTPS) is always  need "tcp" scan.
 			FromPort: int(*l.InstancePort),
 			ToPort:   int(*l.InstancePort),
 			Category: "lightsail",
 		})
 	}
 	return nil
+}
+
+func getTargetProtocolFromlightsailProtocol(p lightsailtypes.NetworkProtocol) []string {
+	protocol := []string{}
+	switch p {
+	case lightsailtypes.NetworkProtocolTcp:
+		protocol = append(protocol, "tcp")
+	case lightsailtypes.NetworkProtocolUdp:
+		protocol = append(protocol, "udp")
+	case lightsailtypes.NetworkProtocolAll:
+		protocol = append(protocol, "tcp", "udp")
+	default:
+		// return empty when others
+	}
+	return protocol
 }
 
 func excludeScan(scanExcludePortNumber int, targets []*target) ([]*target, []*excludeResult) {
@@ -436,21 +450,21 @@ func excludeScan(scanExcludePortNumber int, targets []*target) ([]*target, []*ex
 	return scanTarget, excludeList
 }
 
-func (p *portscanClient) addRelSecurityGroupARNs(targetSecurityGroups []*string, arn string) {
-	for _, sg := range targetSecurityGroups {
+func (p *portscanClient) addRelSecurityGroupARNs(targetSecurityGroups *[]string, arn string) {
+	for _, sg := range *targetSecurityGroups {
 		for groupArn := range p.relSecurityGroupARNs {
-			if strings.HasSuffix(groupArn, *sg) {
+			if strings.HasSuffix(groupArn, sg) {
 				p.relSecurityGroupARNs[groupArn].ReferenceARNs = append(p.relSecurityGroupARNs[groupArn].ReferenceARNs, arn)
 			}
 		}
 	}
 }
 
-func (p *portscanClient) getMatchSecurityGroup(targetSecurityGroups []*string) []*targetSG {
+func (p *portscanClient) getMatchSecurityGroup(targetSecurityGroups *[]string) []*targetSG {
 	var ret []*targetSG
-	for _, sg := range targetSecurityGroups {
+	for _, sg := range *targetSecurityGroups {
 		for _, SecurityGroup := range p.SecurityGroups {
-			if *sg == SecurityGroup.groupID {
+			if sg == SecurityGroup.groupID {
 				ret = append(ret, SecurityGroup)
 			}
 		}
@@ -507,9 +521,9 @@ type targetSG struct {
 }
 
 type relSecurityGroupArn struct {
-	SecurityGroup *ec2.SecurityGroup `json:"security_group"`
-	ReferenceARNs []string           `json:"reference_arns"`
-	IsPublic      bool               `json:"is_public"`
+	SecurityGroup *ec2types.SecurityGroup `json:"security_group"`
+	ReferenceARNs []string                `json:"reference_arns"`
+	IsPublic      bool                    `json:"is_public"`
 }
 
 type target struct {
@@ -525,26 +539,26 @@ type target struct {
 type infoEC2 struct {
 	InstanceID string
 	PublicIP   string
-	GroupID    []*string
+	GroupID    *[]string
 }
 
 type infoELB struct {
 	DNSName          string
 	LoadBalancerName string
-	GroupID          []*string
+	GroupID          *[]string
 }
 
 type infoELBv2 struct {
 	LoadBalancerArn string
 	DNSName         string
-	GroupID         []*string
+	GroupID         *[]string
 }
 
 type infoRDS struct {
 	DBInstanceArn      string
 	PubliclyAccessible bool
 	Endpoint           string
-	GroupID            []*string
+	GroupID            *[]string
 }
 
 type excludeResult struct {

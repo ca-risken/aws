@@ -63,7 +63,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	}
 
 	// Get portscan
-	portscan, err := newPortscanClient(s.awsRegion, msg.AssumeRoleArn, msg.ExternalID, s.scanExcludePortNumber)
+	portscan, err := newPortscanClient(ctx, s.awsRegion, msg.AssumeRoleArn, msg.ExternalID, s.scanExcludePortNumber)
 	if err != nil {
 		appLogger.Errorf("Failed to create Portscan session: err=%+v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
@@ -76,13 +76,13 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	statusDetail := ""
 	targetsAllRegion := []*target{}
 	securityGroupsAllRegion := make(map[string]*relSecurityGroupArn)
-	for _, region := range regions {
-		if region == nil || *region.RegionName == "" {
+	for _, region := range *regions {
+		if region.RegionName == nil || *region.RegionName == "" {
 			appLogger.Warnf("Invalid region in AccountID=%s", msg.AccountID)
 			return s.handleErrorWithUpdateStatus(ctx, &status, err)
 		}
 		appLogger.Infof("Start %s region search...", *region.RegionName)
-		portscan, err = newPortscanClient(*region.RegionName, msg.AssumeRoleArn, msg.ExternalID, s.scanExcludePortNumber)
+		portscan, err = newPortscanClient(ctx, *region.RegionName, msg.AssumeRoleArn, msg.ExternalID, s.scanExcludePortNumber)
 		if err != nil {
 			appLogger.Errorf("Failed to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			return s.handleErrorWithUpdateStatus(ctx, &status, err)

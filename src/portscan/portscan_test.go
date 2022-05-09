@@ -4,8 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
+	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 )
 
 func TestSetELBv2(t *testing.T) {
@@ -17,11 +18,11 @@ func TestSetELBv2(t *testing.T) {
 		{
 			name: "OK",
 			input: &elbv2.DescribeLoadBalancersOutput{
-				LoadBalancers: []*elbv2.LoadBalancer{
+				LoadBalancers: []elbv2types.LoadBalancer{
 					{
 						LoadBalancerArn: aws.String("arn"),
 						DNSName:         aws.String("dns"),
-						SecurityGroups:  []*string{aws.String("sg-1"), aws.String("sg-2")},
+						SecurityGroups:  []string{"sg-1", "sg-2"},
 					},
 				},
 			},
@@ -45,11 +46,11 @@ func TestSetELBv2(t *testing.T) {
 		{
 			name: "No Arn & DNS",
 			input: &elbv2.DescribeLoadBalancersOutput{
-				LoadBalancers: []*elbv2.LoadBalancer{
+				LoadBalancers: []elbv2types.LoadBalancer{
 					{
 						LoadBalancerArn: nil,
 						DNSName:         nil,
-						SecurityGroups:  []*string{aws.String("sg-1"), aws.String("sg-2")},
+						SecurityGroups:  []string{"sg-1", "sg-2"},
 					},
 				},
 			},
@@ -68,11 +69,11 @@ func TestSetELBv2(t *testing.T) {
 		{
 			name: "No DNSName",
 			input: &elbv2.DescribeLoadBalancersOutput{
-				LoadBalancers: []*elbv2.LoadBalancer{
+				LoadBalancers: []elbv2types.LoadBalancer{
 					{
 						LoadBalancerArn: aws.String("arn"),
 						DNSName:         nil,
-						SecurityGroups:  []*string{aws.String("sg-1"), aws.String("sg-2")},
+						SecurityGroups:  []string{"sg-1", "sg-2"},
 					},
 				},
 			},
