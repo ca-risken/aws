@@ -420,6 +420,8 @@ func getTargetProtocolFromlightsailProtocol(p lightsailtypes.NetworkProtocol) []
 		protocol = append(protocol, "udp")
 	case lightsailtypes.NetworkProtocolAll:
 		protocol = append(protocol, "tcp", "udp")
+	default:
+		// return empty when others
 	}
 	return protocol
 }
