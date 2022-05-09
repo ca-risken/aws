@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/common/pkg/profiler"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
-	mimosaxray "github.com/ca-risken/common/pkg/xray"
+	"github.com/ca-risken/common/pkg/tracer"
 	"github.com/gassara-kys/envconfig"
 )
 
@@ -26,6 +25,7 @@ type AppConfig struct {
 	EnvName         string   `default:"local" split_words:"true"`
 	ProfileExporter string   `split_words:"true" default:"nop"`
 	ProfileTypes    []string `split_words:"true"`
+	TraceDebug      bool     `split_words:"true" default:"false"`
 
 	// sqs
 	Debug string `default:"false"`
@@ -47,16 +47,12 @@ type AppConfig struct {
 	ResultDir      string `required:"true" split_words:"true" default:"/tmp"`
 	ConfigDir      string `required:"true" split_words:"true" default:"/tmp"`
 	CloudsploitDir string `required:"true" split_words:"true" default:"/opt/cloudsploit"`
-	MaxMemSizeMB   int    `split_words:"true"`
+	MaxMemSizeMB   int    `split_words:"true" default:"0"`
 }
 
 func main() {
 	var conf AppConfig
 	err := envconfig.Process("", &conf)
-	if err != nil {
-		appLogger.Fatal(err.Error())
-	}
-	err = mimosaxray.InitXRay(xray.Config{})
 	if err != nil {
 		appLogger.Fatal(err.Error())
 	}
@@ -80,6 +76,14 @@ func main() {
 		appLogger.Fatal(err.Error())
 	}
 	defer pc.Stop()
+
+	tc := &tracer.Config{
+		ServiceName: getFullServiceName(),
+		Environment: conf.EnvName,
+		Debug:       conf.TraceDebug,
+	}
+	tracer.Start(tc)
+	defer tracer.Stop()
 
 	handler := &sqsHandler{
 		resultDir:      conf.ResultDir,
@@ -113,6 +117,6 @@ func main() {
 		mimosasqs.InitializeHandler(
 			mimosasqs.RetryableErrorHandler(
 				mimosasqs.StatusLoggingHandler(appLogger,
-					mimosaxray.MessageTracingHandler(conf.EnvName, getFullServiceName(),
+					mimosasqs.TracingHandler(getFullServiceName(),
 						f.FinalizeHandler(handler))))))
 }

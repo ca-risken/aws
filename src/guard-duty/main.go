@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/ca-risken/common/pkg/profiler"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
-	mimosaxray "github.com/ca-risken/common/pkg/xray"
+	"github.com/ca-risken/common/pkg/tracer"
 	"github.com/gassara-kys/envconfig"
 )
 
@@ -24,6 +23,7 @@ type AppConfig struct {
 	EnvName         string   `default:"local" split_words:"true"`
 	ProfileExporter string   `split_words:"true" default:"nop"`
 	ProfileTypes    []string `split_words:"true"`
+	TraceDebug      bool     `split_words:"true" default:"false"`
 
 	// sqs
 	Debug string `default:"false"`
@@ -48,10 +48,6 @@ func main() {
 	if err != nil {
 		appLogger.Fatal(err.Error())
 	}
-	err = mimosaxray.InitXRay(xray.Config{})
-	if err != nil {
-		appLogger.Fatal(err.Error())
-	}
 
 	pTypes, err := profiler.ConvertProfileTypeFrom(conf.ProfileTypes)
 	if err != nil {
@@ -72,6 +68,14 @@ func main() {
 		appLogger.Fatal(err.Error())
 	}
 	defer pc.Stop()
+
+	tc := &tracer.Config{
+		ServiceName: getFullServiceName(),
+		Environment: conf.EnvName,
+		Debug:       conf.TraceDebug,
+	}
+	tracer.Start(tc)
+	defer tracer.Stop()
 
 	sqsConf := &sqsConfig{
 		Debug:              conf.Debug,
@@ -97,5 +101,5 @@ func main() {
 		mimosasqs.InitializeHandler(
 			mimosasqs.RetryableErrorHandler(
 				mimosasqs.StatusLoggingHandler(appLogger,
-					mimosaxray.MessageTracingHandler(conf.EnvName, getFullServiceName(), handler)))))
+					mimosasqs.TracingHandler(getFullServiceName(), handler)))))
 }
