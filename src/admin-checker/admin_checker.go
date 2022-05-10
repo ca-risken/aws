@@ -26,15 +26,15 @@ type adminCheckerClient struct {
 	Svc *iam.Client
 }
 
-func newAdminCheckerClient(ctx context.Context, awsRegion, assumeRole, externalID string) (adminCheckerAPI, error) {
+func newAdminCheckerClient(ctx context.Context, awsRegion, assumeRole, externalID string, retry int) (adminCheckerAPI, error) {
 	a := adminCheckerClient{}
-	if err := a.newAWSSession(ctx, awsRegion, assumeRole, externalID); err != nil {
+	if err := a.newAWSSession(ctx, awsRegion, assumeRole, externalID, retry); err != nil {
 		return nil, err
 	}
 	return &a, nil
 }
 
-func (a *adminCheckerClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string) error {
+func (a *adminCheckerClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string, retry int) error {
 	if assumeRole == "" {
 		return errors.New("Required AWS AssumeRole")
 	}
@@ -57,7 +57,7 @@ func (a *adminCheckerClient) newAWSSession(ctx context.Context, region, assumeRo
 	if err != nil {
 		return err
 	}
-	a.Svc = iam.New(iam.Options{Credentials: cfg.Credentials, Region: region})
+	a.Svc = iam.New(iam.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	return nil
 }
 

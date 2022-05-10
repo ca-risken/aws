@@ -17,10 +17,11 @@ import (
 )
 
 type sqsHandler struct {
-	findingClient finding.FindingServiceClient
-	alertClient   alert.AlertServiceClient
-	awsClient     awsClient.AWSServiceClient
-	awsRegion     string
+	findingClient    finding.FindingServiceClient
+	alertClient      alert.AlertServiceClient
+	awsClient        awsClient.AWSServiceClient
+	awsRegion        string
+	retryMaxAttempts int
 }
 
 func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
@@ -45,7 +46,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		return s.handleErrorWithUpdateStatus(ctx, &status, fmt.Errorf("AssumeRoleArn for admin-checker must be created in AWS AccountID: %v", msg.AccountID))
 	}
 	// IAM Admin Checker
-	adminChecker, err := newAdminCheckerClient(ctx, s.awsRegion, msg.AssumeRoleArn, msg.ExternalID)
+	adminChecker, err := newAdminCheckerClient(ctx, s.awsRegion, msg.AssumeRoleArn, msg.ExternalID, s.retryMaxAttempts)
 	if err != nil {
 		appLogger.Errorf("Faild to create AdminChecker session: err=%+v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
