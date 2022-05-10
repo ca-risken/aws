@@ -37,6 +37,7 @@ type AppConfig struct {
 	AdminCheckerQueueURL  string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-adminchecker"`
 	MaxNumberOfMessage    int64  `split_words:"true" default:"10"`
 	WaitTimeSecond        int64  `split_words:"true" default:"20"`
+	RetryMaxAttempts      int    `split_words:"true" default:"10"`
 
 	// grpc
 	FindingSvcAddr string `required:"true" split_words:"true" default:"finding.core.svc.cluster.local:8001"`
@@ -84,6 +85,7 @@ func main() {
 	handler.alertClient = newAlertClient(conf.AlertSvcAddr)
 	handler.awsClient = newAWSClient(conf.AWSSvcAddr)
 	handler.awsRegion = conf.AWSRegion
+	handler.retryMaxAttempts = conf.RetryMaxAttempts
 	f, err := mimosasqs.NewFinalizer(message.AdminCheckerDataSource, settingURL, conf.FindingSvcAddr, nil)
 	if err != nil {
 		appLogger.Fatalf("Failed to create Finalizer, err=%+v", err)
