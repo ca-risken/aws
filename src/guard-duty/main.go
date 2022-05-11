@@ -37,7 +37,7 @@ type AppConfig struct {
 	WaitTimeSecond     int64  `split_words:"true" default:"20"`
 
 	// grpc
-	CoreSvcAddr string `required:"true" split_words:"true" default:"finding.core.svc.cluster.local:8080"`
+	CoreSvcAddr string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
 	AWSSvcAddr  string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
 }
 
