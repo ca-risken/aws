@@ -39,9 +39,8 @@ type AppConfig struct {
 	WaitTimeSecond       int64  `split_words:"true" default:"20"`
 
 	// grpc
-	FindingSvcAddr string `required:"true" split_words:"true" default:"finding.core.svc.cluster.local:8001"`
-	AlertSvcAddr   string `required:"true" split_words:"true" default:"alert.core.svc.cluster.local:8004"`
-	AWSSvcAddr     string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
+	CoreSvcAddr string `required:"true" split_words:"true" default:"finding.core.svc.cluster.local:8080"`
+	AWSSvcAddr  string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
 
 	// cloudsploit
 	ResultDir      string `required:"true" split_words:"true" default:"/tmp"`
@@ -92,10 +91,10 @@ func main() {
 		awsRegion:      conf.AWSRegion,
 		maxMemSizeMB:   conf.MaxMemSizeMB,
 	}
-	handler.findingClient = newFindingClient(conf.FindingSvcAddr)
-	handler.alertClient = newAlertClient(conf.AlertSvcAddr)
+	handler.findingClient = newFindingClient(conf.CoreSvcAddr)
+	handler.alertClient = newAlertClient(conf.CoreSvcAddr)
 	handler.awsClient = newAWSClient(conf.AWSSvcAddr)
-	f, err := mimosasqs.NewFinalizer(message.CloudsploitDataSource, settingURL, conf.FindingSvcAddr, nil)
+	f, err := mimosasqs.NewFinalizer(message.CloudsploitDataSource, settingURL, conf.CoreSvcAddr, nil)
 	if err != nil {
 		appLogger.Fatalf("Failed to create Finalizer, err=%+v", err)
 	}

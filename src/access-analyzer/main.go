@@ -26,7 +26,7 @@ type AppConfig struct {
 	TraceDebug      bool     `split_words:"true" default:"false"`
 
 	// grpc
-	FindingSvcAddr string `required:"true" split_words:"true" default:"finding.core.svc.cluster.local:8001"`
+	CoreSvcAddr string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
 
 	// aws
 	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
@@ -84,7 +84,7 @@ func main() {
 	handler := &sqsHandler{
 		awsRegion: conf.AWSRegion,
 	}
-	handler.findingClient = newFindingClient(conf.FindingSvcAddr)
+	handler.findingClient = newFindingClient(conf.CoreSvcAddr)
 	handler.alertClient = newAlertClient(conf.AlertSvcAddr)
 	handler.awsClient = newAWSClient(conf.AWSSvcAddr)
 
