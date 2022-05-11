@@ -40,9 +40,8 @@ type AppConfig struct {
 	RetryMaxAttempts      int    `split_words:"true" default:"10"`
 
 	// grpc
-	FindingSvcAddr string `required:"true" split_words:"true" default:"finding.core.svc.cluster.local:8001"`
-	AlertSvcAddr   string `required:"true" split_words:"true" default:"alert.core.svc.cluster.local:8004"`
-	AWSSvcAddr     string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
+	CoreSvcAddr string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
+	AWSSvcAddr  string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
 }
 
 func main() {
@@ -81,12 +80,12 @@ func main() {
 	defer tracer.Stop()
 
 	handler := &sqsHandler{}
-	handler.findingClient = newFindingClient(conf.FindingSvcAddr)
-	handler.alertClient = newAlertClient(conf.AlertSvcAddr)
+	handler.findingClient = newFindingClient(conf.CoreSvcAddr)
+	handler.alertClient = newAlertClient(conf.CoreSvcAddr)
 	handler.awsClient = newAWSClient(conf.AWSSvcAddr)
 	handler.awsRegion = conf.AWSRegion
 	handler.retryMaxAttempts = conf.RetryMaxAttempts
-	f, err := mimosasqs.NewFinalizer(message.AdminCheckerDataSource, settingURL, conf.FindingSvcAddr, nil)
+	f, err := mimosasqs.NewFinalizer(message.AdminCheckerDataSource, settingURL, conf.CoreSvcAddr, nil)
 	if err != nil {
 		appLogger.Fatalf("Failed to create Finalizer, err=%+v", err)
 	}

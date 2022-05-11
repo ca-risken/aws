@@ -32,7 +32,7 @@ type AppConfig struct {
 	TraceDebug      bool     `split_words:"true" default:"false"`
 
 	// grpc
-	ProjectSvcAddr string `required:"true" split_words:"true" default:"project.core.svc.cluster.local:8003"`
+	CoreSvcAddr string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
 
 	// sqs
 	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
@@ -122,7 +122,7 @@ func main() {
 		PortscanQueueURL:       conf.PortscanQueueURL,
 	}
 	service.sqs = newSQSClient(sqsConf)
-	service.projectClient = newProjectClient(conf.ProjectSvcAddr)
+	service.projectClient = newProjectClient(conf.CoreSvcAddr)
 
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
