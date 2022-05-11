@@ -240,7 +240,8 @@ func (a *awsService) InvokeScanAll(ctx context.Context, req *aws.InvokeScanAllRe
 			ScanOnly:        true,
 		}); err != nil {
 			// エラーログはいて握りつぶす（すべてのスキャナ登録しきる）
-			appLogger.Errorf("AWS InvokeScan error: err=%+v", err)
+			appLogger.Errorf("AWS InvokeScan error: project_id=%d, aws_id=%d, aws_datasource_id=%d, err=%+v",
+				dataSource.ProjectID, dataSource.AWSID, dataSource.AWSDataSourceID, err)
 		}
 		time.Sleep(time.Millisecond * 100) // jitter
 	}
