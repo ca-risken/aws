@@ -32,8 +32,7 @@ type AppConfig struct {
 	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
 
 	// accessAnalyzer
-	AlertSvcAddr string `required:"true" split_words:"true" default:"alert.core.svc.cluster.local:8004"`
-	AWSSvcAddr   string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
+	AWSSvcAddr string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
 
 	// sqs
 	Debug string `default:"false"`
@@ -85,7 +84,7 @@ func main() {
 		awsRegion: conf.AWSRegion,
 	}
 	handler.findingClient = newFindingClient(conf.CoreSvcAddr)
-	handler.alertClient = newAlertClient(conf.AlertSvcAddr)
+	handler.alertClient = newAlertClient(conf.CoreSvcAddr)
 	handler.awsClient = newAWSClient(conf.AWSSvcAddr)
 
 	sqsConf := &SQSConfig{
