@@ -156,6 +156,8 @@ func TestDeleteAWS(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			mockDB.On("ListDataSource").Return(&[]dataSource{{AWSDataSourceID: 1}}, nil)
+			mockDB.On("DeleteAWSRelDataSource").Return(nil)
 			mockDB.On("DeleteAWS").Return(c.mockResp).Once()
 			_, err := svc.DeleteAWS(ctx, c.input)
 			if err != nil && !c.wantErr {
