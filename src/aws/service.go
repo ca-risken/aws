@@ -73,8 +73,8 @@ func (a *awsService) DeleteAWS(ctx context.Context, req *aws.DeleteAWSRequest) (
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	list, err := a.repository.ListDataSource(ctx, req.ProjectId, req.AwsId, "")
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	list, err := a.repository.ListAWSRelDataSource(ctx, req.ProjectId, req.AwsId)
+	if err != nil {
 		return nil, err
 	}
 	for _, ds := range *list {

@@ -156,7 +156,7 @@ func TestDeleteAWS(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			mockDB.On("ListDataSource").Return(&[]dataSource{{AWSDataSourceID: 1}}, nil)
+			mockDB.On("ListAWSRelDataSource").Return(&[]model.AWSRelDataSource{{AWSDataSourceID: 1}}, nil)
 			mockDB.On("DeleteAWSRelDataSource").Return(nil)
 			mockDB.On("DeleteAWS").Return(c.mockResp).Once()
 			_, err := svc.DeleteAWS(ctx, c.input)
@@ -379,6 +379,10 @@ func (m *mockAWSRepository) ListDataSource(context.Context, uint32, uint32, stri
 func (m *mockAWSRepository) ListDataSourceByAWSDataSourceID(context.Context, uint32) (*[]dataSource, error) {
 	args := m.Called()
 	return args.Get(0).(*[]dataSource), args.Error(1)
+}
+func (m *mockAWSRepository) ListAWSRelDataSource(ctx context.Context, projectID, awsID uint32) (*[]model.AWSRelDataSource, error) {
+	args := m.Called()
+	return args.Get(0).(*[]model.AWSRelDataSource), args.Error(1)
 }
 func (m *mockAWSRepository) UpsertAWSRelDataSource(context.Context, *aws.DataSourceForAttach) (*model.AWSRelDataSource, error) {
 	args := m.Called()
