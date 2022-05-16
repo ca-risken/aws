@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/common/pkg/profiler"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	"github.com/ca-risken/common/pkg/tracer"
@@ -13,6 +14,7 @@ import (
 const (
 	nameSpace   = "aws"
 	serviceName = "accessanalyzer"
+	settingURL  = "https://docs.security-hub.jp/aws/overview_datasource/"
 )
 
 func getFullServiceName() string {
@@ -86,6 +88,10 @@ func main() {
 	handler.findingClient = newFindingClient(conf.CoreSvcAddr)
 	handler.alertClient = newAlertClient(conf.CoreSvcAddr)
 	handler.awsClient = newAWSClient(conf.AWSSvcAddr)
+	f, err := mimosasqs.NewFinalizer(message.AccessAnalyzerDataSource, settingURL, conf.CoreSvcAddr, nil)
+	if err != nil {
+		appLogger.Fatalf("Failed to create Finalizer, err=%+v", err)
+	}
 
 	sqsConf := &SQSConfig{
 		Debug:                   conf.Debug,
@@ -104,5 +110,6 @@ func main() {
 		mimosasqs.InitializeHandler(
 			mimosasqs.RetryableErrorHandler(
 				mimosasqs.StatusLoggingHandler(appLogger,
-					mimosasqs.TracingHandler(getFullServiceName(), handler)))))
+					mimosasqs.TracingHandler(getFullServiceName(),
+						f.FinalizeHandler(handler))))))
 }
