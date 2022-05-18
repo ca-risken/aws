@@ -129,8 +129,8 @@ func main() {
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
 			grpcmiddleware.ChainUnaryServer(
-				mimosarpc.LoggingUnaryServerInterceptor(appLogger),
-				grpctrace.UnaryServerInterceptor())))
+				grpctrace.UnaryServerInterceptor(),
+				mimosarpc.LoggingUnaryServerInterceptor(appLogger))))
 	aws.RegisterAWSServiceServer(server, service)
 
 	reflection.Register(server) // enable reflection API
