@@ -31,12 +31,12 @@ type sqsClient struct {
 	queueURLMap map[string]string
 }
 
-func newSQSClient(conf *SQSConfig) *sqsClient {
+func newSQSClient(ctx context.Context, conf *SQSConfig) *sqsClient {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	})
 	if err != nil {
-		appLogger.Fatalf("Failed to create a new session, %v", err)
+		appLogger.Fatalf(ctx, "Failed to create a new session, %v", err)
 	}
 	session := sqs.New(sess, &aws.Config{
 		Region:   &conf.AWSRegion,

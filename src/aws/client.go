@@ -13,7 +13,7 @@ func newProjectClient(svcAddr string) project.ProjectServiceClient {
 	ctx := context.Background()
 	conn, err := getGRPCConn(ctx, svcAddr)
 	if err != nil {
-		appLogger.Fatalf("Faild to get GRPC connection: err=%+v", err)
+		appLogger.Fatalf(ctx, "Faild to get GRPC connection: err=%+v", err)
 	}
 	return project.NewProjectServiceClient(conn)
 }

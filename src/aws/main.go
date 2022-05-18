@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 
@@ -59,19 +60,20 @@ type AppConfig struct {
 }
 
 func main() {
+	ctx := context.Background()
 	var conf AppConfig
 	err := envconfig.Process("", &conf)
 	if err != nil {
-		appLogger.Fatal(err.Error())
+		appLogger.Fatal(ctx, err.Error())
 	}
 
 	pTypes, err := profiler.ConvertProfileTypeFrom(conf.ProfileTypes)
 	if err != nil {
-		appLogger.Fatal(err.Error())
+		appLogger.Fatal(ctx, err.Error())
 	}
 	pExporter, err := profiler.ConvertExporterTypeFrom(conf.ProfileExporter)
 	if err != nil {
-		appLogger.Fatal(err.Error())
+		appLogger.Fatal(ctx, err.Error())
 	}
 	pc := profiler.Config{
 		ServiceName:  getFullServiceName(),
@@ -81,7 +83,7 @@ func main() {
 	}
 	err = pc.Start()
 	if err != nil {
-		appLogger.Fatal(err.Error())
+		appLogger.Fatal(ctx, err.Error())
 	}
 	defer pc.Stop()
 
@@ -95,7 +97,7 @@ func main() {
 
 	l, err := net.Listen("tcp", fmt.Sprintf(":%s", conf.Port))
 	if err != nil {
-		appLogger.Fatal(err)
+		appLogger.Fatal(ctx, err)
 	}
 
 	service := &awsService{}
@@ -111,7 +113,7 @@ func main() {
 		LogMode:        conf.DBLogMode,
 		MaxConnection:  conf.DBMaxConnection,
 	}
-	service.repository = newAWSRepository(dbConf)
+	service.repository = newAWSRepository(ctx, dbConf)
 	sqsConf := &SQSConfig{
 		AWSRegion:              conf.AWSRegion,
 		SQSEndpoint:            conf.SQSEndpoint,
@@ -121,7 +123,7 @@ func main() {
 		CloudsploitQueueURL:    conf.CloudsploitQueueURL,
 		PortscanQueueURL:       conf.PortscanQueueURL,
 	}
-	service.sqs = newSQSClient(sqsConf)
+	service.sqs = newSQSClient(ctx, sqsConf)
 	service.projectClient = newProjectClient(conf.CoreSvcAddr)
 
 	server := grpc.NewServer(
@@ -132,8 +134,8 @@ func main() {
 	aws.RegisterAWSServiceServer(server, service)
 
 	reflection.Register(server) // enable reflection API
-	appLogger.Infof("Starting gRPC server at :%s", conf.Port)
+	appLogger.Infof(ctx, "Starting gRPC server at :%s", conf.Port)
 	if err := server.Serve(l); err != nil {
-		appLogger.Fatalf("Failed to gRPC serve: %v", err)
+		appLogger.Fatalf(ctx, "Failed to gRPC serve: %v", err)
 	}
 }
