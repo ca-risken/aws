@@ -20,6 +20,7 @@ type awsRepoInterface interface {
 	DeleteAWS(ctx context.Context, projectID, awsID uint32) error
 	ListDataSource(ctx context.Context, projectID, awsID uint32, ds string) (*[]dataSource, error)
 	ListDataSourceByAWSDataSourceID(ctx context.Context, awsDataSourceID uint32) (*[]dataSource, error)
+	ListAWSRelDataSource(ctx context.Context, projectID, awsID uint32) (*[]model.AWSRelDataSource, error)
 	UpsertAWSRelDataSource(ctx context.Context, data *aws.DataSourceForAttach) (*model.AWSRelDataSource, error)
 	GetAWSRelDataSourceByID(ctx context.Context, awsID, awsDataSourceID, projectID uint32) (*model.AWSRelDataSource, error)
 	DeleteAWSRelDataSource(ctx context.Context, projectID, awsID, awsDataSourceID uint32) error
@@ -223,6 +224,16 @@ func (a *awsRepository) ListDataSourceByAWSDataSourceID(ctx context.Context, dat
 	}
 	data := []dataSource{}
 	if err := a.SlaveDB.WithContext(ctx).Raw(query, params...).Scan(&data).Error; err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+const selectListAWSRelDataSource = "select * from aws_rel_data_source where project_id=? and aws_id=?"
+
+func (a *awsRepository) ListAWSRelDataSource(ctx context.Context, projectID, awsID uint32) (*[]model.AWSRelDataSource, error) {
+	data := []model.AWSRelDataSource{}
+	if err := a.SlaveDB.WithContext(ctx).Raw(selectListAWSRelDataSource, projectID, awsID).Scan(&data).Error; err != nil {
 		return nil, err
 	}
 	return &data, nil
