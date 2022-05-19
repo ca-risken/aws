@@ -32,10 +32,10 @@ type awsRepository struct {
 	SlaveDB  *gorm.DB
 }
 
-func newAWSRepository(conf *DBConfig) awsRepoInterface {
+func newAWSRepository(ctx context.Context, conf *DBConfig) awsRepoInterface {
 	repo := awsRepository{}
-	repo.MasterDB = initDB(conf, true)
-	repo.SlaveDB = initDB(conf, false)
+	repo.MasterDB = initDB(ctx, conf, true)
+	repo.SlaveDB = initDB(ctx, conf, false)
 	return &repo
 }
 
@@ -53,7 +53,7 @@ type DBConfig struct {
 	MaxConnection int
 }
 
-func initDB(conf *DBConfig, isMaster bool) *gorm.DB {
+func initDB(ctx context.Context, conf *DBConfig, isMaster bool) *gorm.DB {
 	var user, pass, host string
 	if isMaster {
 		user = conf.MasterUser
@@ -69,10 +69,10 @@ func initDB(conf *DBConfig, isMaster bool) *gorm.DB {
 		user, pass, host, conf.Port, conf.Schema)
 	db, err := mimosasql.Open(dsn, conf.LogMode, conf.MaxConnection)
 	if err != nil {
-		appLogger.Fatalf("Failed to open DB. isMaster: %t, err: %+v", isMaster, err)
+		appLogger.Fatalf(ctx, "Failed to open DB. isMaster: %t, err: %+v", isMaster, err)
 		return nil
 	}
-	appLogger.Infof("Connected to Database. isMaster: %t", isMaster)
+	appLogger.Infof(ctx, "Connected to Database. isMaster: %t", isMaster)
 	return db
 }
 

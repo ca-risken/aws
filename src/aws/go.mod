@@ -9,12 +9,11 @@ require (
 	github.com/ca-risken/aws/pkg/model v0.0.0-20210907034232-c56f481434cd
 	github.com/ca-risken/aws/proto/aws v0.0.0-20211213023214-4f82b6829c8a
 	github.com/ca-risken/common/pkg/database v0.0.0-20220421051518-d57cbf184097
-	github.com/ca-risken/common/pkg/logging v0.0.0-20220113015330-0e8462d52b5b
+	github.com/ca-risken/common/pkg/logging v0.0.0-20220518032134-ad443b601efd
 	github.com/ca-risken/common/pkg/profiler v0.0.0-20220304031727-c94e2c463b27
-	github.com/ca-risken/common/pkg/rpc v0.0.0-20220113015330-0e8462d52b5b
+	github.com/ca-risken/common/pkg/rpc v0.0.0-20220518032134-ad443b601efd
 	github.com/ca-risken/common/pkg/tracer v0.0.0-20220421051518-d57cbf184097
 	github.com/ca-risken/core/proto/project v0.0.0-20220120020932-292d4285ee31
-	github.com/ca-risken/core/src/finding v0.0.0-20220428031553-0579e204c316
 	github.com/gassara-kys/envconfig v1.4.4
 	github.com/golang/protobuf v1.5.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
