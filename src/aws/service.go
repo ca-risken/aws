@@ -237,7 +237,7 @@ func (a *awsService) InvokeScanAll(ctx context.Context, req *aws.InvokeScanAllRe
 		}
 		if resp, err := a.projectClient.IsActive(ctx, &project.IsActiveRequest{ProjectId: dataSource.ProjectID}); err != nil {
 			appLogger.Errorf(ctx, "Failed to project.IsActive API, err=%+v", err)
-			continue
+			return nil, err
 		} else if !resp.Active {
 			appLogger.Infof(ctx, "Skip deactive project, project_id=%d", dataSource.ProjectID)
 			continue
@@ -248,10 +248,11 @@ func (a *awsService) InvokeScanAll(ctx context.Context, req *aws.InvokeScanAllRe
 			AwsDataSourceId: dataSource.AWSDataSourceID,
 			ScanOnly:        true,
 		}); err != nil {
-			// エラーログはいて握りつぶす（すべてのスキャナ登録しきる）
 			appLogger.Errorf(ctx, "AWS InvokeScan error: project_id=%d, aws_id=%d, aws_datasource_id=%d, err=%+v",
 				dataSource.ProjectID, dataSource.AWSID, dataSource.AWSDataSourceID, err)
+			return nil, err
 		}
+		// TODO delete jitter
 		time.Sleep(time.Millisecond * 100) // jitter
 	}
 	return &empty.Empty{}, nil
