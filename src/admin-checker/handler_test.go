@@ -46,6 +46,34 @@ func TestScoreAdminUser(t *testing.T) {
 			},
 			want: 0.7,
 		},
+		{
+			name: "Admin user, but enabled Physical MFA",
+			input: &iamUser{
+				UserName:           "Physical MFA",
+				IsUserAdmin:        true,
+				EnabledPhysicalMFA: true,
+			},
+			want: 0.5,
+		},
+		{
+			name: "Admin user, but enabled Virtual MFA",
+			input: &iamUser{
+				UserName:          "Virtual MFA",
+				IsUserAdmin:       true,
+				EnabledVirtualMFA: true,
+			},
+			want: 0.5,
+		},
+		{
+			name: "enabled MFA but access key is activated",
+			input: &iamUser{
+				UserName:          "Virtual MFA",
+				IsUserAdmin:       true,
+				EnabledVirtualMFA: true,
+				ActiveAccessKeyID: []string{"key-id"},
+			},
+			want: 0.9,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
