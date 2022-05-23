@@ -258,10 +258,7 @@ func (a *adminCheckerClient) enabledVirtualMFA(ctx context.Context, userARN stri
 		return false, err
 	}
 	for _, device := range result.VirtualMFADevices {
-		if device.User == nil {
-			continue
-		}
-		if *device.User.Arn == userARN {
+		if device.User != nil && *device.User.Arn == userARN {
 			return true, nil
 		}
 	}

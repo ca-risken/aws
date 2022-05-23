@@ -11,4 +11,4 @@ if [ $# != 1 ]; then
   exit 1
 fi
 
-pushd "${linter_target_dir}" && golangci-lint run && popd
+pushd "${linter_target_dir}" && GO111MODULE=on golangci-lint run && popd
