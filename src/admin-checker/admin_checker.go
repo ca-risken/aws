@@ -85,7 +85,7 @@ type serviceAccessedReport struct {
 func (a *adminCheckerClient) listUserFinding(ctx context.Context, msg *message.AWSQueueMessage) (*[]iamUser, error) {
 	iamUsers, err := a.listUser(ctx)
 	if err != nil {
-		appLogger.Errorf("IAM.ListUser error: err=%+v", err)
+		appLogger.Errorf(ctx, "IAM.ListUser error: err=%+v", err)
 		return nil, err
 	}
 	return iamUsers, nil
@@ -138,7 +138,7 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 		jobID := user.ServiceAccessedReport.JobID
 		accessedDetail, err := a.analyzeServiceLastAccessedDetails(ctx, jobID)
 		if err != nil {
-			appLogger.Warnf("Failed to analyzServiceAccessedDetails Job, err=%+v", err.Error())
+			appLogger.Warnf(ctx, "Failed to analyzServiceAccessedDetails Job, err=%+v", err.Error())
 			continue
 		}
 		iamUsers[idx].ServiceAccessedReport = *accessedDetail
@@ -175,7 +175,7 @@ BREAK:
 		}
 		switch out.JobStatus {
 		case types.JobStatusTypeFailed:
-			errMsg := fmt.Sprintf("Failed to GetServiceLastAccessedDetails, jobID=%s", jobID)
+			errMsg := fmt.Sprintf("failed to GetServiceLastAccessedDetails, jobID=%s", jobID)
 			if out.Error != nil {
 				errMsg += fmt.Sprintf(" error_code=%s, message=%s", *out.Error.Code, *out.Error.Message)
 			}
@@ -192,7 +192,7 @@ BREAK:
 			resp.JobStatus = "COMPLETED"
 			resp.AllowedServices = len(out.ServicesLastAccessed)
 			for _, accessed := range out.ServicesLastAccessed {
-				appLogger.Debugf("ServicesLastAccessed: %+v", accessed)
+				appLogger.Debugf(ctx, "ServicesLastAccessed: %+v", accessed)
 				if accessed.LastAuthenticated != nil {
 					resp.AccessedServices++
 				}
@@ -203,10 +203,10 @@ BREAK:
 			} else {
 				resp.AccessRate = float32(math.Floor(rate*100) / 100)
 			}
-			appLogger.Debugf("serviceAccessedReport: %+v", resp)
+			appLogger.Debugf(ctx, "serviceAccessedReport: %+v", resp)
 			break BREAK
 		default:
-			return nil, fmt.Errorf("Unknown Job Status for GetServiceLastAccessedDetails: jobID=%s, status=%s", jobID, out.JobStatus)
+			return nil, fmt.Errorf("unknown Job Status for GetServiceLastAccessedDetails: jobID=%s, status=%s", jobID, out.JobStatus)
 		}
 	}
 	return &resp, nil
@@ -443,7 +443,7 @@ type iamRole struct {
 func (a *adminCheckerClient) listRoleFinding(ctx context.Context, msg *message.AWSQueueMessage) (*[]iamRole, error) {
 	iamRoles, err := a.listRole(ctx)
 	if err != nil {
-		appLogger.Errorf("IAM.ListRole error: err=%+v", err)
+		appLogger.Errorf(ctx, "IAM.ListRole error: err=%+v", err)
 		return nil, err
 	}
 	return iamRoles, nil
@@ -479,7 +479,7 @@ func (a *adminCheckerClient) listRole(ctx context.Context) (*[]iamRole, error) {
 		jobID := role.ServiceAccessedReport.JobID
 		accessedDetail, err := a.analyzeServiceLastAccessedDetails(ctx, jobID)
 		if err != nil {
-			appLogger.Warnf("Failed to analyzServiceAccessedDetails Job, err=%+v", err.Error())
+			appLogger.Warnf(ctx, "Failed to analyzServiceAccessedDetails Job, err=%+v", err.Error())
 			continue
 		}
 		iamRoles[idx].ServiceAccessedReport = *accessedDetail

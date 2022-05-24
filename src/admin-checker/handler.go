@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/ca-risken/aws/pkg/common"
 	"github.com/ca-risken/aws/pkg/message"
 	awsClient "github.com/ca-risken/aws/proto/aws"
@@ -24,44 +24,44 @@ type sqsHandler struct {
 	retryMaxAttempts int
 }
 
-func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
-	msgBody := aws.StringValue(sqsMsg.Body)
-	appLogger.Infof("got message: %s", msgBody)
+func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) error {
+	msgBody := aws.ToString(sqsMsg.Body)
+	appLogger.Infof(ctx, "got message: %s", msgBody)
 	msg, err := message.ParseMessage(msgBody)
 	if err != nil {
-		appLogger.Errorf("Invalid message: SQS_msg=%+v, err=%+v", sqsMsg, err)
+		appLogger.Errorf(ctx, "Invalid message: SQS_msg=%+v, err=%+v", sqsMsg, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
 	requestID, err := appLogger.GenerateRequestID(fmt.Sprint(msg.ProjectID))
 	if err != nil {
-		appLogger.Warnf("Failed to generate requestID: err=%+v", err)
+		appLogger.Warnf(ctx, "Failed to generate requestID: err=%+v", err)
 		requestID = fmt.Sprint(msg.ProjectID)
 	}
-	appLogger.Infof("start Scan, RequestID=%s", requestID)
+	appLogger.Infof(ctx, "start Scan, RequestID=%s", requestID)
 
 	status := common.InitScanStatus(msg)
 	// check AccountID matches Arn for Scan
 	if !common.IsMatchAccountIDArn(msg.AccountID, msg.AssumeRoleArn) {
-		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", msg.AccountID, msg.AssumeRoleArn)
+		appLogger.Warnf(ctx, "AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", msg.AccountID, msg.AssumeRoleArn)
 		return s.handleErrorWithUpdateStatus(ctx, &status, fmt.Errorf("AssumeRoleArn for admin-checker must be created in AWS AccountID: %v", msg.AccountID))
 	}
 	// IAM Admin Checker
 	adminChecker, err := newAdminCheckerClient(ctx, s.awsRegion, msg.AssumeRoleArn, msg.ExternalID, s.retryMaxAttempts)
 	if err != nil {
-		appLogger.Errorf("Faild to create AdminChecker session: err=%+v", err)
+		appLogger.Errorf(ctx, "Faild to create AdminChecker session: err=%+v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 
 	// IAM User
 	userFindings, err := adminChecker.listUserFinding(ctx, msg)
 	if err != nil {
-		appLogger.Errorf("Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", msg.AccountID, err)
+		appLogger.Errorf(ctx, "Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", msg.AccountID, err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 	// IAM Role
 	roleFindings, err := adminChecker.listRoleFinding(ctx, msg)
 	if err != nil {
-		appLogger.Errorf("Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", msg.AccountID, err)
+		appLogger.Errorf(ctx, "Faild to get findngs to AWS AdminChecker: AccountID=%+v, err=%+v", msg.AccountID, err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 
@@ -71,7 +71,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		ProjectId:  msg.ProjectID,
 		Tag:        []string{msg.AccountID},
 	}); err != nil {
-		appLogger.Errorf("Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
+		appLogger.Errorf(ctx, "Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 
@@ -87,13 +87,13 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
 		return mimosasqs.WrapNonRetryable(err)
 	}
-	appLogger.Infof("end Scan, RequestID=%s", requestID)
+	appLogger.Infof(ctx, "end Scan, RequestID=%s", requestID)
 
 	if msg.ScanOnly {
 		return nil
 	}
 	if err := s.analyzeAlert(ctx, msg.ProjectID); err != nil {
-		appLogger.Notifyf(logging.ErrorLevel, "Failed to analyzeAlert, project_id=%d, err=%+v", msg.ProjectID, err)
+		appLogger.Notifyf(ctx, logging.ErrorLevel, "Failed to analyzeAlert, project_id=%d, err=%+v", msg.ProjectID, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
 	return nil
@@ -101,7 +101,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 
 func (s *sqsHandler) handleErrorWithUpdateStatus(ctx context.Context, scanStatus *awsClient.AttachDataSourceRequest, err error) error {
 	if updateErr := s.updateScanStatusError(ctx, scanStatus, err.Error()); updateErr != nil {
-		appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+		appLogger.Warnf(ctx, "Failed to update scan status error: err=%+v", updateErr)
 	}
 	return mimosasqs.WrapNonRetryable(err)
 }
@@ -114,10 +114,10 @@ const (
 
 func (s *sqsHandler) putUserFindings(ctx context.Context, msg *message.AWSQueueMessage, userFindings *[]iamUser) error {
 	for _, user := range *userFindings {
-		appLogger.Infof("Detect IAM user: %+v", user)
+		appLogger.Infof(ctx, "Detect IAM user: %+v", user)
 		buf, err := json.Marshal(user)
 		if err != nil {
-			appLogger.Errorf("Failed to marshal user data, userArn=%s, err=%+v", user.UserArn, err)
+			appLogger.Errorf(ctx, "Failed to marshal user data, userArn=%s, err=%+v", user.UserArn, err)
 			return err
 		}
 		// Put finding to core
@@ -131,7 +131,7 @@ func (s *sqsHandler) putUserFindings(ctx context.Context, msg *message.AWSQueueM
 			OriginalMaxScore: 1.0,
 			Data:             string(buf),
 		}); err != nil {
-			appLogger.Errorf("Faild to put findngs: AccountID=%+v, err=%+v", msg.AccountID, err)
+			appLogger.Errorf(ctx, "Faild to put findngs: AccountID=%+v, err=%+v", msg.AccountID, err)
 			return err
 		}
 		if err := s.putFindings(ctx, typeAccessReport, msg, &finding.FindingForUpsert{
@@ -144,7 +144,7 @@ func (s *sqsHandler) putUserFindings(ctx context.Context, msg *message.AWSQueueM
 			OriginalMaxScore: 1.0,
 			Data:             string(buf),
 		}); err != nil {
-			appLogger.Errorf("Faild to put findngs: AccountID=%+v, err=%+v", msg.AccountID, err)
+			appLogger.Errorf(ctx, "Faild to put findngs: AccountID=%+v, err=%+v", msg.AccountID, err)
 			return err
 		}
 	}
@@ -153,10 +153,10 @@ func (s *sqsHandler) putUserFindings(ctx context.Context, msg *message.AWSQueueM
 
 func (s *sqsHandler) putRoleFindings(ctx context.Context, msg *message.AWSQueueMessage, roleFindings *[]iamRole) error {
 	for _, role := range *roleFindings {
-		appLogger.Infof("Detect IAM role: %+v", role)
+		appLogger.Infof(ctx, "Detect IAM role: %+v", role)
 		buf, err := json.Marshal(role)
 		if err != nil {
-			appLogger.Errorf("Failed to marshal user data, userArn=%s, err=%+v", role.RoleArn, err)
+			appLogger.Errorf(ctx, "Failed to marshal user data, userArn=%s, err=%+v", role.RoleArn, err)
 			return err
 		}
 		// Put finding to core
@@ -170,7 +170,7 @@ func (s *sqsHandler) putRoleFindings(ctx context.Context, msg *message.AWSQueueM
 			OriginalMaxScore: 1.0,
 			Data:             string(buf),
 		}); err != nil {
-			appLogger.Errorf("Faild to put findngs: AccountID=%+v, err=%+v", msg.AccountID, err)
+			appLogger.Errorf(ctx, "Faild to put findngs: AccountID=%+v, err=%+v", msg.AccountID, err)
 			return err
 		}
 	}
@@ -206,7 +206,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, findingType string, msg *m
 	if err := s.putRecommend(ctx, resp.Finding.ProjectId, resp.Finding.FindingId, findingType); err != nil {
 		return err
 	}
-	appLogger.Debugf("Success to PutFinding, finding_id=%d", resp.Finding.FindingId)
+	appLogger.Debugf(ctx, "Success to PutFinding, finding_id=%d", resp.Finding.FindingId)
 	return nil
 }
 
@@ -218,7 +218,7 @@ func (s *sqsHandler) tagFinding(ctx context.Context, tag string, findingID uint6
 			ProjectId: projectID,
 			Tag:       tag,
 		}}); err != nil {
-		return fmt.Errorf("Failed to TagFinding, finding_id=%d, tag=%s, error=%+v", findingID, tag, err)
+		return fmt.Errorf("failed to TagFinding, finding_id=%d, tag=%s, error=%+v", findingID, tag, err)
 	}
 	return nil
 }
@@ -243,7 +243,7 @@ func (s *sqsHandler) attachAWSStatus(ctx context.Context, status *awsClient.Atta
 	if err != nil {
 		return err
 	}
-	appLogger.Infof("Success to update AWS status, response=%+v", resp)
+	appLogger.Infof(ctx, "Success to update AWS status, response=%+v", resp)
 	return nil
 }
 
@@ -257,7 +257,7 @@ func (s *sqsHandler) analyzeAlert(ctx context.Context, projectID uint32) error {
 func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, findingID uint64, findingType string) error {
 	r := getRecommend(findingType)
 	if r.Risk == "" && r.Recommendation == "" {
-		appLogger.Warnf("Failed to get recommendation, Unknown plugin=%s", findingType)
+		appLogger.Warnf(ctx, "Failed to get recommendation, Unknown plugin=%s", findingType)
 		return nil
 	}
 	if _, err := s.findingClient.PutRecommend(ctx, &finding.PutRecommendRequest{
@@ -268,7 +268,7 @@ func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, finding
 		Risk:           r.Risk,
 		Recommendation: r.Recommendation,
 	}); err != nil {
-		return fmt.Errorf("Failed to PutRecommend, finding_id=%d, finding_type=%s, error=%+v", findingID, findingType, err)
+		return fmt.Errorf("failed to PutRecommend, finding_id=%d, finding_type=%s, error=%+v", findingID, findingType, err)
 	}
 	return nil
 }
