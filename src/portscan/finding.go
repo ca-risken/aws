@@ -81,7 +81,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 		return err
 	}
 	for _, f := range findingsNmap {
-		findingBatchParam = append(findingBatchParam, generateFindingBatch(msg.AccountID, categoryNmap, f))
+		findingBatchParam = append(findingBatchParam, generateFindingBatch(ctx, msg.AccountID, categoryNmap, f))
 	}
 
 	findingsExclude, err := makeExcludeFindings(excludeResults, msg)
@@ -89,7 +89,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 		return err
 	}
 	for _, f := range findingsExclude {
-		findingBatchParam = append(findingBatchParam, generateFindingBatch(msg.AccountID, categoryManyOpen, f))
+		findingBatchParam = append(findingBatchParam, generateFindingBatch(ctx, msg.AccountID, categoryManyOpen, f))
 	}
 
 	findingsSecurityGroup, err := makeSecurityGroupFindings(securityGroups, msg)
@@ -97,16 +97,16 @@ func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 		return err
 	}
 	for _, f := range findingsSecurityGroup {
-		findingBatchParam = append(findingBatchParam, generateFindingBatch(msg.AccountID, categoryManyOpen, f))
+		findingBatchParam = append(findingBatchParam, generateFindingBatch(ctx, msg.AccountID, categoryManyOpen, f))
 	}
 	if err := s.putFindingBatch(ctx, msg.ProjectID, findingBatchParam); err != nil {
 		return err
 	}
-	appLogger.Infof("putFindings(%d) succeeded", len(findingBatchParam))
+	appLogger.Infof(ctx, "putFindings(%d) succeeded", len(findingBatchParam))
 	return nil
 }
 
-func generateFindingBatch(awsAccountID, category string, f *finding.FindingForUpsert) *finding.FindingBatchForUpsert {
+func generateFindingBatch(ctx context.Context, awsAccountID, category string, f *finding.FindingForUpsert) *finding.FindingBatchForUpsert {
 	data := &finding.FindingBatchForUpsert{Finding: f}
 	// tag
 	tags := []*finding.FindingTagForBatch{
@@ -123,12 +123,12 @@ func generateFindingBatch(awsAccountID, category string, f *finding.FindingForUp
 	// recommend
 	recommendType := getRecommendType(category, service)
 	if zero.IsZeroVal(recommendType) {
-		appLogger.Warnf("Failed to get recommendation, Unknown category,service=%s", fmt.Sprintf("%v:%v", category, service))
+		appLogger.Warnf(ctx, "Failed to get recommendation, Unknown category,service=%s", fmt.Sprintf("%v:%v", category, service))
 		return data
 	}
 	r := getRecommend(recommendType, service)
 	if r.Risk == "" && r.Recommendation == "" {
-		appLogger.Warnf("Failed to get recommendation, Unknown reccomendType,service=%s", fmt.Sprintf("%v:%v", category, service))
+		appLogger.Warnf(ctx, "Failed to get recommendation, Unknown reccomendType,service=%s", fmt.Sprintf("%v:%v", category, service))
 		return data
 	}
 	data.Recommend = &finding.RecommendForBatch{
@@ -140,14 +140,14 @@ func generateFindingBatch(awsAccountID, category string, f *finding.FindingForUp
 }
 
 func (s *sqsHandler) putFindingBatch(ctx context.Context, projectID uint32, params []*finding.FindingBatchForUpsert) error {
-	appLogger.Infof("Putting findings(%d)...", len(params))
+	appLogger.Infof(ctx, "Putting findings(%d)...", len(params))
 	for idx := 0; idx < len(params); idx = idx + finding.PutFindingBatchMaxLength {
 		lastIdx := idx + finding.PutFindingBatchMaxLength
 		if lastIdx > len(params) {
 			lastIdx = len(params)
 		}
 		// request per API limits
-		appLogger.Debugf("Call PutFindingBatch API, (%d ~ %d / %d)", idx+1, lastIdx, len(params))
+		appLogger.Debugf(ctx, "Call PutFindingBatch API, (%d ~ %d / %d)", idx+1, lastIdx, len(params))
 		req := &finding.PutFindingBatchRequest{ProjectId: projectID, Finding: params[idx:lastIdx]}
 		if _, err := s.findingClient.PutFindingBatch(ctx, req); err != nil {
 			return err

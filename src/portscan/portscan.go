@@ -94,7 +94,7 @@ func (p *portscanClient) listAvailableRegion(ctx context.Context) (*[]ec2types.R
 		return nil, err
 	}
 	if out == nil {
-		appLogger.Warn("Got no regions")
+		appLogger.Warn(ctx, "Got no regions")
 		return nil, nil
 	}
 	return &out.Regions, nil
@@ -103,36 +103,36 @@ func (p *portscanClient) listAvailableRegion(ctx context.Context) (*[]ec2types.R
 func (p *portscanClient) getTargets(ctx context.Context, message *message.AWSQueueMessage) ([]*target, map[string]*relSecurityGroupArn, error) {
 	err := p.listSecurityGroup(ctx, message.AccountID)
 	if err != nil {
-		appLogger.Errorf("Failed to describeSecurityGroups: err=%+v", err)
+		appLogger.Errorf(ctx, "Failed to describeSecurityGroups: err=%+v", err)
 		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
 	err = p.listEC2(ctx, message.AccountID)
 	if err != nil {
-		appLogger.Errorf("Failed to describeInstances: err=%+v", err)
+		appLogger.Errorf(ctx, "Failed to describeInstances: err=%+v", err)
 		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
 	err = p.listELB(ctx, message.AccountID)
 	if err != nil {
-		appLogger.Errorf("Failed to describeLoadBalancers: err=%+v", err)
+		appLogger.Errorf(ctx, "Failed to describeLoadBalancers: err=%+v", err)
 		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
 	err = p.listELBv2(ctx)
 	if err != nil {
-		appLogger.Errorf("Failed to describeLoadBalancers(elbv2): err=%+v", err)
+		appLogger.Errorf(ctx, "Failed to describeLoadBalancers(elbv2): err=%+v", err)
 		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
 	err = p.listRDS(ctx)
 	if err != nil {
-		appLogger.Errorf("Failed to describeDBInstances(rds): err=%+v", err)
+		appLogger.Errorf(ctx, "Failed to describeDBInstances(rds): err=%+v", err)
 		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
 	err = p.listLightsail(ctx)
 	if err != nil {
 		if isAvailableRegionLightSail(p.Region) {
-			appLogger.Errorf("Failed to getInstances(lightsail): err=%+v", err)
+			appLogger.Errorf(ctx, "Failed to getInstances(lightsail): err=%+v", err)
 			return []*target{}, map[string]*relSecurityGroupArn{}, err
 		} else {
-			appLogger.Infof("Failed to getInstances(lightsail). but region %v is not supported LightSail", p.Region)
+			appLogger.Infof(ctx, "Failed to getInstances(lightsail). but region %v is not supported LightSail", p.Region)
 		}
 	}
 
@@ -145,7 +145,7 @@ func (p *portscanClient) listSecurityGroup(ctx context.Context, accountID string
 	input := &ec2.DescribeSecurityGroupsInput{}
 	result, err := p.EC2.DescribeSecurityGroups(ctx, input)
 	if err != nil {
-		appLogger.Errorf("error occured when DescribeSecurityGroups: %v", err)
+		appLogger.Errorf(ctx, "error occured when DescribeSecurityGroups: %v", err)
 		return err
 	}
 	for _, securityGroup := range result.SecurityGroups {
@@ -189,7 +189,7 @@ func (p *portscanClient) listEC2(ctx context.Context, accountID string) error {
 	input := &ec2.DescribeInstancesInput{}
 	result, err := p.EC2.DescribeInstances(ctx, input)
 	if err != nil {
-		appLogger.Errorf("error occured when DescribeInstances: %v", err)
+		appLogger.Errorf(ctx, "error occured when DescribeInstances: %v", err)
 		return err
 	}
 	for _, reservation := range result.Reservations {
@@ -238,7 +238,7 @@ func (p *portscanClient) listELB(ctx context.Context, accountID string) error {
 	input := &elb.DescribeLoadBalancersInput{}
 	result, err := p.ELB.DescribeLoadBalancers(ctx, input)
 	if err != nil {
-		appLogger.Errorf("error occured when DescribeLoadBalancers: %v", err)
+		appLogger.Errorf(ctx, "error occured when DescribeLoadBalancers: %v", err)
 		return err
 	}
 	for _, l := range result.LoadBalancerDescriptions {
@@ -276,7 +276,7 @@ func (p *portscanClient) listELBv2(ctx context.Context) error {
 	input := &elbv2.DescribeLoadBalancersInput{}
 	result, err := p.ELBv2.DescribeLoadBalancers(ctx, input)
 	if err != nil {
-		appLogger.Errorf("error occured when DescribeLoadBalancers: %v", err)
+		appLogger.Errorf(ctx, "error occured when DescribeLoadBalancers: %v", err)
 		return err
 	}
 	p.setELBv2(result)
@@ -323,7 +323,7 @@ func (p *portscanClient) listRDS(ctx context.Context) error {
 	input := &rds.DescribeDBInstancesInput{}
 	result, err := p.RDS.DescribeDBInstances(ctx, input)
 	if err != nil {
-		appLogger.Errorf("error occured when DescribeDBInstances: %v", err)
+		appLogger.Errorf(ctx, "error occured when DescribeDBInstances: %v", err)
 		return err
 	}
 	for _, i := range result.DBInstances {
@@ -372,7 +372,7 @@ func (p *portscanClient) listLightsail(ctx context.Context) error {
 	input := &lightsail.GetInstancesInput{}
 	result, err := p.Lightsail.GetInstances(ctx, input)
 	if err != nil {
-		appLogger.Errorf("error occured when GetInstances(lightsail) : %v", err)
+		appLogger.Errorf(ctx, "error occured when GetInstances(lightsail) : %v", err)
 		return err
 	}
 	for _, i := range result.Instances {
@@ -398,7 +398,7 @@ func (p *portscanClient) listLightsail(ctx context.Context) error {
 	inputLB := &lightsail.GetLoadBalancersInput{}
 	resultLB, err := p.Lightsail.GetLoadBalancers(ctx, inputLB)
 	if err != nil {
-		appLogger.Errorf("error occured when GetLoadBalancers(lightsail): %v", err)
+		appLogger.Errorf(ctx, "error occured when GetLoadBalancers(lightsail): %v", err)
 		return err
 	}
 	for _, l := range resultLB.LoadBalancers {
@@ -479,7 +479,7 @@ func scan(ctx context.Context, targets []*target, scanConcurrency int64) ([]*por
 	sem := semaphore.NewWeighted(scanConcurrency)
 	for _, t := range targets {
 		if err := sem.Acquire(ctx, 1); err != nil {
-			appLogger.Errorf("failed to acquire semaphore: %v", err)
+			appLogger.Errorf(ctx, "failed to acquire semaphore: %v", err)
 			return nmapResults, err
 		}
 		t := t
@@ -487,7 +487,7 @@ func scan(ctx context.Context, targets []*target, scanConcurrency int64) ([]*por
 			defer sem.Release(1)
 			select {
 			case <-errGroupCtx.Done():
-				appLogger.Debugf("scan cancel. target: %v", t.Target)
+				appLogger.Debugf(ctx, "scan cancel. target: %v", t.Target)
 				return nil
 			default:
 				results, err := portscan.Scan(t.Target, t.Protocol, t.FromPort, t.ToPort)
@@ -505,7 +505,7 @@ func scan(ctx context.Context, targets []*target, scanConcurrency int64) ([]*por
 		})
 	}
 	if err := eg.Wait(); err != nil {
-		appLogger.Errorf("failed to exec portscan: %v", err)
+		appLogger.Errorf(ctx, "failed to exec portscan: %v", err)
 		return nmapResults, err
 	}
 
