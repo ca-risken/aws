@@ -109,7 +109,7 @@ func main() {
 	consumer.Start(ctx,
 		mimosasqs.InitializeHandler(
 			mimosasqs.RetryableErrorHandler(
-				mimosasqs.StatusLoggingHandler(appLogger,
-					mimosasqs.TracingHandler(getFullServiceName(),
+				mimosasqs.TracingHandler(getFullServiceName(),
+					mimosasqs.StatusLoggingHandler(appLogger,
 						f.FinalizeHandler(handler))))))
 }
