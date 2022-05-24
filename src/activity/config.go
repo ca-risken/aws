@@ -28,16 +28,16 @@ func newConfigServiceClient(defaultRegion string) configServiceAPI {
 	}
 }
 
-func (c *configServiceClient) newSession(region, assumeRole, externalID string) (*configservice.ConfigService, error) {
+func (c *configServiceClient) newSession(ctx context.Context, region, assumeRole, externalID string) (*configservice.ConfigService, error) {
 	if region == "" {
 		region = c.defaultRegion
 	}
 	if assumeRole == "" {
-		return nil, errors.New("Required AWS AssumeRole")
+		return nil, errors.New("required AWS AssumeRole")
 	}
 	sess, err := session.NewSession()
 	if err != nil {
-		appLogger.Errorf("Failed to create session, err=%+v", err)
+		appLogger.Errorf(ctx, "Failed to create session, err=%+v", err)
 		return nil, err
 	}
 	var cred *credentials.Credentials
@@ -62,18 +62,18 @@ func (c *configServiceClient) newSession(region, assumeRole, externalID string) 
 }
 
 func (c *configServiceClient) listConfigHistory(ctx context.Context, req *activity.ListConfigHistoryRequest, role, externalID string) (*activity.ListConfigHistoryResponse, error) {
-	sess, err := c.newSession(req.Region, role, externalID)
+	sess, err := c.newSession(ctx, req.Region, role, externalID)
 	if err != nil {
 		return nil, err
 	}
-	out, err := sess.GetResourceConfigHistoryWithContext(ctx, generateGetResourceConfigHistoryInput(req))
+	out, err := sess.GetResourceConfigHistoryWithContext(ctx, generateGetResourceConfigHistoryInput(ctx, req))
 	if err != nil {
 		return nil, err
 	}
 	if out == nil {
 		return &activity.ListConfigHistoryResponse{}, nil
 	}
-	appLogger.Infof("Got: %d ConfigurationItems, RequestParam: %+v", len(out.ConfigurationItems), req)
+	appLogger.Infof(ctx, "Got: %d ConfigurationItems, RequestParam: %+v", len(out.ConfigurationItems), req)
 	if len(out.ConfigurationItems) == 0 {
 		return &activity.ListConfigHistoryResponse{
 			Configuration: []*activity.Configuration{},
@@ -112,7 +112,7 @@ func (c *configServiceClient) listConfigHistory(ctx context.Context, req *activi
 	}, nil
 }
 
-func generateGetResourceConfigHistoryInput(req *activity.ListConfigHistoryRequest) *configservice.GetResourceConfigHistoryInput {
+func generateGetResourceConfigHistoryInput(ctx context.Context, req *activity.ListConfigHistoryRequest) *configservice.GetResourceConfigHistoryInput {
 	param := &configservice.GetResourceConfigHistoryInput{
 		ResourceType: aws.String(req.ResourceType),
 		ResourceId:   aws.String(req.ResourceId),
@@ -130,9 +130,9 @@ func generateGetResourceConfigHistoryInput(req *activity.ListConfigHistoryReques
 		param.ChronologicalOrder = aws.String(req.ChronologicalOrder)
 	}
 	if !zero.IsZeroVal(req.StartingToken) {
-		param.NextToken = aws.String(decodeBase64(req.StartingToken))
+		param.NextToken = aws.String(decodeBase64(ctx, req.StartingToken))
 	}
-	appLogger.Infof("config param: %+v", param)
+	appLogger.Infof(ctx, "config param: %+v", param)
 	return param
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"reflect"
 	"testing"
 	"time"
@@ -141,7 +142,7 @@ func TestGenerateGetResourceConfigHistoryInput(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := generateGetResourceConfigHistoryInput(c.input)
+			got := generateGetResourceConfigHistoryInput(context.TODO(), c.input)
 			if !reflect.DeepEqual(c.want, got) {
 				t.Fatalf("Unexpected data: want=%+v, got=%+v", c.want, got)
 			}

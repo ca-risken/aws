@@ -3,25 +3,24 @@ module github.com/ca-risken/aws/src/guard-duty
 go 1.17
 
 require (
-	github.com/aws/aws-sdk-go v1.42.22
-	github.com/aws/aws-sdk-go-v2 v1.16.3
+	github.com/aws/aws-sdk-go-v2 v1.16.4
 	github.com/aws/aws-sdk-go-v2/config v1.15.4
 	github.com/aws/aws-sdk-go-v2/credentials v1.12.0
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.36.1
 	github.com/aws/aws-sdk-go-v2/service/guardduty v1.13.4
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.18.5
 	github.com/aws/aws-sdk-go-v2/service/sts v1.16.4
 	github.com/ca-risken/aws/pkg/common v0.0.0-20210907034232-c56f481434cd
 	github.com/ca-risken/aws/pkg/message v0.0.0-20210907034232-c56f481434cd
 	github.com/ca-risken/aws/proto/aws v0.0.0-20210907034232-c56f481434cd
-	github.com/ca-risken/common/pkg/logging v0.0.0-20220113015330-0e8462d52b5b
+	github.com/ca-risken/common/pkg/logging v0.0.0-20220524030432-e497432e632b
 	github.com/ca-risken/common/pkg/profiler v0.0.0-20220304031727-c94e2c463b27
-	github.com/ca-risken/common/pkg/sqs v0.0.0-20220426050416-a654045b9fa5
+	github.com/ca-risken/common/pkg/sqs v0.0.0-20220524030432-e497432e632b
 	github.com/ca-risken/common/pkg/tracer v0.0.0-20220426050416-a654045b9fa5
 	github.com/ca-risken/core/proto/alert v0.0.0-20211129081226-f2531e88f350
 	github.com/ca-risken/core/proto/finding v0.0.0-20220309052852-c058b4e5cb84
+	github.com/ca-risken/go-sqs-poller/worker/v5 v5.0.0-20220502103103-3ea0e54c7692
 	github.com/gassara-kys/envconfig v1.4.4
-	github.com/gassara-kys/go-sqs-poller/worker/v4 v4.0.0-20210215110542-0be358599a2f
-	github.com/vikyd/zero v0.0.0-20190921142904-0f738d0bc858
 	google.golang.org/grpc v1.45.0
 )
 
@@ -34,8 +33,8 @@ require (
 	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.4 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.10 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.4 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.11 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.5 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.11 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.11.4 // indirect
@@ -57,7 +56,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/tinylib/msgp v1.1.2 // indirect
 	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
-	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect
+	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect

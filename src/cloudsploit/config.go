@@ -16,16 +16,16 @@ import (
 
 func (c *CloudsploitConfig) generate(ctx context.Context, assumeRole, externalID string, awsID uint32, accountID string) error {
 	if assumeRole == "" {
-		return errors.New("Required AWS AssumeRole")
+		return errors.New("required AWS AssumeRole")
 	}
 	if externalID == "" {
-		return errors.New("Required AWS ExternalID")
+		return errors.New("required AWS ExternalID")
 	}
 	creds, err := getCredential(ctx, assumeRole, externalID, time.Duration(3600)*time.Second) // MaxSessionDuration(for API): min=3600, max=3600
 	if err != nil {
 		return err
 	}
-	c.ConfigPath, err = c.createConfigFile(creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, awsID, accountID)
+	c.ConfigPath, err = c.createConfigFile(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, awsID, accountID)
 	return err
 }
 
@@ -41,10 +41,10 @@ module.exports = {
 };
 `
 
-func (c *CloudsploitConfig) createConfigFile(accessKeyID, secretAccessKey, sessoinToken string, awsID uint32, accountID string) (string, error) {
+func (c *CloudsploitConfig) createConfigFile(ctx context.Context, accessKeyID, secretAccessKey, sessoinToken string, awsID uint32, accountID string) (string, error) {
 	now := time.Now().UnixNano()
 	file, err := os.Create(fmt.Sprintf("%v/%v_%v_%v_config.js", c.ConfigDir, awsID, accountID, now))
-	appLogger.Infof("Created config file. filename: %v", file.Name())
+	appLogger.Infof(ctx, "Created config file. filename: %v", file.Name())
 	if err != nil {
 		return "", err
 	}
@@ -54,7 +54,7 @@ func (c *CloudsploitConfig) createConfigFile(accessKeyID, secretAccessKey, sesso
 	config = strings.Replace(config, "SECRET_KEY", secretAccessKey, 1)
 	config = strings.Replace(config, "SESSION_TOKEN", sessoinToken, 1)
 	if _, err := file.Write(([]byte)(config)); err != nil {
-		appLogger.Errorf("Failed to write file, filename: %s", file.Name())
+		appLogger.Errorf(ctx, "Failed to write file, filename: %s", file.Name())
 	}
 	return file.Name(), nil
 }

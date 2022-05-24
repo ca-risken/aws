@@ -41,10 +41,10 @@ func newGuardDutyClient(ctx context.Context, region, assumeRole, externalID stri
 
 func (g *guardDutyClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string) error {
 	if assumeRole == "" {
-		return errors.New("Required AWS AssumeRole")
+		return errors.New("required AWS AssumeRole")
 	}
 	if externalID == "" {
-		return errors.New("Required AWS ExternalID")
+		return errors.New("required AWS ExternalID")
 	}
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
@@ -83,7 +83,7 @@ func (g *guardDutyClient) getGuardDuty(ctx context.Context, message *message.AWS
 	putData := []*guardDutyFinding{}
 	detecterIDs, err := g.listDetectors(ctx)
 	if err != nil {
-		appLogger.Errorf("GuardDuty.ListDetectors error: err=%+v", err)
+		appLogger.Errorf(ctx, "GuardDuty.ListDetectors error: err=%+v", err)
 		return nil, &[]string{}, err
 	}
 	if detecterIDs == nil || len(*detecterIDs) == 0 {
@@ -93,24 +93,24 @@ func (g *guardDutyClient) getGuardDuty(ctx context.Context, message *message.AWS
 		fmt.Printf("detecterId: %s\n", id)
 		findingIDs, err := g.listFindings(ctx, message.AccountID, id)
 		if err != nil {
-			appLogger.Warnf(
+			appLogger.Warnf(ctx,
 				"GuardDuty.ListDetectors error: detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)
 			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
 		}
 		if findingIDs == nil || len(*findingIDs) == 0 {
-			appLogger.Infof("No findings: accountID=%s", message.AccountID)
+			appLogger.Infof(ctx, "No findings: accountID=%s", message.AccountID)
 			continue
 		}
 		findings, err := g.getFindings(ctx, id, *findingIDs)
 		if err != nil {
-			appLogger.Warnf(
+			appLogger.Warnf(ctx,
 				"GuardDuty.GetFindings error:detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)
 			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
 		}
 		for _, data := range *findings {
 			buf, err := json.Marshal(data)
 			if err != nil {
-				appLogger.Errorf("Failed to json encoding error: err=%+v", err)
+				appLogger.Errorf(ctx, "Failed to json encoding error: err=%+v", err)
 				return nil, detecterIDs, err
 			}
 			var score float32
@@ -141,7 +141,7 @@ func (g *guardDutyClient) listAvailableRegion(ctx context.Context) (*[]ec2types.
 		return nil, err
 	}
 	if out == nil {
-		appLogger.Warn("Got no regions")
+		appLogger.Warn(ctx, "Got no regions")
 		return nil, nil
 	}
 	return &out.Regions, nil

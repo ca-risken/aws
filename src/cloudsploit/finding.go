@@ -79,7 +79,7 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 		recommendType := fmt.Sprintf("%s/%s", result.Category, result.Plugin)
 		r := getRecommend(result.Category, result.Plugin)
 		if r.Risk == "" && r.Recommendation == "" {
-			appLogger.Warnf("Failed to get recommendation, Unknown plugin=%s", recommendType)
+			appLogger.Warnf(ctx, "Failed to get recommendation, Unknown plugin=%s", recommendType)
 		} else {
 			recommend = &finding.RecommendForBatch{
 				Type:           recommendType,
@@ -102,19 +102,19 @@ func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 	if err = s.putFindingBatch(ctx, message.ProjectID, findingBatchParam); err != nil {
 		return err
 	}
-	appLogger.Infof("putFindings(%d) succeeded", len(*results))
+	appLogger.Infof(ctx, "putFindings(%d) succeeded", len(*results))
 	return nil
 }
 
 func (s *sqsHandler) putFindingBatch(ctx context.Context, projectID uint32, params []*finding.FindingBatchForUpsert) error {
-	appLogger.Infof("Putting findings(%d)...", len(params))
+	appLogger.Infof(ctx, "Putting findings(%d)...", len(params))
 	for idx := 0; idx < len(params); idx = idx + finding.PutFindingBatchMaxLength {
 		lastIdx := idx + finding.PutFindingBatchMaxLength
 		if lastIdx > len(params) {
 			lastIdx = len(params)
 		}
 		// request per API limits
-		appLogger.Debugf("Call PutFindingBatch API, (%d ~ %d / %d)", idx+1, lastIdx+1, len(params))
+		appLogger.Debugf(ctx, "Call PutFindingBatch API, (%d ~ %d / %d)", idx+1, lastIdx+1, len(params))
 		req := &finding.PutFindingBatchRequest{ProjectId: projectID, Finding: params[idx:lastIdx]}
 		if _, err := s.findingClient.PutFindingBatch(ctx, req); err != nil {
 			return err
@@ -124,14 +124,14 @@ func (s *sqsHandler) putFindingBatch(ctx context.Context, projectID uint32, para
 }
 
 func (s *sqsHandler) putResourceBatch(ctx context.Context, projectID uint32, params []*finding.ResourceBatchForUpsert) error {
-	appLogger.Infof("Putting resources(%d)...", len(params))
+	appLogger.Infof(ctx, "Putting resources(%d)...", len(params))
 	for idx := 0; idx < len(params); idx = idx + finding.PutResourceBatchMaxLength {
 		lastIdx := idx + finding.PutResourceBatchMaxLength
 		if lastIdx > len(params) {
 			lastIdx = len(params)
 		}
 		// request per API limits
-		appLogger.Debugf("Call PutResourceBatch API, (%d ~ %d / %d)", idx+1, lastIdx+1, len(params))
+		appLogger.Debugf(ctx, "Call PutResourceBatch API, (%d ~ %d / %d)", idx+1, lastIdx+1, len(params))
 		req := &finding.PutResourceBatchRequest{ProjectId: projectID, Resource: params[idx:lastIdx]}
 		if _, err := s.findingClient.PutResourceBatch(ctx, req); err != nil {
 			return err
@@ -210,9 +210,9 @@ func (s *sqsHandler) getCloudSploitMaxScore(ctx context.Context, msg *message.AW
 		DataSource: message.CloudsploitDataSource,
 	})
 	if err != nil || resp.DataSource == nil || len(resp.DataSource) < 1 {
-		appLogger.Errorf("Failed to ListDataSource. error: %+v", err)
+		appLogger.Errorf(ctx, "Failed to ListDataSource. error: %+v", err)
 		return 0, err
 	}
-	appLogger.Debugf("Got datasource: %+v", resp.DataSource[0])
+	appLogger.Debugf(ctx, "Got datasource: %+v", resp.DataSource[0])
 	return resp.DataSource[0].MaxScore, nil
 }

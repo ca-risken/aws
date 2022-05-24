@@ -15,7 +15,7 @@ func newFindingClient(svcAddr string) finding.FindingServiceClient {
 	ctx := context.Background()
 	conn, err := getGRPCConn(ctx, svcAddr)
 	if err != nil {
-		appLogger.Fatalf("Faild to get GRPC connection: err=%+v", err)
+		appLogger.Fatalf(ctx, "Faild to get GRPC connection: err=%+v", err)
 	}
 	return finding.NewFindingServiceClient(conn)
 }
@@ -24,7 +24,7 @@ func newAlertClient(svcAddr string) alert.AlertServiceClient {
 	ctx := context.Background()
 	conn, err := getGRPCConn(ctx, svcAddr)
 	if err != nil {
-		appLogger.Fatalf("Faild to get GRPC connection: err=%+v", err)
+		appLogger.Fatalf(ctx, "Faild to get GRPC connection: err=%+v", err)
 	}
 	return alert.NewAlertServiceClient(conn)
 }
@@ -33,7 +33,7 @@ func newAWSClient(svcAddr string) aws.AWSServiceClient {
 	ctx := context.Background()
 	conn, err := getGRPCConn(ctx, svcAddr)
 	if err != nil {
-		appLogger.Fatalf("Faild to get GRPC connection: err=%+v", err)
+		appLogger.Fatalf(ctx, "Faild to get GRPC connection: err=%+v", err)
 	}
 	return aws.NewAWSServiceClient(conn)
 }

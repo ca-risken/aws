@@ -41,7 +41,6 @@ func convertPolicyDocument(doc *string) (*policyDocument, error) {
 	if err != nil {
 		return nil, err
 	}
-	appLogger.Debugf("Got a policy document decoded: %s", decodedDoc)
 	var pdRaw policyDocumentRaw
 	if err := json.Unmarshal([]byte(decodedDoc), &pdRaw); err != nil {
 		var pdSingle policyDocumentRawWithSingleStatement

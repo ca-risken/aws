@@ -41,10 +41,10 @@ func newAccessAnalyzerClient(ctx context.Context, region, assumeRole, externalID
 
 func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string) error {
 	if assumeRole == "" {
-		return errors.New("Required AWS AssumeRole")
+		return errors.New("required AWS AssumeRole")
 	}
 	if externalID == "" {
-		return errors.New("Required AWS ExternalID")
+		return errors.New("required AWS ExternalID")
 	}
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
@@ -71,27 +71,27 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *messa
 	putData := []*finding.FindingForUpsert{}
 	analyzerArns, err := a.listAnalyzers(ctx)
 	if err != nil {
-		appLogger.Errorf("AccessAnalyzer.ListAnalyzers error: err=%+v", err)
+		appLogger.Errorf(ctx, "AccessAnalyzer.ListAnalyzers error: err=%+v", err)
 		return nil, &[]string{}, err
 	}
 
 	for _, arn := range *analyzerArns {
-		appLogger.Infof("Detected analyzer: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
+		appLogger.Infof(ctx, "Detected analyzer: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
 		findings, err := a.listFindings(ctx, msg.AccountID, arn)
 		if err != nil {
-			appLogger.Warnf(
+			appLogger.Warnf(ctx,
 				"AccessAnalyzer.ListFindings error: analyzerArn=%s, accountID=%s, err=%+v", arn, msg.AccountID, err)
 			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
 		}
-		appLogger.Debugf("[Debug]Got findings, %+v", findings)
+		appLogger.Debugf(ctx, "[Debug]Got findings, %+v", findings)
 		if findings == nil || len(*findings) == 0 {
-			appLogger.Infof("No findings: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
+			appLogger.Infof(ctx, "No findings: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
 			continue
 		}
 		for _, data := range *findings {
 			buf, err := json.Marshal(data)
 			if err != nil {
-				appLogger.Errorf("Failed to json encoding error: err=%+v", err)
+				appLogger.Errorf(ctx, "Failed to json encoding error: err=%+v", err)
 				return nil, &[]string{}, err
 			}
 			isPublic := false
@@ -119,7 +119,7 @@ func (a *accessAnalyzerClient) listAvailableRegion(ctx context.Context) (*[]ec2t
 		return nil, err
 	}
 	if out == nil {
-		appLogger.Warn("Got no regions")
+		appLogger.Warn(ctx, "Got no regions")
 		return nil, nil
 	}
 	return &out.Regions, nil

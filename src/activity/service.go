@@ -83,10 +83,10 @@ func convertNilToString(v *string) string {
 func encodeBase64(v string) string {
 	return base64.URLEncoding.EncodeToString([]byte(v))
 }
-func decodeBase64(v string) string {
+func decodeBase64(ctx context.Context, v string) string {
 	decoded, err := base64.URLEncoding.DecodeString(v)
 	if err != nil {
-		appLogger.Warnf("Failed to base64 decode, value=%v", v)
+		appLogger.Warnf(ctx, "Failed to base64 decode, value=%v", v)
 		return ""
 	}
 	return string(decoded)

@@ -7,9 +7,9 @@ require (
 	github.com/ca-risken/aws v0.0.0-20210907034232-c56f481434cd
 	github.com/ca-risken/aws/pkg/message v0.0.0-20210907034232-c56f481434cd
 	github.com/ca-risken/aws/proto/aws v0.0.0-20210907034232-c56f481434cd
-	github.com/ca-risken/common/pkg/logging v0.0.0-20220113015330-0e8462d52b5b
+	github.com/ca-risken/common/pkg/logging v0.0.0-20220524030432-e497432e632b
 	github.com/ca-risken/common/pkg/profiler v0.0.0-20220304031727-c94e2c463b27
-	github.com/ca-risken/common/pkg/rpc v0.0.0-20220113015330-0e8462d52b5b
+	github.com/ca-risken/common/pkg/rpc v0.0.0-20220524030432-e497432e632b
 	github.com/ca-risken/common/pkg/tracer v0.0.0-20220426043806-f588088c256a
 	github.com/gassara-kys/envconfig v1.4.4
 	github.com/golang/protobuf v1.5.2
@@ -48,7 +48,7 @@ require (
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/tinylib/msgp v1.1.2 // indirect
 	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
-	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect
+	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
