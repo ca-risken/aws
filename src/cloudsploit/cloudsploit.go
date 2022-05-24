@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -19,7 +20,7 @@ type CloudsploitConfig struct {
 	MaxMemSizeMB   int
 }
 
-func (c *CloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) {
+func (c *CloudsploitConfig) run(ctx context.Context, accountID string) (*[]cloudSploitResult, error) {
 	now := time.Now().UnixNano()
 	if c.MaxMemSizeMB > 0 {
 		os.Setenv("NODE_OPTIONS", fmt.Sprintf("--max-old-space-size=%d", c.MaxMemSizeMB))
@@ -35,7 +36,7 @@ func (c *CloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) 
 	err := cmd.Run()
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed exec cloudsploit. error: %+v, detail: %s", err, stderr.String())
+		return nil, fmt.Errorf("failed exec cloudsploit. error: %+v, detail: %s", err, stderr.String())
 	}
 
 	bytes, err := readFile(filePath)
@@ -44,18 +45,18 @@ func (c *CloudsploitConfig) run(accountID string) (*[]cloudSploitResult, error) 
 	}
 	var results []cloudSploitResult
 	if err := json.Unmarshal(bytes, &results); err != nil {
-		appLogger.Errorf("Failed to parse scan results. error: %v", err)
+		appLogger.Errorf(ctx, "Failed to parse scan results. error: %v", err)
 		return nil, err
 	}
 	// delete result
 	err = deleteFile(filePath)
 	if err != nil {
-		appLogger.Warnf("Failed to delete result file. error: %v", err)
+		appLogger.Warnf(ctx, "Failed to delete result file. error: %v", err)
 	}
 	// delete config
 	err = deleteFile(c.ConfigPath)
 	if err != nil {
-		appLogger.Warnf("Failed to delete config file. error: %v", err)
+		appLogger.Warnf(ctx, "Failed to delete config file. error: %v", err)
 	}
 
 	return &results, nil

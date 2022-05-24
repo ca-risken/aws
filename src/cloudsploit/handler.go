@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/ca-risken/aws/pkg/common"
 	"github.com/ca-risken/aws/pkg/message"
 	awsClient "github.com/ca-risken/aws/proto/aws"
@@ -28,26 +28,26 @@ type sqsHandler struct {
 	maxMemSizeMB   int
 }
 
-func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) error {
-	msgBody := aws.StringValue(sqsMsg.Body)
-	appLogger.Infof("got message. message: %v", msgBody)
+func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) error {
+	msgBody := aws.ToString(sqsMsg.Body)
+	appLogger.Infof(ctx, "got message. message: %v", msgBody)
 	// Parse message
 	msg, err := message.ParseMessage(msgBody)
 	if err != nil {
-		appLogger.Errorf("Invalid message. message: %v, error: %v", msg, err)
+		appLogger.Errorf(ctx, "Invalid message. message: %v, error: %v", msg, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
 	requestID, err := appLogger.GenerateRequestID(fmt.Sprint(msg.ProjectID))
 	if err != nil {
-		appLogger.Warnf("Failed to generate requestID: err=%+v", err)
+		appLogger.Warnf(ctx, "Failed to generate requestID: err=%+v", err)
 		requestID = fmt.Sprint(msg.ProjectID)
 	}
-	appLogger.Infof("start Scan, RequestID=%s", requestID)
+	appLogger.Infof(ctx, "start Scan, RequestID=%s", requestID)
 
 	status := common.InitScanStatus(msg)
 	// check AccountID matches Arn for Scan
 	if !common.IsMatchAccountIDArn(msg.AccountID, msg.AssumeRoleArn) {
-		appLogger.Warnf("AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", msg.AccountID, msg.AssumeRoleArn)
+		appLogger.Warnf(ctx, "AccountID doesn't match AssumeRoleArn, accountID: %v, ARN: %v", msg.AccountID, msg.AssumeRoleArn)
 		return s.handleErrorWithUpdateStatus(ctx, &status, fmt.Errorf("AssumeRoleArn for CloudSploit must be created in AWS AccountID: %v", msg.AccountID))
 	}
 
@@ -60,20 +60,20 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 	}
 	err = cloudsploitConf.generate(ctx, msg.AssumeRoleArn, msg.ExternalID, msg.AWSID, msg.AccountID)
 	if err != nil {
-		appLogger.Errorf("Error occured when configure: %v, error: %v", msg, err)
+		appLogger.Errorf(ctx, "Error occured when configure: %v, error: %v", msg, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
 
 	// Run cloudsploit
 	tspan, _ := tracer.StartSpanFromContext(ctx, "runCloudSploit")
-	appLogger.Infof("start cloudsploit scan, RequestID=%s", requestID)
-	cloudsploitResult, err := cloudsploitConf.run(msg.AccountID)
+	appLogger.Infof(ctx, "start cloudsploit scan, RequestID=%s", requestID)
+	cloudsploitResult, err := cloudsploitConf.run(ctx, msg.AccountID)
 	tspan.Finish(tracer.WithError(err))
 	if err != nil {
-		appLogger.Errorf("Failed to exec cloudsploit, error: %v", err)
+		appLogger.Errorf(ctx, "Failed to exec cloudsploit, error: %v", err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
-	appLogger.Infof("end cloudsploit scan, RequestID=%s", requestID)
+	appLogger.Infof(ctx, "end cloudsploit scan, RequestID=%s", requestID)
 
 	// Clear finding score
 	if _, err := s.findingClient.ClearScore(ctx, &finding.ClearScoreRequest{
@@ -81,29 +81,29 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 		ProjectId:  msg.ProjectID,
 		Tag:        []string{msg.AccountID},
 	}); err != nil {
-		appLogger.Errorf("Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
+		appLogger.Errorf(ctx, "Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 
 	// Put Finding and Tag Finding
 	if err := s.putFindings(ctx, cloudsploitResult, msg); err != nil {
-		appLogger.Errorf("Faild to put findings. AWSID: %v, error: %v", msg.AWSID, err)
+		appLogger.Errorf(ctx, "Faild to put findings. AWSID: %v, error: %v", msg.AWSID, err)
 		return s.handleErrorWithUpdateStatus(ctx, &status, err)
 	}
 
 	// Update status
 	if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
-		appLogger.Errorf("Faild to update scan status. AWSID: %v, error: %v", msg.AWSID, err)
+		appLogger.Errorf(ctx, "Faild to update scan status. AWSID: %v, error: %v", msg.AWSID, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
-	appLogger.Infof("end Scan, RequestID=%s", requestID)
+	appLogger.Infof(ctx, "end Scan, RequestID=%s", requestID)
 
 	if msg.ScanOnly {
 		return nil
 	}
 	// Call AnalyzeAlert
 	if err := s.CallAnalyzeAlert(ctx, msg.ProjectID); err != nil {
-		appLogger.Notifyf(logging.ErrorLevel, "Failed to analyzeAlert, project_id=%d, err=%+v", msg.ProjectID, err)
+		appLogger.Notifyf(ctx, logging.ErrorLevel, "Failed to analyzeAlert, project_id=%d, err=%+v", msg.ProjectID, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
 	return nil
@@ -111,7 +111,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqs.Message) err
 
 func (s *sqsHandler) handleErrorWithUpdateStatus(ctx context.Context, scanStatus *awsClient.AttachDataSourceRequest, err error) error {
 	if updateErr := s.updateScanStatusError(ctx, scanStatus, err.Error()); updateErr != nil {
-		appLogger.Warnf("Failed to update scan status error: err=%+v", updateErr)
+		appLogger.Warnf(ctx, "Failed to update scan status error: err=%+v", updateErr)
 	}
 	return mimosasqs.WrapNonRetryable(err)
 }
@@ -136,7 +136,7 @@ func (s *sqsHandler) attachAWSStatus(ctx context.Context, status *awsClient.Atta
 	if err != nil {
 		return err
 	}
-	appLogger.Infof("Success to update AWS status, response=%+v", resp)
+	appLogger.Infof(ctx, "Success to update AWS status, response=%+v", resp)
 	return nil
 }
 
@@ -145,6 +145,6 @@ func (s *sqsHandler) CallAnalyzeAlert(ctx context.Context, projectID uint32) err
 	if err != nil {
 		return err
 	}
-	appLogger.Info("Success to analyze alert.")
+	appLogger.Info(ctx, "Success to analyze alert.")
 	return nil
 }
