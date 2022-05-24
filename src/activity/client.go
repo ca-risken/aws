@@ -14,7 +14,7 @@ func newAWSClient(svcAddr string) aws.AWSServiceClient {
 	ctx := context.Background()
 	conn, err := getGRPCConn(ctx, svcAddr)
 	if err != nil {
-		appLogger.Fatalf("Faild to get GRPC connection: err=%+v", err)
+		appLogger.Fatalf(ctx, "Faild to get GRPC connection: err=%+v", err)
 	}
 	return aws.NewAWSServiceClient(conn)
 }
@@ -26,7 +26,7 @@ func getGRPCConn(ctx context.Context, addr string) (*grpc.ClientConn, error) {
 		grpc.WithUnaryInterceptor(grpctrace.UnaryClientInterceptor()),
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		appLogger.Fatalf("Failed to connect backend gRPC server, addr=%s, err=%+v", addr, err)
+		appLogger.Fatalf(ctx, "Failed to connect backend gRPC server, addr=%s, err=%+v", addr, err)
 		return nil, err
 	}
 	return conn, nil

@@ -28,16 +28,16 @@ func newCloudTrailClient(defaultRegion string) cloudTrailAPI {
 	}
 }
 
-func (c *cloudTrailClient) newSession(region, assumeRole, externalID string) (*cloudtrail.CloudTrail, error) {
+func (c *cloudTrailClient) newSession(ctx context.Context, region, assumeRole, externalID string) (*cloudtrail.CloudTrail, error) {
 	if region == "" {
 		region = c.defaultRegion
 	}
 	if assumeRole == "" {
-		return nil, errors.New("Required AWS AssumeRole")
+		return nil, errors.New("required AWS AssumeRole")
 	}
 	sess, err := session.NewSession()
 	if err != nil {
-		appLogger.Errorf("Failed to create session, err=%+v", err)
+		appLogger.Errorf(ctx, "Failed to create session, err=%+v", err)
 		return nil, err
 	}
 	var cred *credentials.Credentials
@@ -62,18 +62,18 @@ func (c *cloudTrailClient) newSession(region, assumeRole, externalID string) (*c
 }
 
 func (c *cloudTrailClient) lookupEvents(ctx context.Context, req *activity.ListCloudTrailRequest, role, externalID string) (*activity.ListCloudTrailResponse, error) {
-	sess, err := c.newSession(req.Region, role, externalID)
+	sess, err := c.newSession(ctx, req.Region, role, externalID)
 	if err != nil {
 		return nil, err
 	}
-	out, err := sess.LookupEventsWithContext(ctx, generateLookupEventInput(req))
+	out, err := sess.LookupEventsWithContext(ctx, generateLookupEventInput(ctx, req))
 	if err != nil {
 		return nil, err
 	}
 	if out == nil {
 		return &activity.ListCloudTrailResponse{}, nil
 	}
-	appLogger.Infof("Got: %+v events, RequestParam: %+v", len(out.Events), req)
+	appLogger.Infof(ctx, "Got: %+v events, RequestParam: %+v", len(out.Events), req)
 	events := []*activity.CloudTrail{}
 	for _, e := range out.Events {
 		events = append(events, &activity.CloudTrail{
@@ -98,7 +98,7 @@ func (c *cloudTrailClient) lookupEvents(ctx context.Context, req *activity.ListC
 	}, nil
 }
 
-func generateLookupEventInput(req *activity.ListCloudTrailRequest) *cloudtrail.LookupEventsInput {
+func generateLookupEventInput(ctx context.Context, req *activity.ListCloudTrailRequest) *cloudtrail.LookupEventsInput {
 	lookupInput := &cloudtrail.LookupEventsInput{
 		EndTime:    aws.Time(time.Now()),
 		StartTime:  aws.Time(time.Now().AddDate(0, 0, -90)),
@@ -154,7 +154,7 @@ func generateLookupEventInput(req *activity.ListCloudTrailRequest) *cloudtrail.L
 	}
 	lookupInput.LookupAttributes = lookupAttributes
 	if !zero.IsZeroVal(req.NextToken) {
-		lookupInput.NextToken = aws.String(decodeBase64(req.NextToken))
+		lookupInput.NextToken = aws.String(decodeBase64(ctx, req.NextToken))
 	}
 	return lookupInput
 }
