@@ -281,7 +281,11 @@ func scoreAdminUser(user *iamUser) float32 {
 	if !isAdmin {
 		return 0.3
 	}
-	if isAdmin && user.EnabledPermissionBoundory {
+	enabledMFA := user.EnabledPhysicalMFA || user.EnabledVirtualMFA
+	if len(user.ActiveAccessKeyID) == 0 && enabledMFA {
+		return 0.5
+	}
+	if user.EnabledPermissionBoundory {
 		return 0.7
 	}
 	return 0.9

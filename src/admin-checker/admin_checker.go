@@ -65,6 +65,8 @@ type iamUser struct {
 	UserArn                   string                `json:"user_arn"`
 	UserName                  string                `json:"user_name"`
 	ActiveAccessKeyID         []string              `json:"active_access_key_id"`
+	EnabledPhysicalMFA        bool                  `json:"enabled_physical_mfa"`
+	EnabledVirtualMFA         bool                  `json:"enabled_virtual_mfa"`
 	EnabledPermissionBoundory bool                  `json:"enabled_permission_boundory"`
 	PermissionBoundoryName    string                `json:"permission_boundory_name"`
 	IsUserAdmin               bool                  `json:"is_user_admin"`
@@ -106,6 +108,14 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 		if err != nil {
 			return nil, err
 		}
+		enabledPhysicalMFA, err := a.enabledPhysicalMFA(ctx, user.UserName)
+		if err != nil {
+			return nil, err
+		}
+		enabledVirtualMFA, err := a.enabledVirtualMFA(ctx, *user.Arn)
+		if err != nil {
+			return nil, err
+		}
 		boundory, err := a.getEnabledPermissionBoundory(ctx, user.UserName)
 		if err != nil {
 			return nil, err
@@ -122,6 +132,8 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 			UserArn:                   *user.Arn,
 			UserName:                  *user.UserName,
 			ActiveAccessKeyID:         *accessKeys,
+			EnabledPhysicalMFA:        enabledPhysicalMFA,
+			EnabledVirtualMFA:         enabledVirtualMFA,
 			EnabledPermissionBoundory: boundory != "",
 			PermissionBoundoryName:    boundory,
 			IsUserAdmin:               len(*userAdminPolicy) > 0,
@@ -226,6 +238,31 @@ func (a *adminCheckerClient) listActiveAccessKeyID(ctx context.Context, userName
 		}
 	}
 	return &accessKeyIDs, err
+}
+
+func (a *adminCheckerClient) enabledPhysicalMFA(ctx context.Context, userName *string) (bool, error) {
+	result, err := a.Svc.ListMFADevices(ctx, &iam.ListMFADevicesInput{
+		UserName: userName,
+	})
+	if err != nil {
+		return false, err
+	}
+	return len(result.MFADevices) > 0, err
+}
+
+func (a *adminCheckerClient) enabledVirtualMFA(ctx context.Context, userARN string) (bool, error) {
+	result, err := a.Svc.ListVirtualMFADevices(ctx, &iam.ListVirtualMFADevicesInput{
+		AssignmentStatus: types.AssignmentStatusTypeAssigned,
+	})
+	if err != nil {
+		return false, err
+	}
+	for _, device := range result.VirtualMFADevices {
+		if device.User != nil && *device.User.Arn == userARN {
+			return true, nil
+		}
+	}
+	return false, err
 }
 
 // ※ Permission Boundoryが有効かどうかだけ見ます（内容までは見ない）
