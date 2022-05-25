@@ -114,7 +114,7 @@ const (
 
 func (s *sqsHandler) putUserFindings(ctx context.Context, msg *message.AWSQueueMessage, userFindings *[]iamUser) error {
 	for _, user := range *userFindings {
-		appLogger.Infof(ctx, "Detect IAM user: %+v", user)
+		appLogger.Debugf(ctx, "Detect IAM user: %+v", user)
 		buf, err := json.Marshal(user)
 		if err != nil {
 			appLogger.Errorf(ctx, "Failed to marshal user data, userArn=%s, err=%+v", user.UserArn, err)
@@ -153,7 +153,7 @@ func (s *sqsHandler) putUserFindings(ctx context.Context, msg *message.AWSQueueM
 
 func (s *sqsHandler) putRoleFindings(ctx context.Context, msg *message.AWSQueueMessage, roleFindings *[]iamRole) error {
 	for _, role := range *roleFindings {
-		appLogger.Infof(ctx, "Detect IAM role: %+v", role)
+		appLogger.Debugf(ctx, "Detect IAM role: %+v", role)
 		buf, err := json.Marshal(role)
 		if err != nil {
 			appLogger.Errorf(ctx, "Failed to marshal user data, userArn=%s, err=%+v", role.RoleArn, err)
