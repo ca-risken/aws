@@ -224,6 +224,7 @@ func convertAWS(data *model.AWS) *aws.AWS {
 }
 
 func (a *awsService) InvokeScanAll(ctx context.Context, req *aws.InvokeScanAllRequest) (*empty.Empty, error) {
+	appLogger.Infof(ctx, "Start InvokeScanAll, param: %+v", req)
 	list, err := a.repository.ListDataSourceByAWSDataSourceID(ctx, req.AwsDataSourceId)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -255,6 +256,7 @@ func (a *awsService) InvokeScanAll(ctx context.Context, req *aws.InvokeScanAllRe
 		// TODO delete jitter
 		time.Sleep(time.Millisecond * 100) // jitter
 	}
+	appLogger.Info(ctx, "End InvokeScanAll")
 	return &empty.Empty{}, nil
 }
 
