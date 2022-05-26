@@ -253,8 +253,6 @@ func (a *awsService) InvokeScanAll(ctx context.Context, req *aws.InvokeScanAllRe
 				dataSource.ProjectID, dataSource.AWSID, dataSource.AWSDataSourceID, err)
 			return nil, err
 		}
-		// TODO delete jitter
-		time.Sleep(time.Millisecond * 100) // jitter
 	}
 	appLogger.Info(ctx, "End InvokeScanAll")
 	return &empty.Empty{}, nil
