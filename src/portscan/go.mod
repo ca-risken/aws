@@ -19,11 +19,11 @@ require (
 	github.com/ca-risken/common/pkg/logging v0.0.0-20220524030432-e497432e632b
 	github.com/ca-risken/common/pkg/portscan v0.0.0-20211124090848-375c75e97506
 	github.com/ca-risken/common/pkg/profiler v0.0.0-20220304031727-c94e2c463b27
-	github.com/ca-risken/common/pkg/sqs v0.0.0-20220524030432-e497432e632b
+	github.com/ca-risken/common/pkg/sqs v0.0.0-20220525094706-413e91572a52
 	github.com/ca-risken/common/pkg/tracer v0.0.0-20220426050416-a654045b9fa5
 	github.com/ca-risken/core/proto/alert v0.0.0-20211129081226-f2531e88f350
 	github.com/ca-risken/core/proto/finding v0.0.0-20220420065103-ec7428a46fe5
-	github.com/ca-risken/go-sqs-poller/worker/v5 v5.0.0-20220502103103-3ea0e54c7692
+	github.com/ca-risken/go-sqs-poller/worker/v5 v5.0.0-20220525093235-9148d33b6aee
 	github.com/gassara-kys/envconfig v1.4.4
 	github.com/vikyd/zero v0.0.0-20190921142904-0f738d0bc858
 	golang.org/x/net v0.0.0-20211020060615-d418f374d309

@@ -14,11 +14,11 @@ require (
 	github.com/ca-risken/aws/proto/aws v0.0.0-20210907034232-c56f481434cd
 	github.com/ca-risken/common/pkg/logging v0.0.0-20220524030432-e497432e632b
 	github.com/ca-risken/common/pkg/profiler v0.0.0-20220304031727-c94e2c463b27
-	github.com/ca-risken/common/pkg/sqs v0.0.0-20220524030432-e497432e632b
+	github.com/ca-risken/common/pkg/sqs v0.0.0-20220525094706-413e91572a52
 	github.com/ca-risken/common/pkg/tracer v0.0.0-20220426043806-f588088c256a
 	github.com/ca-risken/core/proto/alert v0.0.0-20211129081226-f2531e88f350
 	github.com/ca-risken/core/proto/finding v0.0.0-20220309052852-c058b4e5cb84
-	github.com/ca-risken/go-sqs-poller/worker/v5 v5.0.0-20220502103103-3ea0e54c7692
+	github.com/ca-risken/go-sqs-poller/worker/v5 v5.0.0-20220525093235-9148d33b6aee
 	github.com/gassara-kys/envconfig v1.4.4
 	google.golang.org/grpc v1.45.0
 )
