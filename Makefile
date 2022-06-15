@@ -107,7 +107,6 @@ go-test: $(TEST_TARGETS) proto-test pkg-test
 proto-test:
 	cd proto/aws && GO111MODULE=on go test ./...
 pkg-test:
-	cd pkg/message && GO111MODULE=on go test ./...
 	cd pkg/common  && GO111MODULE=on go test ./...
 
 .PHONY: go-mod-update
@@ -164,7 +163,5 @@ proto-lint:
 	sh hack/golinter.sh proto/aws
 pkg-lint:
 	sh hack/golinter.sh pkg/common
-	sh hack/golinter.sh pkg/message
-	sh hack/golinter.sh pkg/model
 
 FAKE:
