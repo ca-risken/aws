@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ca-risken/aws/pkg/message"
-	"github.com/ca-risken/aws/proto/aws"
+	"github.com/ca-risken/datasource-api/proto/aws"
 )
 
 // InitScanStatus return init aws.AttachDataSourceRequest data
