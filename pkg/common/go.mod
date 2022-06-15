@@ -2,10 +2,7 @@ module github.com/ca-risken/aws/pkg/common
 
 go 1.17
 
-require (
-	github.com/ca-risken/aws/pkg/message v0.0.0-20210907025819-7ab4c5b39a8e
-	github.com/ca-risken/datasource-api v0.0.0-20220615043958-794d01b2e367
-)
+require github.com/ca-risken/datasource-api v0.0.0-20220615043958-794d01b2e367
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect

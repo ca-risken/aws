@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ca-risken/aws/pkg/message"
+	"github.com/ca-risken/datasource-api/pkg/message"
 	"github.com/ca-risken/datasource-api/proto/aws"
 )
 
