@@ -1,4 +1,4 @@
-TARGETS = aws access-analyzer activity admin-checker cloudsploit guard-duty portscan
+TARGETS = access-analyzer activity admin-checker cloudsploit guard-duty portscan
 BUILD_TARGETS = $(TARGETS:=.build)
 BUILD_CI_TARGETS = $(TARGETS:=.build-ci)
 IMAGE_PUSH_TARGETS = $(TARGETS:=.push-image)
@@ -35,31 +35,15 @@ clean:
 fmt: proto/**/*.proto
 	clang-format -i proto/**/*.proto
 
-.PHONY: proto-without-validate
-proto-without-validate: fmt
-	for svc in "aws"; do \
-		protoc \
-			--proto_path=proto \
-			--error_format=gcc \
-			--go_out=plugins=grpc,paths=source_relative:proto \
-			proto/$$svc/*.proto; \
-	done
-
-# build with protoc-gen-validate``
-.PHONY: proto-validate
-proto-validate: fmt
-	for svc in "activity"; do \
-		protoc \
-			--proto_path=proto \
-			--error_format=gcc \
-			-I $(shell go env GOPATH)/pkg/mod/github.com/envoyproxy/protoc-gen-validate@v0.6.1 \
-			--go_out=plugins=grpc,paths=source_relative:proto \
-			--validate_out="lang=go,paths=source_relative:proto" \
-			proto/$$svc/*.proto; \
-	done
-
 .PHONY: proto
-proto : proto-without-validate proto-validate
+proto: fmt
+	protoc \
+		--proto_path=proto \
+		--error_format=gcc \
+		-I $(shell go env GOPATH)/pkg/mod/github.com/envoyproxy/protoc-gen-validate@v0.6.1 \
+		--go_out=plugins=grpc,paths=source_relative:proto \
+		--validate_out="lang=go,paths=source_relative:proto" \
+		proto/activity/*.proto; \
 
 .PHONY: build
 build: $(BUILD_TARGETS)
@@ -100,20 +84,15 @@ push-manifest: $(MANIFEST_PUSH_TARGETS)
 	docker manifest push $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(MANIFEST_TAG)
 	docker manifest inspect $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(MANIFEST_TAG)
 
-.PHONY: go-test proto-test pkg-test
-go-test: $(TEST_TARGETS) proto-test pkg-test
+.PHONY: go-test pkg-test
+go-test: $(TEST_TARGETS) pkg-test
 %.go-test: FAKE
 	cd src/$(*) && GO111MODULE=on go test ./...
-proto-test:
-	cd proto/aws && GO111MODULE=on go test ./...
 pkg-test:
 	cd pkg/common  && GO111MODULE=on go test ./...
 
 .PHONY: go-mod-update
 go-mod-update:
-	cd src/aws \
-		&& go get -u \
-			github.com/ca-risken/aws/...
 	cd src/guard-duty \
 		&& go get -u \
 			github.com/ca-risken/core/... \
@@ -142,11 +121,9 @@ go-mod-update:
 
 .PHONY: go-mod-tidy
 go-mod-tidy:
-	cd proto/aws           && go mod tidy
 	cd pkg/model           && go mod tidy
 	cd pkg/message         && go mod tidy
 	cd pkg/common          && go mod tidy
-	cd src/aws             && go mod tidy
 	cd src/guard-duty      && go mod tidy
 	cd src/access-analyzer && go mod tidy
 	cd src/admin-checker   && go mod tidy
@@ -160,7 +137,6 @@ lint: $(LINT_TARGETS) proto-lint pkg-lint
 	sh hack/golinter.sh src/$(*)
 proto-lint:
 	sh hack/golinter.sh proto/activity
-	sh hack/golinter.sh proto/aws
 pkg-lint:
 	sh hack/golinter.sh pkg/common
 
