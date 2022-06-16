@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/common/pkg/profiler"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	"github.com/ca-risken/common/pkg/tracer"
+	"github.com/ca-risken/datasource-api/pkg/message"
 	"github.com/gassara-kys/envconfig"
 )
 
@@ -28,23 +28,21 @@ type AppConfig struct {
 	TraceDebug      bool     `split_words:"true" default:"false"`
 
 	// grpc
-	CoreSvcAddr string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
+	CoreSvcAddr          string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
+	DataSourceAPISvcAddr string `required:"true" split_words:"true" default:"datasource-api.core.svc.cluster.local:8081"`
 
 	// aws
 	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
-
-	// accessAnalyzer
-	AWSSvcAddr string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
 
 	// sqs
 	Debug string `default:"false"`
 
 	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://queue.middleware.svc.cluster.local:9324"`
 
-	AccessAnalyzerQueueName string `split_words:"true" default:"aws-accessanalyzer"`
-	AccessAnalyzerQueueURL  string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-accessanalyzer"`
-	MaxNumberOfMessage      int32  `split_words:"true" default:"10"`
-	WaitTimeSecond          int32  `split_words:"true" default:"20"`
+	AWSAccessAnalyzerQueueName string `split_words:"true" default:"aws-accessanalyzer"`
+	AWSAccessAnalyzerQueueURL  string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-accessanalyzer"`
+	MaxNumberOfMessage         int32  `split_words:"true" default:"10"`
+	WaitTimeSecond             int32  `split_words:"true" default:"20"`
 }
 
 func main() {
@@ -88,20 +86,20 @@ func main() {
 	}
 	handler.findingClient = newFindingClient(conf.CoreSvcAddr)
 	handler.alertClient = newAlertClient(conf.CoreSvcAddr)
-	handler.awsClient = newAWSClient(conf.AWSSvcAddr)
-	f, err := mimosasqs.NewFinalizer(message.AccessAnalyzerDataSource, settingURL, conf.CoreSvcAddr, nil)
+	handler.awsClient = newAWSClient(conf.DataSourceAPISvcAddr)
+	f, err := mimosasqs.NewFinalizer(message.AWSAccessAnalyzerDataSource, settingURL, conf.CoreSvcAddr, nil)
 	if err != nil {
 		appLogger.Fatalf(ctx, "Failed to create Finalizer, err=%+v", err)
 	}
 
 	sqsConf := &SQSConfig{
-		Debug:                   conf.Debug,
-		AWSRegion:               conf.AWSRegion,
-		SQSEndpoint:             conf.SQSEndpoint,
-		AccessAnalyzerQueueName: conf.AccessAnalyzerQueueName,
-		AccessAnalyzerQueueURL:  conf.AccessAnalyzerQueueURL,
-		MaxNumberOfMessage:      conf.MaxNumberOfMessage,
-		WaitTimeSecond:          conf.WaitTimeSecond,
+		Debug:                      conf.Debug,
+		AWSRegion:                  conf.AWSRegion,
+		SQSEndpoint:                conf.SQSEndpoint,
+		AWSAccessAnalyzerQueueName: conf.AWSAccessAnalyzerQueueName,
+		AWSAccessAnalyzerQueueURL:  conf.AWSAccessAnalyzerQueueURL,
+		MaxNumberOfMessage:         conf.MaxNumberOfMessage,
+		WaitTimeSecond:             conf.WaitTimeSecond,
 	}
 	consumer := newSQSConsumer(ctx, sqsConf)
 
