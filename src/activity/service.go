@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/aws/proto/activity"
-	awsClient "github.com/ca-risken/aws/proto/aws"
+	"github.com/ca-risken/datasource-api/pkg/message"
+	awsClient "github.com/ca-risken/datasource-api/proto/aws"
 )
 
 type activityService struct {
@@ -62,7 +62,7 @@ func (a *activityService) getAWSDataSource(ctx context.Context, projectID, awsID
 	ds, err := a.awsClient.ListDataSource(ctx, &awsClient.ListDataSourceRequest{
 		ProjectId:  projectID,
 		AwsId:      awsID,
-		DataSource: message.ActivityDatasource,
+		DataSource: message.AWSActivityDatasource,
 	})
 	if err != nil {
 		return nil, err

@@ -27,7 +27,7 @@ type AppConfig struct {
 	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
 
 	// grpc
-	AWSSvcAddr string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
+	DataSourceAPISvcAddr string `required:"true" split_words:"true" default:"datasource-api.core.svc.cluster.local:8081"`
 }
 
 const (
@@ -81,7 +81,7 @@ func main() {
 	}
 
 	service := &activityService{}
-	service.awsClient = newAWSClient(conf.AWSSvcAddr)
+	service.awsClient = newAWSClient(conf.DataSourceAPISvcAddr)
 	service.cloudTrailClient = newCloudTrailClient(conf.AWSRegion)
 	service.configClient = newConfigServiceClient(conf.AWSRegion)
 

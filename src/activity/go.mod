@@ -3,21 +3,20 @@ module github.com/ca-risken/aws/src/activity
 go 1.17
 
 require (
-	github.com/aws/aws-sdk-go v1.40.48
-	github.com/ca-risken/aws v0.0.0-20210907034232-c56f481434cd
-	github.com/ca-risken/aws/pkg/message v0.0.0-20210907034232-c56f481434cd
-	github.com/ca-risken/aws/proto/aws v0.0.0-20210907034232-c56f481434cd
-	github.com/ca-risken/common/pkg/logging v0.0.0-20220524030432-e497432e632b
-	github.com/ca-risken/common/pkg/profiler v0.0.0-20220304031727-c94e2c463b27
-	github.com/ca-risken/common/pkg/rpc v0.0.0-20220524030432-e497432e632b
-	github.com/ca-risken/common/pkg/tracer v0.0.0-20220426043806-f588088c256a
+	github.com/aws/aws-sdk-go v1.44.27
+	github.com/ca-risken/aws/proto/activity v0.0.0-20220615104517-4fd86adb9c78
+	github.com/ca-risken/common/pkg/logging v0.0.0-20220601065422-5b97bd6efc9b
+	github.com/ca-risken/common/pkg/profiler v0.0.0-20220601065422-5b97bd6efc9b
+	github.com/ca-risken/common/pkg/rpc v0.0.0-20220601065422-5b97bd6efc9b
+	github.com/ca-risken/common/pkg/tracer v0.0.0-20220601065422-5b97bd6efc9b
+	github.com/ca-risken/datasource-api v0.0.0-20220615043958-794d01b2e367
 	github.com/gassara-kys/envconfig v1.4.4
 	github.com/golang/protobuf v1.5.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/vikyd/zero v0.0.0-20190921142904-0f738d0bc858
-	google.golang.org/grpc v1.42.0
-	gopkg.in/DataDog/dd-trace-go.v1 v1.37.1
+	google.golang.org/grpc v1.47.0
+	gopkg.in/DataDog/dd-trace-go.v1 v1.38.1
 )
 
 require (
@@ -32,7 +31,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/envoyproxy/protoc-gen-validate v0.6.1 // indirect
+	github.com/envoyproxy/protoc-gen-validate v0.6.7 // indirect
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible // indirect
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
@@ -47,7 +46,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/tinylib/msgp v1.1.2 // indirect
-	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
