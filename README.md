@@ -44,7 +44,6 @@ Deploy the pre-built containers to the Kubernetes environment on your local mach
 
 | service        | spec                                | before (public images)                            | after (pre-build images on your machine) |
 | -------------- | ----------------------------------- | ------------------------------------------------- | ---------------------------------------- |
-| aws            | spec.template.spec.containers.image | `public.ecr.aws/risken/aws/aws:latest`            | `aws/aws:latest`                         |
 | accessanalyzer | spec.template.spec.containers.image | `public.ecr.aws/risken/aws/accessanalyzer:latest` | `aws/accessanalyzer:latest`              |
 | adminchecker   | spec.template.spec.containers.image | `public.ecr.aws/risken/aws/adminchecker:latest`   | `aws/adminchecker:latest`                |
 | cloudsploit    | spec.template.spec.containers.image | `public.ecr.aws/risken/aws/cloudsploit:latest`    | `aws/cloudsploit:latest`                 |
