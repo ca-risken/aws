@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/guardduty"
 	"github.com/aws/aws-sdk-go-v2/service/guardduty/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/ca-risken/aws/pkg/message"
+	"github.com/ca-risken/datasource-api/pkg/message"
 )
 
 type guardDutyAPI interface {
