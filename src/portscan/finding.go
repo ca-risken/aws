@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/ca-risken/aws/pkg/common"
-	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/common/pkg/portscan"
 	"github.com/ca-risken/core/proto/finding"
+	"github.com/ca-risken/datasource-api/pkg/message"
 	"github.com/vikyd/zero"
 )
 

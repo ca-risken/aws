@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"time"
 
-	awsClient "github.com/ca-risken/aws/proto/aws"
 	"github.com/ca-risken/common/pkg/logging"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
+	awsClient "github.com/ca-risken/datasource-api/proto/aws"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/ca-risken/aws/pkg/common"
-	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/core/proto/alert"
 	"github.com/ca-risken/core/proto/finding"
+	"github.com/ca-risken/datasource-api/pkg/message"
 )
 
 type sqsHandler struct {
@@ -30,7 +30,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	msgBody := aws.ToString(sqsMsg.Body)
 	appLogger.Infof(ctx, "got message: %s", msgBody)
 	// Parse message
-	msg, err := message.ParseMessage(msgBody)
+	msg, err := message.ParseMessageAWS(msgBody)
 	if err != nil {
 		appLogger.Errorf(ctx, "Invalid message: SQS_msg=%+v, err=%+v", msg, err)
 		return mimosasqs.WrapNonRetryable(err)

@@ -96,27 +96,33 @@ go-mod-update:
 	cd src/guard-duty \
 		&& go get -u \
 			github.com/ca-risken/core/... \
+			github.com/ca-risken/datasource-api/... \
 			github.com/ca-risken/aws/...
 	cd src/access-analyzer \
 		&& go get -u \
 			github.com/ca-risken/core/... \
+			github.com/ca-risken/datasource-api/... \
 			github.com/ca-risken/aws/...
 	cd src/admin-checker \
 		&& go get -u \
 			github.com/ca-risken/core/... \
+			github.com/ca-risken/datasource-api/... \
 			github.com/ca-risken/aws/...
 	cd src/cloudsploit \
 		&& go get -u \
 			github.com/ca-risken/core/... \
+			github.com/ca-risken/datasource-api/... \
 			github.com/ca-risken/aws/...
 	cd src/portscan \
 		&& go get -u \
 			github.com/ca-risken/common/... \
 			github.com/ca-risken/core/... \
+			github.com/ca-risken/datasource-api/... \
 			github.com/ca-risken/aws/...
 	cd src/activity \
 		&& go get -u \
 			github.com/ca-risken/core/... \
+			github.com/ca-risken/datasource-api/... \
 			github.com/ca-risken/aws/...
 
 .PHONY: go-mod-tidy

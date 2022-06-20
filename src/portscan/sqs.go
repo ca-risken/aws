@@ -12,8 +12,8 @@ type sqsConfig struct {
 	AWSRegion   string
 	SQSEndpoint string
 
-	PortscanQueueName  string
-	PortscanQueueURL   string
+	QueueName          string
+	QueueURL           string
 	MaxNumberOfMessage int32
 	WaitTimeSecond     int32
 	ScanConcurrency    int64
@@ -29,8 +29,8 @@ func newSQSConsumer(ctx context.Context, conf *sqsConfig) *worker.Worker {
 	}
 	return &worker.Worker{
 		Config: &worker.Config{
-			QueueName:          conf.PortscanQueueName,
-			QueueURL:           conf.PortscanQueueURL,
+			QueueName:          conf.QueueName,
+			QueueURL:           conf.QueueURL,
 			MaxNumberOfMessage: conf.MaxNumberOfMessage,
 			WaitTimeSecond:     conf.WaitTimeSecond,
 		},

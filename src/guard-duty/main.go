@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/common/pkg/profiler"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	"github.com/ca-risken/common/pkg/tracer"
+	"github.com/ca-risken/datasource-api/pkg/message"
 	"github.com/gassara-kys/envconfig"
 )
 
@@ -33,14 +33,14 @@ type AppConfig struct {
 	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
 	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://queue.middleware.svc.cluster.local:9324"`
 
-	GuardDutyQueueName string `split_words:"true" default:"aws-guardduty"`
-	GuardDutyQueueURL  string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-guardduty"`
-	MaxNumberOfMessage int32  `split_words:"true" default:"10"`
-	WaitTimeSecond     int32  `split_words:"true" default:"20"`
+	AWSGuardDutyQueueName string `split_words:"true" default:"aws-guardduty"`
+	AWSGuardDutyQueueURL  string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-guardduty"`
+	MaxNumberOfMessage    int32  `split_words:"true" default:"10"`
+	WaitTimeSecond        int32  `split_words:"true" default:"20"`
 
 	// grpc
-	CoreSvcAddr string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
-	AWSSvcAddr  string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
+	CoreSvcAddr          string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
+	DataSourceAPISvcAddr string `required:"true" split_words:"true" default:"datasource-api.core.svc.cluster.local:8081"`
 }
 
 func main() {
@@ -83,8 +83,8 @@ func main() {
 		Debug:              conf.Debug,
 		AWSRegion:          conf.AWSRegion,
 		SQSEndpoint:        conf.SQSEndpoint,
-		GuardDutyQueueName: conf.GuardDutyQueueName,
-		GuardDutyQueueURL:  conf.GuardDutyQueueURL,
+		QueueName:          conf.AWSGuardDutyQueueName,
+		QueueURL:           conf.AWSGuardDutyQueueURL,
 		MaxNumberOfMessage: conf.MaxNumberOfMessage,
 		WaitTimeSecond:     conf.WaitTimeSecond,
 	}
@@ -95,8 +95,8 @@ func main() {
 	}
 	handler.findingClient = newFindingClient(conf.CoreSvcAddr)
 	handler.alertClient = newAlertClient(conf.CoreSvcAddr)
-	handler.awsClient = newAWSClient(conf.AWSSvcAddr)
-	f, err := mimosasqs.NewFinalizer(message.GuardDutyDataSource, settingURL, conf.CoreSvcAddr, nil)
+	handler.awsClient = newAWSClient(conf.DataSourceAPISvcAddr)
+	f, err := mimosasqs.NewFinalizer(message.AWSGuardDutyDataSource, settingURL, conf.CoreSvcAddr, nil)
 	if err != nil {
 		appLogger.Fatalf(ctx, "Failed to create finalizer, err=%+v", err)
 	}

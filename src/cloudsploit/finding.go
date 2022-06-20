@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/ca-risken/aws/pkg/common"
-	"github.com/ca-risken/aws/pkg/message"
-	"github.com/ca-risken/aws/proto/aws"
 	"github.com/ca-risken/core/proto/finding"
+	"github.com/ca-risken/datasource-api/pkg/message"
+	"github.com/ca-risken/datasource-api/proto/aws"
 )
 
 func (s *sqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResult, message *message.AWSQueueMessage) error {
@@ -207,7 +207,7 @@ func (s *sqsHandler) getCloudSploitMaxScore(ctx context.Context, msg *message.AW
 	resp, err := s.awsClient.ListDataSource(ctx, &aws.ListDataSourceRequest{
 		ProjectId:  msg.ProjectID,
 		AwsId:      msg.AWSID,
-		DataSource: message.CloudsploitDataSource,
+		DataSource: message.AWSCloudSploitDataSource,
 	})
 	if err != nil || resp.DataSource == nil || len(resp.DataSource) < 1 {
 		appLogger.Errorf(ctx, "Failed to ListDataSource. error: %+v", err)

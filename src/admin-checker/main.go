@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ca-risken/aws/pkg/message"
 	"github.com/ca-risken/common/pkg/profiler"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	"github.com/ca-risken/common/pkg/tracer"
+	"github.com/ca-risken/datasource-api/pkg/message"
 	"github.com/gassara-kys/envconfig"
 )
 
@@ -33,15 +33,15 @@ type AppConfig struct {
 	AWSRegion   string `envconfig:"aws_region"   default:"ap-northeast-1"`
 	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://queue.middleware.svc.cluster.local:9324"`
 
-	AdminCheckerQueueName string `split_words:"true" default:"aws-adminchecker"`
-	AdminCheckerQueueURL  string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-adminchecker"`
-	MaxNumberOfMessage    int32  `split_words:"true" default:"10"`
-	WaitTimeSecond        int32  `split_words:"true" default:"20"`
-	RetryMaxAttempts      int    `split_words:"true" default:"10"`
+	AWSAdminCheckerQueueName string `split_words:"true" default:"aws-adminchecker"`
+	AWSAdminCheckerQueueURL  string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-adminchecker"`
+	MaxNumberOfMessage       int32  `split_words:"true" default:"10"`
+	WaitTimeSecond           int32  `split_words:"true" default:"20"`
+	RetryMaxAttempts         int    `split_words:"true" default:"10"`
 
 	// grpc
-	CoreSvcAddr string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
-	AWSSvcAddr  string `required:"true" split_words:"true" default:"aws.aws.svc.cluster.local:9001"`
+	CoreSvcAddr          string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
+	DataSourceAPISvcAddr string `required:"true" split_words:"true" default:"datasource-api.core.svc.cluster.local:8081"`
 }
 
 func main() {
@@ -83,22 +83,22 @@ func main() {
 	handler := &sqsHandler{}
 	handler.findingClient = newFindingClient(conf.CoreSvcAddr)
 	handler.alertClient = newAlertClient(conf.CoreSvcAddr)
-	handler.awsClient = newAWSClient(conf.AWSSvcAddr)
+	handler.awsClient = newAWSClient(conf.DataSourceAPISvcAddr)
 	handler.awsRegion = conf.AWSRegion
 	handler.retryMaxAttempts = conf.RetryMaxAttempts
-	f, err := mimosasqs.NewFinalizer(message.AdminCheckerDataSource, settingURL, conf.CoreSvcAddr, nil)
+	f, err := mimosasqs.NewFinalizer(message.AWSAdminCheckerDataSource, settingURL, conf.CoreSvcAddr, nil)
 	if err != nil {
 		appLogger.Fatalf(ctx, "Failed to create Finalizer, err=%+v", err)
 	}
 
 	sqsConf := &sqsConfig{
-		Debug:                 conf.Debug,
-		AWSRegion:             conf.AWSRegion,
-		SQSEndpoint:           conf.SQSEndpoint,
-		AdminCheckerQueueName: conf.AdminCheckerQueueName,
-		AdminCheckerQueueURL:  conf.AdminCheckerQueueURL,
-		MaxNumberOfMessage:    conf.MaxNumberOfMessage,
-		WaitTimeSecond:        conf.WaitTimeSecond,
+		Debug:              conf.Debug,
+		AWSRegion:          conf.AWSRegion,
+		SQSEndpoint:        conf.SQSEndpoint,
+		QueueName:          conf.AWSAdminCheckerQueueName,
+		QueueURL:           conf.AWSAdminCheckerQueueURL,
+		MaxNumberOfMessage: conf.MaxNumberOfMessage,
+		WaitTimeSecond:     conf.WaitTimeSecond,
 	}
 	consumer := newSQSConsumer(ctx, sqsConf)
 

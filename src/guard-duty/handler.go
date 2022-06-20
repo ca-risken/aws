@@ -8,12 +8,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	types "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/ca-risken/aws/pkg/common"
-	"github.com/ca-risken/aws/pkg/message"
-	awsClient "github.com/ca-risken/aws/proto/aws"
 	"github.com/ca-risken/common/pkg/logging"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	"github.com/ca-risken/core/proto/alert"
 	"github.com/ca-risken/core/proto/finding"
+	"github.com/ca-risken/datasource-api/pkg/message"
+	awsClient "github.com/ca-risken/datasource-api/proto/aws"
 )
 
 type sqsHandler struct {
@@ -27,7 +27,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	msgBody := aws.ToString(sqsMsg.Body)
 	appLogger.Infof(ctx, "got message: %s", msgBody)
 	// Parse message
-	msg, err := message.ParseMessage(msgBody)
+	msg, err := message.ParseMessageAWS(msgBody)
 	if err != nil {
 		appLogger.Errorf(ctx, "Invalid message: SQS_msg=%+v, err=%+v", msg, err)
 		return mimosasqs.WrapNonRetryable(err)
@@ -215,7 +215,7 @@ func (s *sqsHandler) putRecommend(ctx context.Context, projectID uint32, finding
 	if _, err := s.findingClient.PutRecommend(ctx, &finding.PutRecommendRequest{
 		ProjectId:      projectID,
 		FindingId:      findingID,
-		DataSource:     message.GuardDutyDataSource,
+		DataSource:     message.AWSGuardDutyDataSource,
 		Type:           findingType,
 		Risk:           r.Risk,
 		Recommendation: r.Recommendation,
