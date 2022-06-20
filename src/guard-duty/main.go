@@ -80,13 +80,13 @@ func main() {
 	defer tracer.Stop()
 
 	sqsConf := &sqsConfig{
-		Debug:                 conf.Debug,
-		AWSRegion:             conf.AWSRegion,
-		SQSEndpoint:           conf.SQSEndpoint,
-		AWSGuardDutyQueueName: conf.AWSGuardDutyQueueName,
-		AWSGuardDutyQueueURL:  conf.AWSGuardDutyQueueURL,
-		MaxNumberOfMessage:    conf.MaxNumberOfMessage,
-		WaitTimeSecond:        conf.WaitTimeSecond,
+		Debug:              conf.Debug,
+		AWSRegion:          conf.AWSRegion,
+		SQSEndpoint:        conf.SQSEndpoint,
+		QueueName:          conf.AWSGuardDutyQueueName,
+		QueueURL:           conf.AWSGuardDutyQueueURL,
+		MaxNumberOfMessage: conf.MaxNumberOfMessage,
+		WaitTimeSecond:     conf.WaitTimeSecond,
 	}
 	consumer := newSQSConsumer(ctx, sqsConf)
 

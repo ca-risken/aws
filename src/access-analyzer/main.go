@@ -93,13 +93,13 @@ func main() {
 	}
 
 	sqsConf := &SQSConfig{
-		Debug:                      conf.Debug,
-		AWSRegion:                  conf.AWSRegion,
-		SQSEndpoint:                conf.SQSEndpoint,
-		AWSAccessAnalyzerQueueName: conf.AWSAccessAnalyzerQueueName,
-		AWSAccessAnalyzerQueueURL:  conf.AWSAccessAnalyzerQueueURL,
-		MaxNumberOfMessage:         conf.MaxNumberOfMessage,
-		WaitTimeSecond:             conf.WaitTimeSecond,
+		Debug:              conf.Debug,
+		AWSRegion:          conf.AWSRegion,
+		SQSEndpoint:        conf.SQSEndpoint,
+		QueueName:          conf.AWSAccessAnalyzerQueueName,
+		QueueURL:           conf.AWSAccessAnalyzerQueueURL,
+		MaxNumberOfMessage: conf.MaxNumberOfMessage,
+		WaitTimeSecond:     conf.WaitTimeSecond,
 	}
 	consumer := newSQSConsumer(ctx, sqsConf)
 
