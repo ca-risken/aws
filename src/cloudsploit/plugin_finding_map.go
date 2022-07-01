@@ -242,7 +242,7 @@ var cloudSploitFindingMap = map[string]cloudSploitFindingInformation{
 	categoryRDS + "/rdsLoggingEnabled":                    {Score: 3.0, Tags: []string{}},
 	categoryRDS + "/rdsMinorVersionUpgrade":               {Score: 3.0, Tags: []string{"operation"}},
 	categoryRDS + "/rdsMultiAz":                           {Score: 3.0, Tags: []string{"reliability"}},
-	categoryRDS + "/rdsPubliclyAccessible":                {Score: 8.0, Tags: []string{"hipaa", "pci"}},
+	categoryRDS + "/rdsPubliclyAccessible":                {Score: 6.0, Tags: []string{"hipaa", "pci"}},
 	categoryRDS + "/rdsRestorable":                        {Score: 3.0, Tags: []string{"pci", "reliability"}},
 	categoryRDS + "/rdsSnapshotEncryption":                {Score: 3.0, Tags: []string{}},
 	categoryRDS + "/rdsTransportEncryption":               {Score: 3.0, Tags: []string{}},
