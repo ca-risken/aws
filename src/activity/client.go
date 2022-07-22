@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ca-risken/datasource-api/proto/aws"
@@ -10,13 +11,13 @@ import (
 	grpctrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/google.golang.org/grpc"
 )
 
-func newAWSClient(svcAddr string) aws.AWSServiceClient {
+func newAWSClient(svcAddr string) (aws.AWSServiceClient, error) {
 	ctx := context.Background()
 	conn, err := getGRPCConn(ctx, svcAddr)
 	if err != nil {
-		appLogger.Fatalf(ctx, "Faild to get GRPC connection: err=%+v", err)
+		return nil, fmt.Errorf("failed to get GRPC connection: err=%w", err)
 	}
-	return aws.NewAWSServiceClient(conn)
+	return aws.NewAWSServiceClient(conn), nil
 }
 
 func getGRPCConn(ctx context.Context, addr string) (*grpc.ClientConn, error) {
