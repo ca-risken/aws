@@ -114,7 +114,10 @@ func main() {
 		MaxNumberOfMessage: conf.MaxNumberOfMessage,
 		WaitTimeSecond:     conf.WaitTimeSecond,
 	}
-	consumer := newSQSConsumer(ctx, sqsConf)
+	consumer, err := newSQSConsumer(ctx, sqsConf)
+	if err != nil {
+		appLogger.Fatalf(ctx, "Failed to create sqs consumer, err=%+v", err)
+	}
 
 	appLogger.Info(ctx, "Start the AWS IAM AdminChecker SQS consumer server...")
 	consumer.Start(ctx,
