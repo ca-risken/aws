@@ -81,12 +81,25 @@ func main() {
 	tracer.Start(tc)
 	defer tracer.Stop()
 
-	handler := &sqsHandler{
-		awsRegion: conf.AWSRegion,
+	fc, err := newFindingClient(ctx, conf.CoreSvcAddr)
+	if err != nil {
+		appLogger.Fatalf(ctx, "failed to create finding client, err=%+v", err)
 	}
-	handler.findingClient = newFindingClient(conf.CoreSvcAddr)
-	handler.alertClient = newAlertClient(conf.CoreSvcAddr)
-	handler.awsClient = newAWSClient(conf.DataSourceAPISvcAddr)
+	ac, err := newAlertClient(ctx, conf.CoreSvcAddr)
+	if err != nil {
+		appLogger.Fatalf(ctx, "failed to create alert client, err=%+v", err)
+	}
+	awsc, err := newAWSClient(ctx, conf.DataSourceAPISvcAddr)
+	if err != nil {
+		appLogger.Fatalf(ctx, "failed to create aws client, err=%+v", err)
+	}
+	handler := &sqsHandler{
+		awsRegion:     conf.AWSRegion,
+		findingClient: fc,
+		alertClient:   ac,
+		awsClient:     awsc,
+	}
+
 	f, err := mimosasqs.NewFinalizer(message.AWSAccessAnalyzerDataSource, settingURL, conf.CoreSvcAddr, nil)
 	if err != nil {
 		appLogger.Fatalf(ctx, "Failed to create Finalizer, err=%+v", err)
