@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/ca-risken/common/pkg/logging"
 	"github.com/ca-risken/core/proto/finding"
 	"github.com/ca-risken/datasource-api/pkg/message"
 )
@@ -79,9 +80,12 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *messa
 		appLogger.Infof(ctx, "Detected analyzer: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
 		findings, err := a.listFindings(ctx, msg.AccountID, arn)
 		if err != nil {
-			appLogger.Warnf(ctx,
+			// If Organization gathering enabled, requesting an invalid Region may result in an error.
+			// But we don't know what kind of error is it, so notify all errors and handle in operation.
+			// TODO skip above case after we know what kind of the error
+			appLogger.Notifyf(ctx, logging.ErrorLevel,
 				"AccessAnalyzer.ListFindings error: analyzerArn=%s, accountID=%s, err=%+v", arn, msg.AccountID, err)
-			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
+			return nil, &[]string{}, err
 		}
 		appLogger.Debugf(ctx, "[Debug]Got findings, %+v", findings)
 		if findings == nil || len(*findings) == 0 {
