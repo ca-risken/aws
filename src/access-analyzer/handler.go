@@ -44,13 +44,15 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqsTypes.Message
 	status := common.InitScanStatus(msg)
 	accessAnalyzer, err := newAccessAnalyzerClient(ctx, s.awsRegion, msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
-		appLogger.Errorf(ctx, "Faild to create AccessAnalyzer session: err=%+v", err)
-		return s.handleErrorWithUpdateStatus(ctx, &status, err)
+		appLogger.Errorf(ctx, "Failed to create AccessAnalyzer session: err=%+v", err)
+		s.updateStatusToError(ctx, &status, err)
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	regions, err := accessAnalyzer.listAvailableRegion(ctx)
 	if err != nil {
-		appLogger.Errorf(ctx, "Faild to get available regions, err = %+v", err)
-		return s.handleErrorWithUpdateStatus(ctx, &status, err)
+		appLogger.Errorf(ctx, "Failed to get available regions, err = %+v", err)
+		s.updateStatusToError(ctx, &status, err)
+		return mimosasqs.WrapNonRetryable(err)
 	}
 
 	analyzerEnabled := false
@@ -67,29 +69,34 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqsTypes.Message
 		// AccessAnalyzer
 		accessAnalyzer, err = newAccessAnalyzerClient(ctx, *region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
 		if err != nil {
-			appLogger.Errorf(ctx, "Faild to create AccessAnalyzer session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
-			return s.handleErrorWithUpdateStatus(ctx, &status, err)
+			appLogger.Errorf(ctx, "Failed to create AccessAnalyzer session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
+			s.updateStatusToError(ctx, &status, err)
+			return mimosasqs.WrapNonRetryable(err)
 		}
 
 		findings, analyzerArns, err := accessAnalyzer.getAccessAnalyzer(ctx, msg)
 		if err != nil {
-			appLogger.Errorf(ctx, "Faild to get findngs to AWS AccessAnalyzer: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
-			return s.handleErrorWithUpdateStatus(ctx, &status, err)
+			appLogger.Errorf(ctx, "Failed to get findngs to AWS AccessAnalyzer: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
+			s.updateStatusToError(ctx, &status, err)
+			return mimosasqs.WrapNonRetryable(err)
 		}
 		if analyzerArns != nil && len(*analyzerArns) > 0 {
 			analyzerEnabled = true
 		}
 		// Put finding to core
 		if err := s.putFindings(ctx, msg, findings); err != nil {
-			appLogger.Errorf(ctx, "Faild to put findngs: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
-			return s.handleErrorWithUpdateStatus(ctx, &status, err)
+			appLogger.Errorf(ctx, "Failed to put findngs: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
+			s.updateStatusToError(ctx, &status, err)
+			return mimosasqs.WrapNonRetryable(err)
 		}
 		if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
 			return mimosasqs.WrapNonRetryable(err)
 		}
 	}
 	if !analyzerEnabled {
-		return s.handleErrorWithUpdateStatus(ctx, &status, errors.New("AccessAnalyzer is disabled in all regions"))
+		err := errors.New("AccessAnalyzer is disabled in all regions")
+		s.updateStatusToError(ctx, &status, err)
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	appLogger.Infof(ctx, "end Scan, RequestID=%s", requestID)
 
@@ -103,11 +110,10 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqsTypes.Message
 	return nil
 }
 
-func (s *sqsHandler) handleErrorWithUpdateStatus(ctx context.Context, scanStatus *awsClient.AttachDataSourceRequest, err error) error {
+func (s *sqsHandler) updateStatusToError(ctx context.Context, scanStatus *awsClient.AttachDataSourceRequest, err error) {
 	if updateErr := s.updateScanStatusError(ctx, scanStatus, err.Error()); updateErr != nil {
 		appLogger.Warnf(ctx, "Failed to update scan status error: err=%+v", updateErr)
 	}
-	return mimosasqs.WrapNonRetryable(err)
 }
 
 func (s *sqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessage, findings []*finding.FindingForUpsert) error {
