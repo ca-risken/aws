@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	types "github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/ca-risken/aws/pkg/common"
 	"github.com/ca-risken/common/pkg/logging"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
@@ -42,13 +42,15 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	status := common.InitScanStatus(msg)
 	guardduty, err := newGuardDutyClient(ctx, s.awsRegion, msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
-		appLogger.Errorf(ctx, "Faild to create GuardDuty session: err=%+v", err)
-		return s.handleErrorWithUpdateStatus(ctx, &status, err)
+		appLogger.Errorf(ctx, "Failed to create GuardDuty session: err=%+v", err)
+		s.updateStatusToError(ctx, &status, err)
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	regions, err := guardduty.listAvailableRegion(ctx)
 	if err != nil {
-		appLogger.Errorf(ctx, "Faild to get available regions, err = %+v", err)
-		return s.handleErrorWithUpdateStatus(ctx, &status, err)
+		appLogger.Errorf(ctx, "Failed to get available regions, err = %+v", err)
+		s.updateStatusToError(ctx, &status, err)
+		return mimosasqs.WrapNonRetryable(err)
 	}
 
 	guardDutyEnabled := false
@@ -64,14 +66,16 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 		appLogger.Infof(ctx, "Start %s region search...", *region.RegionName)
 		guardduty, err = newGuardDutyClient(ctx, *region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
 		if err != nil {
-			appLogger.Errorf(ctx, "Faild to create GuardDuty session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
-			return s.handleErrorWithUpdateStatus(ctx, &status, err)
+			appLogger.Errorf(ctx, "Failed to create GuardDuty session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
+			s.updateStatusToError(ctx, &status, err)
+			return mimosasqs.WrapNonRetryable(err)
 		}
 		// Get guardduty
 		findings, detecterIDs, err := guardduty.getGuardDuty(ctx, msg)
 		if err != nil {
-			appLogger.Errorf(ctx, "Faild to get findngs to AWS GuardDuty: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
-			return s.handleErrorWithUpdateStatus(ctx, &status, err)
+			appLogger.Errorf(ctx, "Failed to get findngs to AWS GuardDuty: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
+			s.updateStatusToError(ctx, &status, err)
+			return mimosasqs.WrapNonRetryable(err)
 		}
 		if detecterIDs != nil && len(*detecterIDs) > 0 {
 			guardDutyEnabled = true
@@ -79,15 +83,18 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 		}
 		// Put finding to core
 		if err := s.putFindings(ctx, msg, findings); err != nil {
-			appLogger.Errorf(ctx, "Faild to put findngs: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
-			return s.handleErrorWithUpdateStatus(ctx, &status, err)
+			appLogger.Errorf(ctx, "Failed to put findngs: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
+			s.updateStatusToError(ctx, &status, err)
+			return mimosasqs.WrapNonRetryable(err)
 		}
 		if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
 			return mimosasqs.WrapNonRetryable(err)
 		}
 	}
 	if !guardDutyEnabled {
-		return s.handleErrorWithUpdateStatus(ctx, &status, errors.New("GuardDuty is disabled in all regions"))
+		err = errors.New("GuardDuty is disabled in all regions")
+		s.updateStatusToError(ctx, &status, err)
+		return mimosasqs.WrapNonRetryable(err)
 	}
 	appLogger.Infof(ctx, "end Scan, RequestID=%s", requestID)
 	if msg.ScanOnly {
@@ -100,11 +107,10 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	return nil
 }
 
-func (s *sqsHandler) handleErrorWithUpdateStatus(ctx context.Context, scanStatus *awsClient.AttachDataSourceRequest, err error) error {
+func (s *sqsHandler) updateStatusToError(ctx context.Context, scanStatus *awsClient.AttachDataSourceRequest, err error) {
 	if updateErr := s.updateScanStatusError(ctx, scanStatus, err.Error()); updateErr != nil {
 		appLogger.Warnf(ctx, "Failed to update scan status error: err=%+v", updateErr)
 	}
-	return mimosasqs.WrapNonRetryable(err)
 }
 
 var unsupportedRegions = []string{
