@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -66,7 +67,11 @@ func (c *configServiceClient) listConfigHistory(ctx context.Context, req *activi
 	if err != nil {
 		return nil, err
 	}
-	out, err := sess.GetResourceConfigHistoryWithContext(ctx, generateGetResourceConfigHistoryInput(ctx, req))
+	input, err := generateGetResourceConfigHistoryInput(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate GetResourceConfigHistory input, err=%w", err)
+	}
+	out, err := sess.GetResourceConfigHistoryWithContext(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +117,7 @@ func (c *configServiceClient) listConfigHistory(ctx context.Context, req *activi
 	}, nil
 }
 
-func generateGetResourceConfigHistoryInput(ctx context.Context, req *activity.ListConfigHistoryRequest) *configservice.GetResourceConfigHistoryInput {
+func generateGetResourceConfigHistoryInput(ctx context.Context, req *activity.ListConfigHistoryRequest) (*configservice.GetResourceConfigHistoryInput, error) {
 	param := &configservice.GetResourceConfigHistoryInput{
 		ResourceType: aws.String(req.ResourceType),
 		ResourceId:   aws.String(req.ResourceId),
@@ -130,10 +135,14 @@ func generateGetResourceConfigHistoryInput(ctx context.Context, req *activity.Li
 		param.ChronologicalOrder = aws.String(req.ChronologicalOrder)
 	}
 	if !zero.IsZeroVal(req.StartingToken) {
-		param.NextToken = aws.String(decodeBase64(ctx, req.StartingToken))
+		token, err := decodeBase64(req.StartingToken)
+		if err != nil {
+			return nil, err
+		}
+		param.NextToken = aws.String(token)
 	}
 	appLogger.Infof(ctx, "config param: %+v", param)
-	return param
+	return param, nil
 }
 
 func convertConfigTag(input map[string]*string) []*activity.Tag {
