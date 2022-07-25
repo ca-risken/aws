@@ -77,7 +77,6 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 		s.updateStatusToError(ctx, &status, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
-	statusDetail := ""
 	targetsAllRegion := []*target{}
 	securityGroupsAllRegion := make(map[string]*relSecurityGroupArn)
 	for _, region := range *regions {
@@ -127,10 +126,11 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	// Put finding to core
 	if err := s.putFindings(ctx, msg, nmapResults, excludeList, securityGroupsAllRegion); err != nil {
 		appLogger.Errorf(ctx, "Failed to put findings: AccountID=%+v, err=%+v", msg.AccountID, err)
-		statusDetail = fmt.Sprintf("%v%v", statusDetail, err.Error())
+		s.updateStatusToError(ctx, &status, err)
+		return mimosasqs.WrapNonRetryable(err)
 	}
 
-	if err := s.updateScanStatusSuccess(ctx, &status, statusDetail); err != nil {
+	if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
 		return mimosasqs.WrapNonRetryable(err)
 	}
 	appLogger.Infof(ctx, "end Scan, RequestID=%s", requestID)
@@ -159,9 +159,9 @@ func (s *sqsHandler) updateScanStatusError(ctx context.Context, status *awsClien
 	return s.attachAWSStatus(ctx, status)
 }
 
-func (s *sqsHandler) updateScanStatusSuccess(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {
+func (s *sqsHandler) updateScanStatusSuccess(ctx context.Context, status *awsClient.AttachDataSourceRequest) error {
 	status.AttachDataSource.Status = awsClient.Status_OK
-	status.AttachDataSource.StatusDetail = statusDetail
+	status.AttachDataSource.StatusDetail = ""
 	return s.attachAWSStatus(ctx, status)
 }
 
