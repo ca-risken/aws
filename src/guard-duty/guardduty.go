@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/guardduty"
 	"github.com/aws/aws-sdk-go-v2/service/guardduty/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/ca-risken/common/pkg/logging"
 	"github.com/ca-risken/datasource-api/pkg/message"
 )
 
@@ -93,9 +94,12 @@ func (g *guardDutyClient) getGuardDuty(ctx context.Context, message *message.AWS
 		fmt.Printf("detecterId: %s\n", id)
 		findingIDs, err := g.listFindings(ctx, message.AccountID, id)
 		if err != nil {
-			appLogger.Warnf(ctx,
+			// If Organization gathering enabled, requesting an invalid Region may result in an error.
+			// But we don't know what kind of error is it, so notify all errors and handle in operation.
+			// TODO skip above case after we know what kind of the error
+			appLogger.Notifyf(ctx, logging.ErrorLevel,
 				"GuardDuty.ListDetectors error: detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)
-			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
+			return nil, &[]string{}, err
 		}
 		if findingIDs == nil || len(*findingIDs) == 0 {
 			appLogger.Infof(ctx, "No findings: accountID=%s", message.AccountID)
@@ -103,9 +107,12 @@ func (g *guardDutyClient) getGuardDuty(ctx context.Context, message *message.AWS
 		}
 		findings, err := g.getFindings(ctx, id, *findingIDs)
 		if err != nil {
-			appLogger.Warnf(ctx,
+			// If Organization gathering enabled, requesting an invalid Region may result in an error.
+			// But we don't know what kind of error is it, so notify all errors and handle in operation.
+			// TODO skip above case after we know what kind of the error
+			appLogger.Notifyf(ctx, logging.ErrorLevel,
 				"GuardDuty.GetFindings error:detectorID=%s, accountID=%s, err=%+v", id, message.AccountID, err)
-			continue // If Organization gathering enabled, requesting an invalid Region may result in an error.
+			return nil, &[]string{}, err
 		}
 		for _, data := range *findings {
 			buf, err := json.Marshal(data)
