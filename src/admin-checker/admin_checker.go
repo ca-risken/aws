@@ -150,8 +150,7 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 		jobID := user.ServiceAccessedReport.JobID
 		accessedDetail, err := a.analyzeServiceLastAccessedDetails(ctx, jobID)
 		if err != nil {
-			appLogger.Warnf(ctx, "Failed to analyzServiceAccessedDetails Job, err=%+v", err.Error())
-			continue
+			return nil, fmt.Errorf("failed analyzeServiceAccessedDetails Job, err=%w", err)
 		}
 		iamUsers[idx].ServiceAccessedReport = *accessedDetail
 		time.Sleep(time.Millisecond * 1000) // For control the API call rating.
@@ -516,8 +515,7 @@ func (a *adminCheckerClient) listRole(ctx context.Context) (*[]iamRole, error) {
 		jobID := role.ServiceAccessedReport.JobID
 		accessedDetail, err := a.analyzeServiceLastAccessedDetails(ctx, jobID)
 		if err != nil {
-			appLogger.Warnf(ctx, "Failed to analyzServiceAccessedDetails Job, err=%+v", err.Error())
-			continue
+			return nil, fmt.Errorf("failed analyzeServiceAccessedDetails Job, err=%w", err)
 		}
 		iamRoles[idx].ServiceAccessedReport = *accessedDetail
 		time.Sleep(time.Millisecond * 1000) // For control the API call rating.
