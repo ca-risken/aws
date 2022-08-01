@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"reflect"
 	"testing"
 	"time"
@@ -9,15 +8,17 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/ca-risken/aws/proto/activity"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerateLookupEventInput(t *testing.T) {
 	nowUnix := time.Now().Unix()
 	now := time.Unix(nowUnix, 0)
 	cases := []struct {
-		name  string
-		input *activity.ListCloudTrailRequest
-		want  *cloudtrail.LookupEventsInput
+		name    string
+		input   *activity.ListCloudTrailRequest
+		want    *cloudtrail.LookupEventsInput
+		wantErr bool
 	}{
 		{
 			name: "OK minimum",
@@ -57,10 +58,28 @@ func TestGenerateLookupEventInput(t *testing.T) {
 				NextToken: aws.String("token"),
 			},
 		},
+		{
+			name: "error invalid token",
+			input: &activity.ListCloudTrailRequest{
+				ProjectId:      1,
+				AwsId:          1,
+				Region:         "ap-northeast-1",
+				StartTime:      nowUnix,
+				EndTime:        nowUnix,
+				AttributeKey:   activity.AttributeKey_EVENT_ID,
+				AttributeValue: "id",
+				NextToken:      "invalid",
+			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := generateLookupEventInput(context.TODO(), c.input)
+			got, err := generateLookupEventInput(c.input)
+			if c.wantErr {
+				assert.Error(t, err)
+			}
 			if !reflect.DeepEqual(c.want, got) {
 				t.Fatalf("Unexpected data: want=%+v, got=%+v", c.want, got)
 			}

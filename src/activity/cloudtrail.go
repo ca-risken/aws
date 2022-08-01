@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -66,7 +67,11 @@ func (c *cloudTrailClient) lookupEvents(ctx context.Context, req *activity.ListC
 	if err != nil {
 		return nil, err
 	}
-	out, err := sess.LookupEventsWithContext(ctx, generateLookupEventInput(ctx, req))
+	input, err := generateLookupEventInput(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate LookupEventInput, err=%w", err)
+	}
+	out, err := sess.LookupEventsWithContext(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +103,7 @@ func (c *cloudTrailClient) lookupEvents(ctx context.Context, req *activity.ListC
 	}, nil
 }
 
-func generateLookupEventInput(ctx context.Context, req *activity.ListCloudTrailRequest) *cloudtrail.LookupEventsInput {
+func generateLookupEventInput(req *activity.ListCloudTrailRequest) (*cloudtrail.LookupEventsInput, error) {
 	lookupInput := &cloudtrail.LookupEventsInput{
 		EndTime:    aws.Time(time.Now()),
 		StartTime:  aws.Time(time.Now().AddDate(0, 0, -90)),
@@ -154,9 +159,13 @@ func generateLookupEventInput(ctx context.Context, req *activity.ListCloudTrailR
 	}
 	lookupInput.LookupAttributes = lookupAttributes
 	if !zero.IsZeroVal(req.NextToken) {
-		lookupInput.NextToken = aws.String(decodeBase64(ctx, req.NextToken))
+		token, err := decodeBase64(req.NextToken)
+		if err != nil {
+			return nil, err
+		}
+		lookupInput.NextToken = aws.String(token)
 	}
-	return lookupInput
+	return lookupInput, nil
 }
 
 func convertTrailResource(input []*cloudtrail.Resource) []*activity.Resource {

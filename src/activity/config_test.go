@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/ca-risken/aws/proto/activity"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConvertConfigTag(t *testing.T) {
@@ -93,9 +94,10 @@ func TestGenerateGetResourceConfigHistoryInput(t *testing.T) {
 	nowUnix := time.Now().Unix()
 	now := time.Unix(nowUnix, 0)
 	cases := []struct {
-		name  string
-		input *activity.ListConfigHistoryRequest
-		want  *configservice.GetResourceConfigHistoryInput
+		name    string
+		input   *activity.ListConfigHistoryRequest
+		want    *configservice.GetResourceConfigHistoryInput
+		wantErr bool
 	}{
 		{
 			name: "OK minimum",
@@ -139,10 +141,28 @@ func TestGenerateGetResourceConfigHistoryInput(t *testing.T) {
 				NextToken:          aws.String("token"),
 			},
 		},
+		{
+			name: "Error invalid token",
+			input: &activity.ListConfigHistoryRequest{
+				ProjectId:          1,
+				AwsId:              1,
+				Region:             "ap-northeast-1",
+				ResourceType:       "AWS::S3::Bucket",
+				ResourceId:         "some-bucket",
+				EarlierTime:        nowUnix,
+				LaterTime:          nowUnix,
+				ChronologicalOrder: "Forward",
+				StartingToken:      "invalid",
+			},
+			want: nil,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := generateGetResourceConfigHistoryInput(context.TODO(), c.input)
+			got, err := generateGetResourceConfigHistoryInput(context.TODO(), c.input)
+			if c.wantErr {
+				assert.Error(t, err)
+			}
 			if !reflect.DeepEqual(c.want, got) {
 				t.Fatalf("Unexpected data: want=%+v, got=%+v", c.want, got)
 			}

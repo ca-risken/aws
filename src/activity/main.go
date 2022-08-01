@@ -80,10 +80,15 @@ func main() {
 		appLogger.Fatal(ctx, err)
 	}
 
-	service := &activityService{}
-	service.awsClient = newAWSClient(conf.DataSourceAPISvcAddr)
-	service.cloudTrailClient = newCloudTrailClient(conf.AWSRegion)
-	service.configClient = newConfigServiceClient(conf.AWSRegion)
+	awsc, err := newAWSClient(conf.DataSourceAPISvcAddr)
+	if err != nil {
+		appLogger.Fatalf(ctx, "Failed to create aws client: %+v", err)
+	}
+	service := &activityService{
+		awsClient:        awsc,
+		cloudTrailClient: newCloudTrailClient(conf.AWSRegion),
+		configClient:     newConfigServiceClient(conf.AWSRegion),
+	}
 
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(
