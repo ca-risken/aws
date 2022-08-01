@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ca-risken/core/proto/alert"
@@ -11,31 +12,31 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func newFindingClient(svcAddr string) finding.FindingServiceClient {
+func newFindingClient(svcAddr string) (finding.FindingServiceClient, error) {
 	ctx := context.Background()
 	conn, err := getGRPCConn(ctx, svcAddr)
 	if err != nil {
-		appLogger.Fatalf(ctx, "Faild to get GRPC connection: err=%+v", err)
+		return nil, fmt.Errorf("failed to get GRPC connection: err=%w", err)
 	}
-	return finding.NewFindingServiceClient(conn)
+	return finding.NewFindingServiceClient(conn), nil
 }
 
-func newAlertClient(svcAddr string) alert.AlertServiceClient {
+func newAlertClient(svcAddr string) (alert.AlertServiceClient, error) {
 	ctx := context.Background()
 	conn, err := getGRPCConn(ctx, svcAddr)
 	if err != nil {
-		appLogger.Fatalf(ctx, "Faild to get GRPC connection: err=%+v", err)
+		return nil, fmt.Errorf("failed to get GRPC connection: err=%w", err)
 	}
-	return alert.NewAlertServiceClient(conn)
+	return alert.NewAlertServiceClient(conn), nil
 }
 
-func newAWSClient(svcAddr string) aws.AWSServiceClient {
+func newAWSClient(svcAddr string) (aws.AWSServiceClient, error) {
 	ctx := context.Background()
 	conn, err := getGRPCConn(ctx, svcAddr)
 	if err != nil {
-		appLogger.Fatalf(ctx, "Faild to get GRPC connection: err=%+v", err)
+		return nil, fmt.Errorf("failed to get GRPC connection: err=%w", err)
 	}
-	return aws.NewAWSServiceClient(conn)
+	return aws.NewAWSServiceClient(conn), nil
 }
 
 func getGRPCConn(ctx context.Context, addr string) (*grpc.ClientConn, error) {

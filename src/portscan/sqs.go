@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/ca-risken/common/pkg/logging"
 	"github.com/ca-risken/go-sqs-poller/worker/v5"
 	"golang.org/x/net/context"
@@ -19,13 +21,13 @@ type sqsConfig struct {
 	ScanConcurrency    int64
 }
 
-func newSQSConsumer(ctx context.Context, conf *sqsConfig) *worker.Worker {
+func newSQSConsumer(ctx context.Context, conf *sqsConfig) (*worker.Worker, error) {
 	if conf.Debug == "true" {
 		appLogger.Level(logging.DebugLevel)
 	}
 	sqsClient, err := worker.CreateSqsClient(ctx, conf.AWSRegion, conf.SQSEndpoint)
 	if err != nil {
-		appLogger.Fatalf(ctx, "Failed to create a new client, %v", err)
+		return nil, fmt.Errorf("failed to create a new SQS client, %w", err)
 	}
 	return &worker.Worker{
 		Config: &worker.Config{
@@ -36,5 +38,5 @@ func newSQSConsumer(ctx context.Context, conf *sqsConfig) *worker.Worker {
 		},
 		Log:       appLogger,
 		SqsClient: sqsClient,
-	}
+	}, nil
 }
