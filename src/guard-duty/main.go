@@ -88,14 +88,30 @@ func main() {
 		MaxNumberOfMessage: conf.MaxNumberOfMessage,
 		WaitTimeSecond:     conf.WaitTimeSecond,
 	}
-	consumer := newSQSConsumer(ctx, sqsConf)
-
-	handler := &sqsHandler{
-		awsRegion: conf.AWSRegion,
+	consumer, err := newSQSConsumer(ctx, sqsConf)
+	if err != nil {
+		appLogger.Fatalf(ctx, "Failed to create SQS consumer, err=%+v", err)
 	}
-	handler.findingClient = newFindingClient(conf.CoreSvcAddr)
-	handler.alertClient = newAlertClient(conf.CoreSvcAddr)
-	handler.awsClient = newAWSClient(conf.DataSourceAPISvcAddr)
+
+	findingClient, err := newFindingClient(conf.CoreSvcAddr)
+	if err != nil {
+		appLogger.Fatalf(ctx, "Failed to create finding client, err=%+v", err)
+	}
+	alertClient, err := newAlertClient(conf.CoreSvcAddr)
+	if err != nil {
+		appLogger.Fatalf(ctx, "Failed to create alert client, err=%+v", err)
+	}
+	awsClient, err := newAWSClient(conf.DataSourceAPISvcAddr)
+	if err != nil {
+		appLogger.Fatalf(ctx, "Failed to create aws client, err=%+v", err)
+	}
+	handler := &sqsHandler{
+		awsRegion:     conf.AWSRegion,
+		findingClient: findingClient,
+		alertClient:   alertClient,
+		awsClient:     awsClient,
+	}
+
 	f, err := mimosasqs.NewFinalizer(message.AWSGuardDutyDataSource, settingURL, conf.CoreSvcAddr, nil)
 	if err != nil {
 		appLogger.Fatalf(ctx, "Failed to create finalizer, err=%+v", err)
