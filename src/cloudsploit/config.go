@@ -54,7 +54,7 @@ func (c *CloudsploitConfig) createConfigFile(ctx context.Context, accessKeyID, s
 	config = strings.Replace(config, "SECRET_KEY", secretAccessKey, 1)
 	config = strings.Replace(config, "SESSION_TOKEN", sessoinToken, 1)
 	if _, err := file.Write(([]byte)(config)); err != nil {
-		appLogger.Errorf(ctx, "Failed to write file, filename: %s", file.Name())
+		return "", fmt.Errorf("failed to write file, filename: %s, err: %w", file.Name(), err)
 	}
 	return file.Name(), nil
 }
