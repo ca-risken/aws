@@ -492,7 +492,15 @@ func scan(ctx context.Context, targets []*target, scanConcurrency int64) ([]*por
 			default:
 				results, err := portscan.Scan(t.Target, t.Protocol, t.FromPort, t.ToPort)
 				if err != nil {
-					return err
+					// TODO 以下を確認したら、エラーの種類によるハンドリングはせずにそのまま呼び出し元に返すように変更する予定
+					// 握りつぶしていたエラーを返すようにしたが、そのエラーがどれくらい発生していたかが不明なためそのままエラーを返すとオペレーションの負荷が高くなる可能性がある。
+					// 発生件数を確認するためにログ出力だけを行いエラーは返さずに終了させる。
+					if _, ok := err.(*portscan.ResultAnalysisError); ok {
+						appLogger.Warnf(ctx, "Failed to analyze portscan results, err=%+v", err)
+						return nil
+					} else {
+						return err
+					}
 				}
 				for _, result := range results {
 					result.ResourceName = t.Arn
