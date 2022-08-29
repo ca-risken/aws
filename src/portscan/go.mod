@@ -15,7 +15,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.16.4
 	github.com/ca-risken/aws/pkg/common v0.0.0-20220615104517-4fd86adb9c78
 	github.com/ca-risken/common/pkg/logging v0.0.0-20220601065422-5b97bd6efc9b
-	github.com/ca-risken/common/pkg/portscan v0.0.0-20220808083611-4df285e3e690
+	github.com/ca-risken/common/pkg/portscan v0.0.0-20220829042458-b91c9aded6f1
 	github.com/ca-risken/common/pkg/profiler v0.0.0-20220601065422-5b97bd6efc9b
 	github.com/ca-risken/common/pkg/sqs v0.0.0-20220525094706-413e91572a52
 	github.com/ca-risken/common/pkg/tracer v0.0.0-20220601065422-5b97bd6efc9b
