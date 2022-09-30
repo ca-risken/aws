@@ -1,4 +1,5 @@
 TARGETS = access-analyzer activity admin-checker cloudsploit guard-duty portscan
+MOCK_TARGETS = activity.mock
 BUILD_TARGETS = $(TARGETS:=.build)
 BUILD_CI_TARGETS = $(TARGETS:=.build-ci)
 IMAGE_PUSH_TARGETS = $(TARGETS:=.push-image)
@@ -35,8 +36,13 @@ clean:
 fmt: proto/**/*.proto
 	clang-format -i proto/**/*.proto
 
+.PHONY: proto-mock
+proto-mock: $(MOCK_TARGETS)
+%.mock: FAKE
+	sh hack/generate-mock.sh proto/$(*)
+
 .PHONY: proto
-proto: fmt
+proto: fmt proto-mock
 	protoc \
 		--proto_path=proto \
 		--error_format=gcc \
