@@ -1548,27 +1548,26 @@ var recommendMap = map[string]recommend{
 		- http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/domain-transfer-from-route-53.html`,
 	},
 	categoryS3 + "/bucketAllUsersAcl": {
+		Risk: `S3 Bucket All Users ACL
+		- Ensures S3 buckets do not allow global write, delete, or read ACL permissions
+		- S3 buckets can be configured to allow anyone, regardless of whether they are an AWS user or not, to write objects to a bucket or delete objects.
+		- This option should not be configured unless there is a strong business requirement.`,
+		Recommendation: `Disable global all users policies on all S3 buckets and ensure both the bucket ACL is configured with least privileges.
+		- http://docs.aws.amazon.com/AmazonS3/latest/UG/EditingBucketPermissions.html`,
+	},
+	categoryS3 + "/bucketAllUsersPolicy": {
 		Risk: `S3 Bucket All Users Policy
 		- Ensures S3 bucket policies do not allow global write, delete, or read permissions
-		- S3 buckets can be configured to allow the global principal to access the bucket via the bucket policy.
-		- This policy should be restricted only to known users or accounts.`,
+		- S3 buckets can be configured to allow the global principal to access the bucket via the bucket policy. This policy should be restricted only to known users or accounts.`,
 		Recommendation: `Remove wildcard principals from the bucket policy statements.
 		- https://docs.aws.amazon.com/AmazonS3/latest/dev/using-iam-policies.html`,
 	},
-	categoryS3 + "/bucketAllUsersPolicy": {
+	categoryS3 + "/bucketEncryption": {
 		Risk: `S3 Bucket Encryption
 		- Ensures object encryption is enabled on S3 buckets
 		- S3 object encryption provides fully-managed encryption of all objects uploaded to an S3 bucket.`,
 		Recommendation: `Enable CMK KMS-based encryption for all S3 buckets.
 		- https://docs.aws.amazon.com/AmazonS3/latest/dev/bucket-encryption.html`,
-	},
-	categoryS3 + "/bucketEncryption": {
-		Risk: `S3 Bucket Encryption In Transit
-		- Ensures S3 buckets have bucket policy statements that deny insecure transport
-		- S3 bucket policies can be configured to deny access to the bucket over HTTP.`,
-		Recommendation: `Add statements to the bucket policy that deny all S3 actions when SecureTransport is false. 
-		- Resources must be list of bucket ARN and bucket ARN with wildcard.
-		- https://aws.amazon.com/premiumsupport/knowledge-center/s3-bucket-policy-for-config-rule/`,
 	},
 	categoryS3 + "/bucketEncryptionInTransit": {
 		Risk: `S3 Bucket Encryption In Transit
