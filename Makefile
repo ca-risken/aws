@@ -21,9 +21,9 @@ all: build
 .PHONY: install
 install:
 	brew install protobuf clang-format && \
-	go get google.golang.org/grpc@v1.38.0 && \
-	go get github.com/golang/protobuf@v1.5.2 && \
-	go get -u github.com/golang/protobuf/protoc-gen-go && \
+	go install google.golang.org/grpc@v1.38.0 && \
+	go install github.com/golang/protobuf@v1.5.2 && \
+	go install github.com/golang/protobuf/protoc-gen-go && \
 	go install github.com/envoyproxy/protoc-gen-validate@v0.6.1 && \
 	go get github.com/grpc-ecosystem/go-grpc-middleware@latest
 

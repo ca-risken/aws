@@ -1,6 +1,6 @@
 module github.com/ca-risken/aws/pkg/common
 
-go 1.17
+go 1.18
 
 require github.com/ca-risken/datasource-api v0.0.0-20220615043958-794d01b2e367
 
