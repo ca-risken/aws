@@ -1,14 +1,13 @@
 FROM golang:1.18.2 as builder
 WORKDIR /go/src/github.com/ca-risken/aws/src/cloudsploit/
 ADD *.go go.* ./
-ENV CGO_ENABLED=0
 ARG GITHUB_USER
 ARG GITHUB_TOKEN
 RUN echo "machine github.com" > ~/.netrc
 RUN echo "login $GITHUB_USER" >> ~/.netrc
 RUN echo "password $GITHUB_TOKEN" >> ~/.netrc
 RUN go mod download
-RUN GO_ENABLED=0 GOOS=linux go build -buildvcs=false -o /go/bin/
+RUN CGO_ENABLED=0 GOOS=linux go build -buildvcs=false -o /go/bin/
 
 FROM public.ecr.aws/risken/base/cloudsploit-base:v0.0.1
 COPY --from=builder /go/bin/cloudsploit /usr/local/cloudsploit/bin/

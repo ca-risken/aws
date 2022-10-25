@@ -8,7 +8,7 @@ RUN echo "machine github.com" > ~/.netrc
 RUN echo "login $GITHUB_USER" >> ~/.netrc
 RUN echo "password $GITHUB_TOKEN" >> ~/.netrc
 RUN go mod download
-RUN GO_ENABLED=0 GOOS=linux go build -buildvcs=false -o /go/bin/
+RUN CGO_ENABLED=0 GOOS=linux go build -buildvcs=false -o /go/bin/
 
 FROM public.ecr.aws/risken/base/risken-base:v0.0.1
 COPY --from=builder /go/bin/activity /usr/local/activity/bin/
