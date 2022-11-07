@@ -1,0 +1,12 @@
+go 1.18
+
+use (
+	./pkg/common
+	./proto/activity
+	./src/access-analyzer
+	./src/activity
+	./src/admin-checker
+	./src/cloudsploit
+	./src/guard-duty
+	./src/portscan
+)
