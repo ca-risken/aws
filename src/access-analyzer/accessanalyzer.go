@@ -32,15 +32,15 @@ type accessAnalyzerClient struct {
 	EC2 *ec2.Client
 }
 
-func newAccessAnalyzerClient(ctx context.Context, region, assumeRole, externalID string) (accessAnalyzerAPI, error) {
+func newAccessAnalyzerClient(ctx context.Context, region, assumeRole, externalID string, retry int) (accessAnalyzerAPI, error) {
 	a := accessAnalyzerClient{}
-	if err := a.newAWSSession(ctx, region, assumeRole, externalID); err != nil {
+	if err := a.newAWSSession(ctx, region, assumeRole, externalID, retry); err != nil {
 		return nil, err
 	}
 	return &a, nil
 }
 
-func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string) error {
+func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string, retry int) error {
 	if assumeRole == "" {
 		return errors.New("required AWS AssumeRole")
 	}
@@ -63,8 +63,8 @@ func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, region, assume
 	if err != nil {
 		return err
 	}
-	a.Svc = accessanalyzer.New(accessanalyzer.Options{Credentials: cfg.Credentials, Region: region})
-	a.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region})
+	a.Svc = accessanalyzer.New(accessanalyzer.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	a.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	return nil
 }
 
