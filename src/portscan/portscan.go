@@ -48,16 +48,16 @@ type portscanClient struct {
 	Region               string
 }
 
-func newPortscanClient(ctx context.Context, region, assumeRole, externalID string, scanExcludePortNumber int) (portscanAPI, error) {
+func newPortscanClient(ctx context.Context, region, assumeRole, externalID string, scanExcludePortNumber, retry int) (portscanAPI, error) {
 	p := portscanClient{}
-	if err := p.newAWSSession(ctx, region, assumeRole, externalID); err != nil {
+	if err := p.newAWSSession(ctx, region, assumeRole, externalID, retry); err != nil {
 		return nil, err
 	}
 	p.Region = region
 	return &p, nil
 }
 
-func (p *portscanClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string) error {
+func (p *portscanClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string, retry int) error {
 	if assumeRole == "" {
 		return errors.New("Required AWS AssumeRole")
 	}
@@ -80,11 +80,11 @@ func (p *portscanClient) newAWSSession(ctx context.Context, region, assumeRole, 
 	if err != nil {
 		return err
 	}
-	p.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region})
-	p.ELB = elb.New(elb.Options{Credentials: cfg.Credentials, Region: region})
-	p.ELBv2 = elbv2.New(elbv2.Options{Credentials: cfg.Credentials, Region: region})
-	p.RDS = rds.New(rds.Options{Credentials: cfg.Credentials, Region: region})
-	p.Lightsail = lightsail.New(lightsail.Options{Credentials: cfg.Credentials, Region: region})
+	p.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	p.ELB = elb.New(elb.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	p.ELBv2 = elbv2.New(elbv2.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	p.RDS = rds.New(rds.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	p.Lightsail = lightsail.New(lightsail.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	return nil
 }
 

@@ -17,10 +17,11 @@ import (
 )
 
 type sqsHandler struct {
-	findingClient finding.FindingServiceClient
-	alertClient   alert.AlertServiceClient
-	awsClient     awsClient.AWSServiceClient
-	awsRegion     string
+	findingClient    finding.FindingServiceClient
+	alertClient      alert.AlertServiceClient
+	awsClient        awsClient.AWSServiceClient
+	awsRegion        string
+	retryMaxAttempts int
 }
 
 func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) error {
@@ -40,7 +41,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	appLogger.Infof(ctx, "start Scan, RequestID=%s", requestID)
 
 	status := common.InitScanStatus(msg)
-	guardduty, err := newGuardDutyClient(ctx, s.awsRegion, msg.AssumeRoleArn, msg.ExternalID)
+	guardduty, err := newGuardDutyClient(ctx, s.awsRegion, msg.AssumeRoleArn, msg.ExternalID, s.retryMaxAttempts)
 	if err != nil {
 		appLogger.Errorf(ctx, "Failed to create GuardDuty session: err=%+v", err)
 		s.updateStatusToError(ctx, &status, err)
@@ -64,7 +65,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 			continue
 		}
 		appLogger.Infof(ctx, "Start %s region search...", *region.RegionName)
-		guardduty, err = newGuardDutyClient(ctx, *region.RegionName, msg.AssumeRoleArn, msg.ExternalID)
+		guardduty, err = newGuardDutyClient(ctx, *region.RegionName, msg.AssumeRoleArn, msg.ExternalID, s.retryMaxAttempts)
 		if err != nil {
 			appLogger.Errorf(ctx, "Failed to create GuardDuty session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			s.updateStatusToError(ctx, &status, err)

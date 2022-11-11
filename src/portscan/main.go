@@ -45,6 +45,7 @@ type AppConfig struct {
 	// portsan
 	ScanExcludePortNumber int   `split_words:"true" default:"1000"`
 	ScanConcurrency       int64 `split_words:"true" default:"5"`
+	RetryMaxAttempts      int   `split_words:"true" default:"10"`
 }
 
 func main() {
@@ -117,6 +118,7 @@ func main() {
 		findingClient:         findingClient,
 		alertClient:           alertClient,
 		awsClient:             awsClient,
+		retryMaxAttempts:      conf.RetryMaxAttempts,
 	}
 	f, err := mimosasqs.NewFinalizer(message.AWSPortscanDataSource, settingURL, conf.CoreSvcAddr, nil)
 	if err != nil {
