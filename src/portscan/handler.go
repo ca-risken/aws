@@ -24,6 +24,7 @@ type sqsHandler struct {
 	awsRegion             string
 	scanExcludePortNumber int
 	scanConcurrency       int64
+	retryMaxAttempts      int
 }
 
 func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) error {
@@ -65,7 +66,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	}
 
 	// Get portscan
-	portscan, err := newPortscanClient(ctx, s.awsRegion, msg.AssumeRoleArn, msg.ExternalID, s.scanExcludePortNumber)
+	portscan, err := newPortscanClient(ctx, s.awsRegion, msg.AssumeRoleArn, msg.ExternalID, s.scanExcludePortNumber, s.retryMaxAttempts)
 	if err != nil {
 		appLogger.Errorf(ctx, "Failed to create Portscan session: err=%+v", err)
 		s.updateStatusToError(ctx, &status, err)
@@ -86,7 +87,7 @@ func (s *sqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 			return mimosasqs.WrapNonRetryable(err)
 		}
 		appLogger.Infof(ctx, "Start %s region search...", *region.RegionName)
-		portscan, err = newPortscanClient(ctx, *region.RegionName, msg.AssumeRoleArn, msg.ExternalID, s.scanExcludePortNumber)
+		portscan, err = newPortscanClient(ctx, *region.RegionName, msg.AssumeRoleArn, msg.ExternalID, s.scanExcludePortNumber, s.retryMaxAttempts)
 		if err != nil {
 			appLogger.Errorf(ctx, "Failed to create portscan session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			s.updateStatusToError(ctx, &status, err)

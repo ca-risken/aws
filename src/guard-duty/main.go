@@ -37,6 +37,7 @@ type AppConfig struct {
 	AWSGuardDutyQueueURL  string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-guardduty"`
 	MaxNumberOfMessage    int32  `split_words:"true" default:"10"`
 	WaitTimeSecond        int32  `split_words:"true" default:"20"`
+	RetryMaxAttempts      int    `split_words:"true" default:"10"`
 
 	// grpc
 	CoreSvcAddr          string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
@@ -106,10 +107,11 @@ func main() {
 		appLogger.Fatalf(ctx, "Failed to create aws client, err=%+v", err)
 	}
 	handler := &sqsHandler{
-		awsRegion:     conf.AWSRegion,
-		findingClient: findingClient,
-		alertClient:   alertClient,
-		awsClient:     awsClient,
+		awsRegion:        conf.AWSRegion,
+		findingClient:    findingClient,
+		alertClient:      alertClient,
+		awsClient:        awsClient,
+		retryMaxAttempts: conf.RetryMaxAttempts,
 	}
 
 	f, err := mimosasqs.NewFinalizer(message.AWSGuardDutyDataSource, settingURL, conf.CoreSvcAddr, nil)

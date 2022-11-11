@@ -32,15 +32,15 @@ type guardDutyClient struct {
 	EC2 *ec2.Client
 }
 
-func newGuardDutyClient(ctx context.Context, region, assumeRole, externalID string) (guardDutyAPI, error) {
+func newGuardDutyClient(ctx context.Context, region, assumeRole, externalID string, retry int) (guardDutyAPI, error) {
 	g := guardDutyClient{}
-	if err := g.newAWSSession(ctx, region, assumeRole, externalID); err != nil {
+	if err := g.newAWSSession(ctx, region, assumeRole, externalID, retry); err != nil {
 		return nil, err
 	}
 	return &g, nil
 }
 
-func (g *guardDutyClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string) error {
+func (g *guardDutyClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string, retry int) error {
 	if assumeRole == "" {
 		return errors.New("required AWS AssumeRole")
 	}
@@ -63,8 +63,8 @@ func (g *guardDutyClient) newAWSSession(ctx context.Context, region, assumeRole,
 	if err != nil {
 		return err
 	}
-	g.Svc = guardduty.New(guardduty.Options{Credentials: cfg.Credentials, Region: region})
-	g.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region})
+	g.Svc = guardduty.New(guardduty.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	g.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	return nil
 }
 
