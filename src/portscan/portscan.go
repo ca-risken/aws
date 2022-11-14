@@ -153,6 +153,10 @@ func (p *portscanClient) listSecurityGroup(ctx context.Context, accountID string
 		tPort := 65535
 		ipProtocol := "all"
 		for _, ipPermission := range securityGroup.IpPermissions {
+			// skip scan without tcp,udp and all
+			if *ipPermission.IpProtocol != "tcp" && *ipPermission.IpProtocol == "udp" && *ipPermission.IpProtocol != "-1" {
+				continue
+			}
 			if *ipPermission.IpProtocol == "tcp" || *ipPermission.IpProtocol == "udp" {
 				fPort = int(*ipPermission.FromPort)
 				tPort = int(*ipPermission.ToPort)
