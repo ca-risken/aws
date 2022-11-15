@@ -139,6 +139,8 @@ func (p *portscanClient) getTargets(ctx context.Context, message *message.AWSQue
 	return p.target, p.relSecurityGroupARNs, nil
 }
 
+const IP_PROTOCOL_ALL = "-1"
+
 func (p *portscanClient) listSecurityGroup(ctx context.Context, accountID string) error {
 	var retSG []*targetSG
 	allSecurityGroup := map[string]*relSecurityGroupArn{}
@@ -153,6 +155,10 @@ func (p *portscanClient) listSecurityGroup(ctx context.Context, accountID string
 		tPort := 65535
 		ipProtocol := "all"
 		for _, ipPermission := range securityGroup.IpPermissions {
+			// skip scan without tcp,udp and all
+			if *ipPermission.IpProtocol != "tcp" && *ipPermission.IpProtocol != "udp" && *ipPermission.IpProtocol != IP_PROTOCOL_ALL {
+				continue
+			}
 			if *ipPermission.IpProtocol == "tcp" || *ipPermission.IpProtocol == "udp" {
 				fPort = int(*ipPermission.FromPort)
 				tPort = int(*ipPermission.ToPort)
