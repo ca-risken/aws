@@ -103,8 +103,15 @@ func main() {
 	if err != nil {
 		appLogger.Fatalf(ctx, "Failed to create aws client, err=%+v", err)
 	}
-	handler := cloudsploit.NewSqsHandler(fc, ac, awsc,
-		conf.ResultDir, conf.ConfigDir, conf.CloudsploitDir, conf.AWSRegion, conf.MaxMemSizeMB, appLogger)
+	cloudsploitConf := cloudsploit.NewCloudsploitConfig(
+		conf.ResultDir,
+		conf.ConfigDir,
+		conf.CloudsploitDir,
+		conf.AWSRegion,
+		conf.MaxMemSizeMB,
+		appLogger,
+	)
+	handler := cloudsploit.NewSqsHandler(fc, ac, awsc, cloudsploitConf, appLogger)
 	f, err := mimosasqs.NewFinalizer(message.AWSCloudSploitDataSource, settingURL, conf.CoreSvcAddr, nil)
 	if err != nil {
 		appLogger.Fatalf(ctx, "Failed to create Finalizer, err=%+v", err)

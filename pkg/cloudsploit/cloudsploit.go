@@ -27,7 +27,6 @@ func NewCloudsploitConfig(
 	configDir string,
 	cloudsploitDir string,
 	region string,
-	configPath string,
 	maxMem int,
 	l logging.Logger,
 ) *CloudsploitConfig {
@@ -36,7 +35,6 @@ func NewCloudsploitConfig(
 		ConfigDir:      configDir,
 		CloudsploitDir: cloudsploitDir,
 		AWSRegion:      region,
-		ConfigPath:     configPath,
 		MaxMemSizeMB:   maxMem,
 		logger:         l,
 	}

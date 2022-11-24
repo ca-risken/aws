@@ -17,39 +17,26 @@ import (
 )
 
 type SqsHandler struct {
-	findingClient finding.FindingServiceClient
-	alertClient   alert.AlertServiceClient
-	awsClient     awsClient.AWSServiceClient
-	// cloudsploit
-	resultDir      string
-	configDir      string
-	cloudsploitDir string
-	awsRegion      string
-	maxMemSizeMB   int
-	logger         logging.Logger
+	findingClient   finding.FindingServiceClient
+	alertClient     alert.AlertServiceClient
+	awsClient       awsClient.AWSServiceClient
+	cloudsploitConf *CloudsploitConfig
+	logger          logging.Logger
 }
 
 func NewSqsHandler(
 	fc finding.FindingServiceClient,
 	ac alert.AlertServiceClient,
 	awsc awsClient.AWSServiceClient,
-	resultDir string,
-	configDir string,
-	cloudsploitDir string,
-	region string,
-	maxMem int,
+	csConfig *CloudsploitConfig,
 	l logging.Logger,
 ) *SqsHandler {
 	return &SqsHandler{
-		findingClient:  fc,
-		alertClient:    ac,
-		awsClient:      awsc,
-		resultDir:      resultDir,
-		configDir:      configDir,
-		cloudsploitDir: cloudsploitDir,
-		awsRegion:      region,
-		maxMemSizeMB:   maxMem,
-		logger:         l,
+		findingClient:   fc,
+		alertClient:     ac,
+		awsClient:       awsc,
+		cloudsploitConf: csConfig,
+		logger:          l,
 	}
 }
 
@@ -78,14 +65,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 		return mimosasqs.WrapNonRetryable(err)
 	}
 
-	cloudsploitConf := &CloudsploitConfig{
-		ResultDir:      s.resultDir,
-		ConfigDir:      s.configDir,
-		CloudsploitDir: s.cloudsploitDir,
-		AWSRegion:      s.awsRegion,
-		MaxMemSizeMB:   s.maxMemSizeMB,
-	}
-	err = cloudsploitConf.generate(ctx, msg.AssumeRoleArn, msg.ExternalID, msg.AWSID, msg.AccountID)
+	err = s.cloudsploitConf.generate(ctx, msg.AssumeRoleArn, msg.ExternalID, msg.AWSID, msg.AccountID)
 	if err != nil {
 		s.logger.Errorf(ctx, "Error occured when configure: %v, error: %v", msg, err)
 		return mimosasqs.WrapNonRetryable(err)
@@ -94,7 +74,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	// Run cloudsploit
 	tspan, _ := tracer.StartSpanFromContext(ctx, "runCloudSploit")
 	s.logger.Infof(ctx, "start cloudsploit scan, RequestID=%s", requestID)
-	cloudsploitResult, err := cloudsploitConf.run(ctx, msg.AccountID)
+	cloudsploitResult, err := s.cloudsploitConf.run(ctx, msg.AccountID)
 	tspan.Finish(tracer.WithError(err))
 	if err != nil {
 		s.logger.Errorf(ctx, "Failed to exec cloudsploit, error: %v", err)
