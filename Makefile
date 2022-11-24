@@ -98,36 +98,36 @@ go-test:
 lint:
 	GO111MODULE=on GOFLAGS=-buildvcs=false golangci-lint run --timeout 5m
 
-.PHONY: enque-accessanalyzer
-enque-accessanalyzer:
+.PHONY: enqueue-accessanalyzer
+enqueue-accessanalyzer:
 	aws sqs send-message \
 		--endpoint-url http://localhost:9324 \
 		--queue-url http://localhost:9324/queue/aws-accessanalyzer \
 		--message-body '{"aws_id":1001, "aws_data_source_id":1002, "data_source":"aws:access-analyzer", "project_id":1001, "account_id":"315855282677", "assume_role_arn":"arn:aws:iam::315855282677:role/stg-security-monitor", "external_id":""}'
 
-.PHONY: enque-adminchecker
-enque-adminchecker:
+.PHONY: enqueue-adminchecker
+enqueue-adminchecker:
 	aws sqs send-message \
 		--endpoint-url http://localhost:9324 \
 		--queue-url http://localhost:9324/queue/aws-adminchecker \
 		--message-body '{"aws_id":1001, "aws_data_source_id":1003, "data_source":"aws:admin-checker", "project_id":1001, "account_id":"315855282677", "assume_role_arn":"arn:aws:iam::315855282677:role/stg-security-monitor", "external_id":""}'
 
-.PHONY: enque-cloudsploit
-enque-cloudsploit:
+.PHONY: enqueue-cloudsploit
+enqueue-cloudsploit:
 	aws sqs send-message \
 		--endpoint-url http://localhost:9324 \
 		--queue-url http://localhost:9324/queue/aws-cloudsploit \
 		--message-body '{"aws_id":1001, "aws_data_source_id":1001, "data_source":"aws:cloudsploit", "project_id":1001, "account_id":"171706544897", "assume_role_arn":"arn:aws:iam::171706544897:role/cloudsploit-test, "external_id":""}'
 
-.PHONY: enque-guardduty
-enque-guardduty:
+.PHONY: enqueue-guardduty
+enqueue-guardduty:
 	aws sqs send-message \
 		--endpoint-url http://localhost:9324 \
 		--queue-url http://localhost:9324/queue/aws-guardduty \
 		--message-body '{"aws_id":1001, "aws_data_source_id":1001, "data_source":"aws:guard-duty", "project_id":1001, "account_id":"315855282677", "assume_role_arn":"arn:aws:iam::315855282677:role/stg-security-monitor", "external_id":""}'
 
-.PHONY: enque-portscan
-enque-portscan:
+.PHONY: enqueue-portscan
+enqueue-portscan:
 	aws sqs send-message \
 		--endpoint-url http://localhost:9324 \
 		--queue-url http://localhost:9324/queue/aws-portscan \
