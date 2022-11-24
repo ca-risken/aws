@@ -5,16 +5,7 @@ env:
     PUBLIC_REGISTRY: 'public.ecr.aws/risken'
     IMAGE_PREFIX: 'aws'
 
-  parameter-store:
-    GITHUB_USER: '/build/GITHUB_USER'
-    GITHUB_TOKEN: '/build/GITHUB_TOKEN'
-
 phases:
-  install:
-    commands:
-      - echo "machine github.com" > ~/.netrc
-      - echo "login ${GITHUB_USER}" >> ~/.netrc
-      - echo "password ${GITHUB_TOKEN}" >> ~/.netrc
   pre_build:
     commands:
       - echo Setting environment variables

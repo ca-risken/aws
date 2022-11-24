@@ -53,7 +53,7 @@ proto: fmt proto-mock
 
 .PHONY: build
 build: $(BUILD_TARGETS)
-%.build: %.go-test
+%.build: go-test
 	TARGET=$(*) IMAGE_TAG=$(IMAGE_TAG) IMAGE_PREFIX=$(IMAGE_PREFIX) BUILD_OPT="$(BUILD_OPT)" . hack/docker-build.sh
 
 .PHONY: build-ci
@@ -90,70 +90,58 @@ push-manifest: $(MANIFEST_PUSH_TARGETS)
 	docker manifest push $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(MANIFEST_TAG)
 	docker manifest inspect $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(MANIFEST_TAG)
 
-.PHONY: go-test pkg-test
-go-test: $(TEST_TARGETS) pkg-test
-%.go-test: FAKE
-	cd src/$(*) && GO111MODULE=on go test ./...
-pkg-test:
-	cd pkg/common  && GO111MODULE=on go test ./...
+.PHONY: go-test
+go-test:
+	GO111MODULE=on go test ./...
 
-.PHONY: go-mod-update
-go-mod-update:
-	cd src/guard-duty \
-		&& go get -u \
-			github.com/ca-risken/core/... \
-			github.com/ca-risken/datasource-api/... \
-			github.com/ca-risken/aws/...
-	cd src/access-analyzer \
-		&& go get -u \
-			github.com/ca-risken/core/... \
-			github.com/ca-risken/datasource-api/... \
-			github.com/ca-risken/aws/...
-	cd src/admin-checker \
-		&& go get -u \
-			github.com/ca-risken/core/... \
-			github.com/ca-risken/datasource-api/... \
-			github.com/ca-risken/aws/...
-	cd src/cloudsploit \
-		&& go get -u \
-			github.com/ca-risken/core/... \
-			github.com/ca-risken/datasource-api/... \
-			github.com/ca-risken/aws/...
-	cd src/portscan \
-		&& go get -u \
-			github.com/ca-risken/common/... \
-			github.com/ca-risken/core/... \
-			github.com/ca-risken/datasource-api/... \
-			github.com/ca-risken/aws/...
-	cd src/activity \
-		&& go get -u \
-			github.com/ca-risken/core/... \
-			github.com/ca-risken/datasource-api/... \
-			github.com/ca-risken/aws/...
+.PHONY: lint
+lint:
+	GO111MODULE=on GOFLAGS=-buildvcs=false golangci-lint run --timeout 5m
 
-.PHONY: go-mod-tidy
-go-mod-tidy:
-	cd pkg/model           && go mod tidy
-	cd pkg/message         && go mod tidy
-	cd pkg/common          && go mod tidy
-	cd src/guard-duty      && go mod tidy
-	cd src/access-analyzer && go mod tidy
-	cd src/admin-checker   && go mod tidy
-	cd src/cloudsploit     && go mod tidy
-	cd src/portscan        && go mod tidy
-	cd src/activity        && go mod tidy
+.PHONY: enqueue-accessanalyzer
+enqueue-accessanalyzer:
+	aws sqs send-message \
+		--endpoint-url http://localhost:9324 \
+		--queue-url http://localhost:9324/queue/aws-accessanalyzer \
+		--message-body '{"aws_id":1001, "aws_data_source_id":1002, "data_source":"aws:access-analyzer", "project_id":1001, "account_id":"315855282677", "assume_role_arn":"arn:aws:iam::315855282677:role/stg-security-monitor", "external_id":""}'
 
-.PHONY: lint proto-lint pkg-lint
-lint: $(LINT_TARGETS) proto-lint pkg-lint
-%.lint: FAKE
-	sh hack/golinter.sh src/$(*)
-proto-lint:
-	sh hack/golinter.sh proto/activity
-pkg-lint:
-	sh hack/golinter.sh pkg/common
+.PHONY: enqueue-adminchecker
+enqueue-adminchecker:
+	aws sqs send-message \
+		--endpoint-url http://localhost:9324 \
+		--queue-url http://localhost:9324/queue/aws-adminchecker \
+		--message-body '{"aws_id":1001, "aws_data_source_id":1003, "data_source":"aws:admin-checker", "project_id":1001, "account_id":"315855282677", "assume_role_arn":"arn:aws:iam::315855282677:role/stg-security-monitor", "external_id":""}'
 
-.PHONY: workspace
-workspace:
-	go work use -r .	
+.PHONY: enqueue-cloudsploit
+enqueue-cloudsploit:
+	aws sqs send-message \
+		--endpoint-url http://localhost:9324 \
+		--queue-url http://localhost:9324/queue/aws-cloudsploit \
+		--message-body '{"aws_id":1001, "aws_data_source_id":1001, "data_source":"aws:cloudsploit", "project_id":1001, "account_id":"171706544897", "assume_role_arn":"arn:aws:iam::171706544897:role/cloudsploit-test, "external_id":""}'
+
+.PHONY: enqueue-guardduty
+enqueue-guardduty:
+	aws sqs send-message \
+		--endpoint-url http://localhost:9324 \
+		--queue-url http://localhost:9324/queue/aws-guardduty \
+		--message-body '{"aws_id":1001, "aws_data_source_id":1001, "data_source":"aws:guard-duty", "project_id":1001, "account_id":"315855282677", "assume_role_arn":"arn:aws:iam::315855282677:role/stg-security-monitor", "external_id":""}'
+
+.PHONY: enqueue-portscan
+enqueue-portscan:
+	aws sqs send-message \
+		--endpoint-url http://localhost:9324 \
+		--queue-url http://localhost:9324/queue/aws-portscan \
+		--message-body '{"aws_id":1001, "aws_data_source_id":1005, "data_source":"aws:portscan", "project_id":1001, "account_id":"315855282677", "assume_role_arn":"arn:aws:iam::315855282677:role/stg-security-monitor", "external_id":""}'
+
+.PHONY: list-activity-service
+list-activity-service:
+	grpcurl -plaintext localhost:9007 list aws.activity.ActivityService
+
+.PHONY: list-cloudtrail
+list-cloudtrail:
+	grpcurl \
+		-plaintext \
+		-d '{"project_id":1001, "aws_id":1002, "region":"ap-northeast-1", "start_time":1614524400, "end_time":1618823464, "attribute_key":3, "attribute_value":"4f26eb67-a8b3-4c55-8955-52d81b65c690"}' \
+		localhost:9007 aws.activity.ActivityService.ListCloudTrail
 
 FAKE:
