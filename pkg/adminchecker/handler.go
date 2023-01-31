@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
@@ -51,6 +52,8 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 		s.logger.Errorf(ctx, "Invalid message: SQS_msg=%+v, err=%+v", sqsMsg, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
+
+	beforeScanAt := time.Now()
 	requestID, err := s.logger.GenerateRequestID(fmt.Sprint(msg.ProjectID))
 	if err != nil {
 		s.logger.Warnf(ctx, "Failed to generate requestID: err=%+v", err)
@@ -89,23 +92,24 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 		return mimosasqs.WrapNonRetryable(err)
 	}
 
-	// Clear finding score
-	if _, err := s.findingClient.ClearScore(ctx, &finding.ClearScoreRequest{
-		DataSource: msg.DataSource,
-		ProjectId:  msg.ProjectID,
-		Tag:        []string{msg.AccountID},
-	}); err != nil {
-		s.logger.Errorf(ctx, "Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
-		s.updateStatusToError(ctx, &status, err)
-		return mimosasqs.WrapNonRetryable(err)
-	}
-
 	// Put finding
 	if err := s.putUserFindings(ctx, msg, userFindings); err != nil {
 		s.updateStatusToError(ctx, &status, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
 	if err := s.putRoleFindings(ctx, msg, roleFindings); err != nil {
+		s.updateStatusToError(ctx, &status, err)
+		return mimosasqs.WrapNonRetryable(err)
+	}
+
+	// Clear score for inactive findings
+	if _, err := s.findingClient.ClearScore(ctx, &finding.ClearScoreRequest{
+		DataSource: msg.DataSource,
+		ProjectId:  msg.ProjectID,
+		Tag:        []string{msg.AccountID},
+		BeforeAt:   beforeScanAt.Unix(),
+	}); err != nil {
+		s.logger.Errorf(ctx, "Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
 		s.updateStatusToError(ctx, &status, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}

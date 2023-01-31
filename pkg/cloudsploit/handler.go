@@ -3,6 +3,7 @@ package cloudsploit
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
@@ -49,6 +50,8 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 		s.logger.Errorf(ctx, "Invalid message. message: %v, error: %v", msg, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
+
+	beforeScanAt := time.Now()
 	requestID, err := s.logger.GenerateRequestID(fmt.Sprint(msg.ProjectID))
 	if err != nil {
 		s.logger.Warnf(ctx, "Failed to generate requestID: err=%+v", err)
@@ -83,20 +86,21 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	}
 	s.logger.Infof(ctx, "end cloudsploit scan, RequestID=%s", requestID)
 
-	// Clear finding score
-	if _, err := s.findingClient.ClearScore(ctx, &finding.ClearScoreRequest{
-		DataSource: msg.DataSource,
-		ProjectId:  msg.ProjectID,
-		Tag:        []string{msg.AccountID},
-	}); err != nil {
-		s.logger.Errorf(ctx, "Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
+	// Put Finding and Tag Finding
+	if err := s.putFindings(ctx, cloudsploitResult, msg); err != nil {
+		s.logger.Errorf(ctx, "Faild to put findings. AWSID: %v, error: %v", msg.AWSID, err)
 		s.updateStatusToError(ctx, &status, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
 
-	// Put Finding and Tag Finding
-	if err := s.putFindings(ctx, cloudsploitResult, msg); err != nil {
-		s.logger.Errorf(ctx, "Faild to put findings. AWSID: %v, error: %v", msg.AWSID, err)
+	// Clear score for inactive findings
+	if _, err := s.findingClient.ClearScore(ctx, &finding.ClearScoreRequest{
+		DataSource: msg.DataSource,
+		ProjectId:  msg.ProjectID,
+		Tag:        []string{msg.AccountID},
+		BeforeAt:   beforeScanAt.Unix(),
+	}); err != nil {
+		s.logger.Errorf(ctx, "Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
 		s.updateStatusToError(ctx, &status, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}

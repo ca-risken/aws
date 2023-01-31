@@ -59,6 +59,8 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 		s.logger.Errorf(ctx, "Invalid message: SQS_msg=%+v, err=%+v", msg, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
+
+	beforeScanAt := time.Now()
 	requestID, err := s.logger.GenerateRequestID(fmt.Sprint(msg.ProjectID))
 	if err != nil {
 		s.logger.Warnf(ctx, "Failed to generate requestID: err=%+v", err)
@@ -137,19 +139,21 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 		return mimosasqs.WrapNonRetryable(err)
 	}
 
-	if _, err := s.findingClient.ClearScore(ctx, &finding.ClearScoreRequest{
-		DataSource: msg.DataSource,
-		ProjectId:  msg.ProjectID,
-		Tag:        []string{msg.AccountID},
-	}); err != nil {
-		s.logger.Errorf(ctx, "Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
+	// Put finding to core
+	if err := s.putFindings(ctx, msg, nmapResults, excludeList, securityGroupsAllRegion); err != nil {
+		s.logger.Errorf(ctx, "Failed to put findings: AccountID=%+v, err=%+v", msg.AccountID, err)
 		s.updateStatusToError(ctx, &status, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
 
-	// Put finding to core
-	if err := s.putFindings(ctx, msg, nmapResults, excludeList, securityGroupsAllRegion); err != nil {
-		s.logger.Errorf(ctx, "Failed to put findings: AccountID=%+v, err=%+v", msg.AccountID, err)
+	// Clear score for inactive findings
+	if _, err := s.findingClient.ClearScore(ctx, &finding.ClearScoreRequest{
+		DataSource: msg.DataSource,
+		ProjectId:  msg.ProjectID,
+		Tag:        []string{msg.AccountID},
+		BeforeAt:   beforeScanAt.Unix(),
+	}); err != nil {
+		s.logger.Errorf(ctx, "Failed to clear finding score. AWSID: %v, error: %v", msg.AWSID, err)
 		s.updateStatusToError(ctx, &status, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
