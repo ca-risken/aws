@@ -1,5 +1,4 @@
-TARGETS = access-analyzer activity admin-checker cloudsploit guard-duty portscan
-MOCK_TARGETS = activity.mock
+TARGETS = access-analyzer admin-checker cloudsploit guard-duty portscan
 BUILD_TARGETS = $(TARGETS:=.build)
 BUILD_CI_TARGETS = $(TARGETS:=.build-ci)
 IMAGE_PUSH_TARGETS = $(TARGETS:=.push-image)
@@ -17,39 +16,6 @@ IMAGE_REGISTRY=local
 
 .PHONY: all
 all: build
-
-.PHONY: install
-install:
-	brew install protobuf clang-format && \
-	go install google.golang.org/grpc@v1.38.0 && \
-	go install github.com/golang/protobuf@v1.5.2 && \
-	go install github.com/golang/protobuf/protoc-gen-go && \
-	go install github.com/envoyproxy/protoc-gen-validate@v0.6.1 && \
-	go get github.com/grpc-ecosystem/go-grpc-middleware@latest
-
-.PHONY: clean
-clean:
-	rm -f proto/**/*.pb.go
-	rm -f doc/*.md
-
-.PHONY: fmt
-fmt: proto/**/*.proto
-	clang-format -i proto/**/*.proto
-
-.PHONY: proto-mock
-proto-mock: $(MOCK_TARGETS)
-%.mock: FAKE
-	sh hack/generate-mock.sh proto/$(*)
-
-.PHONY: proto
-proto: fmt proto-mock
-	protoc \
-		--proto_path=proto \
-		--error_format=gcc \
-		-I $(shell go env GOPATH)/pkg/mod/github.com/envoyproxy/protoc-gen-validate@v0.6.1 \
-		--go_out=plugins=grpc,paths=source_relative:proto \
-		--validate_out="lang=go,paths=source_relative:proto" \
-		proto/activity/*.proto; \
 
 .PHONY: build
 build: $(BUILD_TARGETS)
@@ -132,16 +98,5 @@ enqueue-portscan:
 		--endpoint-url http://localhost:9324 \
 		--queue-url http://localhost:9324/queue/aws-portscan \
 		--message-body '{"aws_id":1001, "aws_data_source_id":1005, "data_source":"aws:portscan", "project_id":1001, "account_id":"315855282677", "assume_role_arn":"arn:aws:iam::315855282677:role/stg-security-monitor", "external_id":""}'
-
-.PHONY: list-activity-service
-list-activity-service:
-	grpcurl -plaintext localhost:9007 list aws.activity.ActivityService
-
-.PHONY: list-cloudtrail
-list-cloudtrail:
-	grpcurl \
-		-plaintext \
-		-d '{"project_id":1001, "aws_id":1002, "region":"ap-northeast-1", "start_time":1614524400, "end_time":1618823464, "attribute_key":3, "attribute_value":"4f26eb67-a8b3-4c55-8955-52d81b65c690"}' \
-		localhost:9007 aws.activity.ActivityService.ListCloudTrail
 
 FAKE:
