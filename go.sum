@@ -150,8 +150,8 @@ github.com/ca-risken/common/pkg/sqs v0.0.0-20221119073224-9db027bda6f8 h1:qkGWlF
 github.com/ca-risken/common/pkg/sqs v0.0.0-20221119073224-9db027bda6f8/go.mod h1:OuXf9lf0tOf/9vd2LJ9peTv6YCYTsJTd9/1LAVxUeZY=
 github.com/ca-risken/common/pkg/tracer v0.0.0-20221119073224-9db027bda6f8 h1:2V2LbigwdS5QOoig6vw84F7KGGr52cjx5vRxj0BKJlk=
 github.com/ca-risken/common/pkg/tracer v0.0.0-20221119073224-9db027bda6f8/go.mod h1:PIXjETIPseBEB/OXp5Rxn8FFuRwfQjFZe1VN+0Skh2E=
-github.com/ca-risken/core v0.4.2-0.20221114035311-c4b88fcc3162 h1:suceXZrT0FaTVnFBYPc/2hpsfPZFRWp1Aoil8q5EYGo=
-github.com/ca-risken/core v0.4.2-0.20221114035311-c4b88fcc3162/go.mod h1:bbn0h9PJ2aQW9hGeRNja98Tx3vQQ5hDFWrCVkKgaR2w=
+github.com/ca-risken/core v0.5.1-0.20230131022604-6ee078ff449c h1:djX7qmNvIdqB0+kNZjUP+ZtJu0TAUDVVs+A5sNGUduw=
+github.com/ca-risken/core v0.5.1-0.20230131022604-6ee078ff449c/go.mod h1:imJ7Eut2LDOaG6i9VnbfxZdILA3bJorSQ/OGgt0VQJM=
 github.com/ca-risken/datasource-api v0.4.1 h1:4ghFYv9T0YLSv2yve5eHd8tjE7EnWzR2IqyJY1rqoOg=
 github.com/ca-risken/datasource-api v0.4.1/go.mod h1:XAUaKNB8N0+1DED5mVuq2ldzT4pZlLzIwCbTlr1QBwg=
 github.com/ca-risken/go-sqs-poller/worker/v5 v5.0.0-20220525093235-9148d33b6aee h1:aIrvjCnF+Owzzh7dnE1w4442CdcuUkHaJsJOXImjeqg=
