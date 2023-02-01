@@ -49,7 +49,6 @@ Deploy the pre-built containers to the Kubernetes environment on your local mach
 | cloudsploit    | spec.template.spec.containers.image | `public.ecr.aws/risken/aws/cloudsploit:latest`    | `aws/cloudsploit:latest`                 |
 | guardduty      | spec.template.spec.containers.image | `public.ecr.aws/risken/aws/guard-duty:latest`     | `aws/guard-duty:latest`                  |
 | portscan       | spec.template.spec.containers.image | `public.ecr.aws/risken/aws/portscan:latest`       | `aws/portscan:latest`                    |
-| activity       | spec.template.spec.containers.image | `public.ecr.aws/risken/aws/activity:latest`       | `aws/activity:latest`                    |
 
 ## Community
 
