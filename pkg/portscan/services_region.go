@@ -14,6 +14,7 @@ var LightSailRegions = []string{
 	"eu-west-1",
 	"eu-west-2",
 	"eu-west-3",
+	"eu-north-1",
 }
 
 func isAvailableRegionLightSail(region string) bool {

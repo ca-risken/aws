@@ -60,14 +60,16 @@ func newPortscanClient(ctx context.Context, region, assumeRole, externalID strin
 	return &p, nil
 }
 
+const REGION_US_EAST_1 = "us-east-1"
+
 func (p *portscanClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string, retry int) error {
 	if assumeRole == "" {
-		return errors.New("Required AWS AssumeRole")
+		return errors.New("required AWS AssumeRole")
 	}
 	if externalID == "" {
-		return errors.New("Required AWS ExternalID")
+		return errors.New("required AWS ExternalID")
 	}
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(REGION_US_EAST_1))
 	if err != nil {
 		return err
 	}
@@ -129,14 +131,13 @@ func (p *portscanClient) getTargets(ctx context.Context, message *message.AWSQue
 		p.logger.Errorf(ctx, "Failed to describeDBInstances(rds): err=%+v", err)
 		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
+	if !isAvailableRegionLightSail(p.Region) {
+		return p.target, p.relSecurityGroupARNs, nil
+	}
 	err = p.listLightsail(ctx)
 	if err != nil {
-		if isAvailableRegionLightSail(p.Region) {
-			p.logger.Errorf(ctx, "Failed to getInstances(lightsail): err=%+v", err)
-			return []*target{}, map[string]*relSecurityGroupArn{}, err
-		} else {
-			p.logger.Infof(ctx, "Failed to getInstances(lightsail). but region %v is not supported LightSail", p.Region)
-		}
+		p.logger.Errorf(ctx, "Failed to getInstances(lightsail): err=%+v", err)
+		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
 
 	return p.target, p.relSecurityGroupARNs, nil
