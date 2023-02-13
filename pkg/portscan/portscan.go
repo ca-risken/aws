@@ -131,12 +131,13 @@ func (p *portscanClient) getTargets(ctx context.Context, message *message.AWSQue
 		p.logger.Errorf(ctx, "Failed to describeDBInstances(rds): err=%+v", err)
 		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
-	if isAvailableRegionLightSail(p.Region) {
-		err = p.listLightsail(ctx)
-		if err != nil {
-			p.logger.Errorf(ctx, "Failed to getInstances(lightsail): err=%+v", err)
-			return []*target{}, map[string]*relSecurityGroupArn{}, err
-		}
+	if !isAvailableRegionLightSail(p.Region) {
+		return p.target, p.relSecurityGroupARNs, nil
+	}
+	err = p.listLightsail(ctx)
+	if err != nil {
+		p.logger.Errorf(ctx, "Failed to getInstances(lightsail): err=%+v", err)
+		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
 
 	return p.target, p.relSecurityGroupARNs, nil
