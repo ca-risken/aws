@@ -23,7 +23,7 @@ func (c *CloudsploitConfig) generate(ctx context.Context, assumeRole, externalID
 	}
 	creds, err := getCredential(ctx, assumeRole, externalID, time.Duration(3600)*time.Second) // MaxSessionDuration(for API): min=3600, max=3600
 	if err != nil {
-		return err
+		return fmt.Errorf("credential error: %w", err)
 	}
 	c.ConfigPath, err = c.createConfigFile(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, awsID, accountID)
 	return err

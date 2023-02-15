@@ -70,7 +70,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 
 	err = s.cloudsploitConf.generate(ctx, msg.AssumeRoleArn, msg.ExternalID, msg.AWSID, msg.AccountID)
 	if err != nil {
-		s.logger.Errorf(ctx, "Error occured when configure: %v, error: %v", msg, err)
+		s.updateStatusToError(ctx, &status, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
 
