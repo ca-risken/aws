@@ -107,3 +107,25 @@ type cloudSploitResult struct {
 	Status      string
 	Message     string
 }
+
+const (
+	STATUS_UNKNOWN = "UNKNOWN"
+	WARN_MESSAGE   = "UNKNOWN status detected. Some scans may have failed. Please take action if you don't have enough permissions."
+)
+
+func unknownFindings(findings *[]cloudSploitResult) string {
+	unknowns := map[string]int{}
+	for _, f := range *findings {
+		if f.Status == STATUS_UNKNOWN {
+			unknowns[fmt.Sprintf("%s: %s", f.Category, f.Message)]++
+		}
+	}
+	statusDetail := ""
+	for k, v := range unknowns {
+		statusDetail += fmt.Sprintf("%s (%d)\n", k, v)
+	}
+	if statusDetail != "" {
+		statusDetail = fmt.Sprintf("%s\n\n%s", WARN_MESSAGE, statusDetail)
+	}
+	return statusDetail
+}
