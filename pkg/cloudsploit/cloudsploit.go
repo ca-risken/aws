@@ -121,8 +121,8 @@ func unknownFindings(findings *[]cloudSploitResult) string {
 		}
 	}
 	statusDetail := ""
-	for k, v := range unknowns {
-		statusDetail += fmt.Sprintf("%s (%d)\n", k, v)
+	for k := range unknowns {
+		statusDetail += fmt.Sprintf("- %s\n", k)
 	}
 	if statusDetail != "" {
 		statusDetail = fmt.Sprintf("%s\n\n%s", WARN_MESSAGE, statusDetail)
