@@ -131,21 +131,14 @@ func (s *SqsHandler) updateStatusToError(ctx context.Context, scanStatus *awsCli
 
 func (s *SqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {
 	status.AttachDataSource.Status = awsClient.Status_ERROR
-	status.AttachDataSource.StatusDetail = cutStatusDetail(statusDetail)
+	status.AttachDataSource.StatusDetail = statusDetail
 	return s.attachAWSStatus(ctx, status)
 }
 
 func (s *SqsHandler) updateScanStatusSuccess(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {
 	status.AttachDataSource.Status = awsClient.Status_OK
-	status.AttachDataSource.StatusDetail = cutStatusDetail(statusDetail)
+	status.AttachDataSource.StatusDetail = statusDetail
 	return s.attachAWSStatus(ctx, status)
-}
-
-func cutStatusDetail(s string) string {
-	if len(s) > 240 {
-		s = s[:240] + " ..." // cut long text
-	}
-	return s
 }
 
 func (s *SqsHandler) attachAWSStatus(ctx context.Context, status *awsClient.AttachDataSourceRequest) error {
