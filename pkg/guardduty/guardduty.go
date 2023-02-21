@@ -41,6 +41,8 @@ func newGuardDutyClient(ctx context.Context, region, assumeRole, externalID stri
 	return &g, nil
 }
 
+const REGION_US_EAST_1 = "us-east-1"
+
 func (g *guardDutyClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string, retry int) error {
 	if assumeRole == "" {
 		return errors.New("required AWS AssumeRole")
@@ -48,7 +50,7 @@ func (g *guardDutyClient) newAWSSession(ctx context.Context, region, assumeRole,
 	if externalID == "" {
 		return errors.New("required AWS ExternalID")
 	}
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(REGION_US_EAST_1))
 	if err != nil {
 		return err
 	}
