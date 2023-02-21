@@ -106,7 +106,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	}
 
 	// Update status
-	if err := s.updateScanStatusSuccess(ctx, &status); err != nil {
+	if err := s.updateScanStatusSuccess(ctx, &status, unknownFindings(cloudsploitResult)); err != nil {
 		s.logger.Errorf(ctx, "Faild to update scan status. AWSID: %v, error: %v", msg.AWSID, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
@@ -131,16 +131,13 @@ func (s *SqsHandler) updateStatusToError(ctx context.Context, scanStatus *awsCli
 
 func (s *SqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {
 	status.AttachDataSource.Status = awsClient.Status_ERROR
-	if len(statusDetail) > 200 {
-		statusDetail = statusDetail[:200] + " ..." // cut long text
-	}
 	status.AttachDataSource.StatusDetail = statusDetail
 	return s.attachAWSStatus(ctx, status)
 }
 
-func (s *SqsHandler) updateScanStatusSuccess(ctx context.Context, status *awsClient.AttachDataSourceRequest) error {
+func (s *SqsHandler) updateScanStatusSuccess(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {
 	status.AttachDataSource.Status = awsClient.Status_OK
-	status.AttachDataSource.StatusDetail = ""
+	status.AttachDataSource.StatusDetail = statusDetail
 	return s.attachAWSStatus(ctx, status)
 }
 

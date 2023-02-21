@@ -219,9 +219,6 @@ func (s *SqsHandler) tagFinding(ctx context.Context, tag string, findingID uint6
 
 func (s *SqsHandler) updateScanStatusError(ctx context.Context, status *awsClient.AttachDataSourceRequest, statusDetail string) error {
 	status.AttachDataSource.Status = awsClient.Status_ERROR
-	if len(statusDetail) > 200 {
-		statusDetail = statusDetail[:200] + " ..." // cut long text
-	}
 	status.AttachDataSource.StatusDetail = statusDetail
 	return s.attachAWSStatus(ctx, status)
 }
