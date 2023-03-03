@@ -46,6 +46,9 @@ func (c *CloudsploitConfig) run(ctx context.Context, accountID string) (*[]cloud
 		os.Setenv("NODE_OPTIONS", fmt.Sprintf("--max-old-space-size=%d", c.MaxMemSizeMB))
 	}
 	filePath := fmt.Sprintf("%v/%v_%v.json", c.ResultDir, accountID, now)
+	if fileExists(filePath) {
+		return nil, fmt.Errorf("result file already exists: file=%s", filePath)
+	}
 	cmd := exec.Command(fmt.Sprintf("%v/index.js", c.CloudsploitDir),
 		"--config", c.ConfigPath,
 		"--console", "none",
@@ -64,13 +67,7 @@ func (c *CloudsploitConfig) run(ctx context.Context, accountID string) (*[]cloud
 	}
 	var results []cloudSploitResult
 	if err := json.Unmarshal(buf, &results); err != nil {
-		str := string(buf)
-		errMsg := fmt.Sprintf("Failed to parse scan results: err=%v", err)
-		if len(str) > 10 {
-			errMsg += fmt.Sprintf(", length=%d, suffix=%s", len(str), str[len(str)-10:])
-		}
-		c.logger.Errorf(ctx, errMsg)
-		return nil, err
+		return nil, fmt.Errorf("json parse error(scan output file): output_length=%d, err=%v", len(string(buf)), err)
 	}
 	// delete result
 	if err := os.Remove(filePath); err != nil {
@@ -116,4 +113,12 @@ func unknownFindings(findings *[]cloudSploitResult) string {
 		statusDetail = fmt.Sprintf("%s\n\n%s", WARN_MESSAGE, statusDetail)
 	}
 	return statusDetail
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }
