@@ -46,6 +46,9 @@ func (c *CloudsploitConfig) run(ctx context.Context, accountID string) (*[]cloud
 		os.Setenv("NODE_OPTIONS", fmt.Sprintf("--max-old-space-size=%d", c.MaxMemSizeMB))
 	}
 	filePath := fmt.Sprintf("%v/%v_%v.json", c.ResultDir, accountID, now)
+	if fileExists(filePath) {
+		return nil, fmt.Errorf("result file already exists: file=%s", filePath)
+	}
 	cmd := exec.Command(fmt.Sprintf("%v/index.js", c.CloudsploitDir),
 		"--config", c.ConfigPath,
 		"--console", "none",
@@ -54,47 +57,29 @@ func (c *CloudsploitConfig) run(ctx context.Context, accountID string) (*[]cloud
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	err := cmd.Run()
-
 	if err != nil {
 		return nil, fmt.Errorf("failed exec cloudsploit. error: %+v, detail: %s", err, stderr.String())
 	}
 
-	bytes, err := readFile(filePath)
+	buf, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 	var results []cloudSploitResult
-	if err := json.Unmarshal(bytes, &results); err != nil {
-		c.logger.Errorf(ctx, "Failed to parse scan results. error: %v", err)
-		return nil, err
+	if err := json.Unmarshal(buf, &results); err != nil {
+		return nil, fmt.Errorf("json parse error(scan output file): output_length=%d, err=%v", len(string(buf)), err)
 	}
 	// delete result
-	err = deleteFile(filePath)
-	if err != nil {
+	if err := os.Remove(filePath); err != nil {
 		c.logger.Warnf(ctx, "Failed to delete result file. error: %v", err)
 	}
+
 	// delete config
-	err = deleteFile(c.ConfigPath)
-	if err != nil {
+	if err := os.Remove(c.ConfigPath); err != nil {
 		c.logger.Warnf(ctx, "Failed to delete config file. error: %v", err)
 	}
 
 	return &results, nil
-}
-
-func readFile(fileName string) ([]byte, error) {
-	bytes, err := os.ReadFile(fileName)
-	if err != nil {
-		return nil, err
-	}
-	return bytes, nil
-}
-
-func deleteFile(fileName string) error {
-	if err := os.Remove(fileName); err != nil {
-		return err
-	}
-	return nil
 }
 
 type cloudSploitResult struct {
@@ -128,4 +113,12 @@ func unknownFindings(findings *[]cloudSploitResult) string {
 		statusDetail = fmt.Sprintf("%s\n\n%s", WARN_MESSAGE, statusDetail)
 	}
 	return statusDetail
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }
