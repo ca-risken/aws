@@ -54,47 +54,35 @@ func (c *CloudsploitConfig) run(ctx context.Context, accountID string) (*[]cloud
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	err := cmd.Run()
-
 	if err != nil {
 		return nil, fmt.Errorf("failed exec cloudsploit. error: %+v, detail: %s", err, stderr.String())
 	}
 
-	bytes, err := readFile(filePath)
+	buf, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 	var results []cloudSploitResult
-	if err := json.Unmarshal(bytes, &results); err != nil {
-		c.logger.Errorf(ctx, "Failed to parse scan results. error: %v", err)
+	if err := json.Unmarshal(buf, &results); err != nil {
+		str := string(buf)
+		errMsg := fmt.Sprintf("Failed to parse scan results: err=%v", err)
+		if len(str) > 10 {
+			errMsg += fmt.Sprintf(", length=%d, suffix=%s", len(str), str[len(str)-10:])
+		}
+		c.logger.Errorf(ctx, errMsg)
 		return nil, err
 	}
 	// delete result
-	err = deleteFile(filePath)
-	if err != nil {
+	if err := os.Remove(filePath); err != nil {
 		c.logger.Warnf(ctx, "Failed to delete result file. error: %v", err)
 	}
+
 	// delete config
-	err = deleteFile(c.ConfigPath)
-	if err != nil {
+	if err := os.Remove(c.ConfigPath); err != nil {
 		c.logger.Warnf(ctx, "Failed to delete config file. error: %v", err)
 	}
 
 	return &results, nil
-}
-
-func readFile(fileName string) ([]byte, error) {
-	bytes, err := os.ReadFile(fileName)
-	if err != nil {
-		return nil, err
-	}
-	return bytes, nil
-}
-
-func deleteFile(fileName string) error {
-	if err := os.Remove(fileName); err != nil {
-		return err
-	}
-	return nil
 }
 
 type cloudSploitResult struct {
