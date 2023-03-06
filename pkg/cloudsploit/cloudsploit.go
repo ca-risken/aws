@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -65,6 +66,10 @@ func (c *CloudsploitConfig) run(ctx context.Context, accountID string) (*[]cloud
 	if err != nil {
 		return nil, err
 	}
+	if len(buf) == 0 {
+		return nil, EmptyOutputError{errors.New("scan output file is empty")}
+	}
+
 	var results []cloudSploitResult
 	if err := json.Unmarshal(buf, &results); err != nil {
 		return nil, fmt.Errorf("json parse error(scan output file): output_length=%d, err=%v", len(string(buf)), err)
