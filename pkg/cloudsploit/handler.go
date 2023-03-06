@@ -2,6 +2,7 @@ package cloudsploit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -82,6 +83,11 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	if err != nil {
 		s.logger.Errorf(ctx, "Failed to exec cloudsploit, error: %v", err)
 		s.updateStatusToError(ctx, &status, err)
+		var target EmptyOutputError
+		if errors.As(err, &target) {
+			s.logger.Warnf(ctx, "EmptyOutputError detected. Retry scanning ...: %v", err)
+			return err // Retryable error
+		}
 		return mimosasqs.WrapNonRetryable(err)
 	}
 	s.logger.Infof(ctx, "end cloudsploit scan, RequestID=%s", requestID)
