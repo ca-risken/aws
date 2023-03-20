@@ -99,8 +99,9 @@ type cloudSploitResult struct {
 }
 
 const (
-	STATUS_UNKNOWN = "UNKNOWN"
-	WARN_MESSAGE   = "UNKNOWN status detected. Some scans may have failed. Please take action if you don't have enough permissions."
+	STATUS_UNKNOWN                 = "UNKNOWN"
+	WARN_MESSAGE                   = "UNKNOWN status detected. Some scans may have failed. Please take action if you don't have enough permissions."
+	STATUS_DETAIL_LENGTH_THRESHOLD = 30000
 )
 
 func unknownFindings(findings *[]cloudSploitResult) string {
@@ -111,8 +112,15 @@ func unknownFindings(findings *[]cloudSploitResult) string {
 		}
 	}
 	statusDetail := ""
+	statusDetailLen := 0
 	for k := range unknowns {
-		statusDetail += fmt.Sprintf("- %s\n", k)
+		unknown := fmt.Sprintf("- %s\n", k)
+		statusDetail += unknown
+		statusDetailLen += len(unknown)
+		if statusDetailLen >= STATUS_DETAIL_LENGTH_THRESHOLD {
+			statusDetail += " ..."
+			break
+		}
 	}
 	if statusDetail != "" {
 		statusDetail = fmt.Sprintf("%s\n\n%s", WARN_MESSAGE, statusDetail)
