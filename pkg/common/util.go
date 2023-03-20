@@ -18,6 +18,7 @@ func InitScanStatus(message *message.AWSQueueMessage) aws.AttachDataSourceReques
 			ProjectId:       message.ProjectID,
 			AssumeRoleArn:   message.AssumeRoleArn,
 			ExternalId:      message.ExternalID,
+			SpecificVersion: message.SpecificVersion,
 			ScanAt:          time.Now().Unix(),
 			// to be updated below, after the scan
 			Status:       aws.Status_UNKNOWN,
