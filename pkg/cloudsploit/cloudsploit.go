@@ -112,12 +112,10 @@ func unknownFindings(findings *[]cloudSploitResult) string {
 		}
 	}
 	statusDetail := ""
-	statusDetailLen := 0
 	for k := range unknowns {
 		unknown := fmt.Sprintf("- %s\n", k)
 		statusDetail += unknown
-		statusDetailLen += len(unknown)
-		if statusDetailLen >= STATUS_DETAIL_LENGTH_THRESHOLD {
+		if STATUS_DETAIL_LENGTH_THRESHOLD <= len(statusDetail) {
 			statusDetail += " ..."
 			break
 		}
