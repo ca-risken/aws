@@ -1,58 +1,101 @@
 package cloudsploit
 
 const (
-	categoryACM              = "ACM"
-	categoryAPIGateway       = "API Gateway"
-	categoryAthena           = "Athena"
-	categoryAutoScaling      = "AutoScaling"
-	categoryCloudFormation   = "CloudFormation"
-	categoryCloudFront       = "CloudFront"
-	categoryCloudTrail       = "CloudTrail"
-	categoryCloudWatchLogs   = "CloudWatchLogs"
-	categoryComprehend       = "Comprehend"
-	categoryConfigService    = "ConfigService"
-	categoryDMS              = "DMS"
-	categoryDynamoDB         = "DynamoDB"
-	categoryEC2              = "EC2"
-	categoryECR              = "ECR"
-	categoryEFS              = "EFS"
-	categoryEKS              = "EKS"
-	categoryElasticBeanstalk = "ElasticBeanstalk"
-	categoryELB              = "ELB"
-	categoryELBv2            = "ELBv2"
-	categoryEMR              = "EMR"
-	categoryES               = "ES"
-	categoryFirehose         = "Firehose"
-	categoryGlue             = "Glue"
-	categoryGuardDuty        = "GuardDuty"
-	categoryIAM              = "IAM"
-	categoryKinesis          = "Kinesis"
-	categoryKMS              = "KMS"
-	categoryLambda           = "Lambda"
-	categoryOrganizations    = "Organizations"
-	categoryRDS              = "RDS"
-	categoryRedshift         = "Redshift"
-	categoryRoute53          = "Route53"
-	categoryS3               = "S3"
-	categorySageMaker        = "SageMaker"
-	categorySES              = "SES"
-	categoryShield           = "Shield"
-	categorySNS              = "SNS"
-	categorySQS              = "SQS"
-	categorySSM              = "SSM"
-	categoryTransfer         = "Transfer"
-	categoryWorkspaces       = "Workspaces"
-	categoryXRay             = "XRay"
+	categoryACM                 = "ACM"
+	categoryAPIGateway          = "API Gateway"
+	categoryAppFlow             = "AppFlow"
+	categoryAppMesh             = "App Mesh"
+	categoryAppRunner           = "App Runner"
+	categoryAthena              = "Athena"
+	categoryAuditManager        = "Audit Manager"
+	categoryAutoScaling         = "AutoScaling"
+	categoryBackup              = "Backup"
+	categoryCloudFormation      = "CloudFormation"
+	categoryCloudFront          = "CloudFront"
+	categoryCloudTrail          = "CloudTrail"
+	categoryCloudWatch          = "CloudWatch"
+	categoryCloudWatchLogs      = "CloudWatchLogs"
+	categoryComprehend          = "Comprehend"
+	categoryCodeArtifact        = "CodeArtifact"
+	categoryCodeBuild           = "CodeBuild"
+	categoryCodePipeline        = "CodePipeline"
+	categoryCodeStar            = "CodeStar"
+	categoryCognito             = "Cognito"
+	categoryComputeOptimizer    = "Compute Optimizer"
+	categoryConfigService       = "ConfigService"
+	categoryConnect             = "Connect"
+	categoryDevOpsGuru          = "DevOpsGuru"
+	categoryDMS                 = "DMS"
+	categoryDocumentDB          = "DocumentDB"
+	categoryDynamoDB            = "DynamoDB"
+	categoryEC2                 = "EC2"
+	categoryECR                 = "ECR"
+	categoryECS                 = "ECS"
+	categoryEFS                 = "EFS"
+	categoryEKS                 = "EKS"
+	categoryElastiCache         = "ElastiCache"
+	categoryElasticBeanstalk    = "ElasticBeanstalk"
+	categoryElasticTranscoder   = "Elastic Transcoder"
+	categoryELB                 = "ELB"
+	categoryELBv2               = "ELBv2"
+	categoryEMR                 = "EMR"
+	categoryES                  = "ES"
+	categoryEventBridge         = "EventBridge"
+	categoryFinSpace            = "FinSpace"
+	categoryFirehose            = "Firehose"
+	categoryForecast            = "Forecast"
+	categoryFraudDetector       = "Fraud Detector"
+	categoryFSx                 = "FSx"
+	categoryGlue                = "Glue"
+	categoryGlueDataBrew        = "Glue DataBrew"
+	categoryGuardDuty           = "GuardDuty"
+	categoryHealthLake          = "HealthLake"
+	categoryIAM                 = "IAM"
+	categoryImageBuilder        = "Image Builder"
+	categoryIoTSiteWise         = "IoT SiteWise"
+	categoryKendra              = "Kendra"
+	categoryKinesis             = "Kinesis"
+	categoryKinesisVideoStreams = "Kinesis Video Streams"
+	categoryKMS                 = "KMS"
+	categoryLambda              = "Lambda"
+	categoryLex                 = "Lex"
+	categoryLocation            = "Location"
+	categoryLookoutMetrics      = "LookoutMetrics"
+	categoryLookoutEquipment    = "LookoutEquipment"
+	categoryLookout             = "Lookout"
+	categoryManagedBlockchain   = "Managed Blockchain"
+	categoryMemoryDB            = "MemoryDB"
+	categoryMQ                  = "MQ"
+	categoryMSK                 = "MSK"
+	categoryMWAA                = "MWAA"
+	categoryNeptune             = "Neptune"
+	categoryOrganizations       = "Organizations"
+	categoryProton              = "Proton"
+	categoryQLDB                = "QLDB"
+	categoryRDS                 = "RDS"
+	categoryRedshift            = "Redshift"
+	categoryRoute53             = "Route53"
+	categoryS3                  = "S3"
+	categoryS3Glacier           = "Glacier"
+	categorySageMaker           = "SageMaker"
+	categorySecretsManager      = "Secrets Manager"
+	categorySES                 = "SES"
+	categoryShield              = "Shield"
+	categorySNS                 = "SNS"
+	categorySQS                 = "SQS"
+	categorySSM                 = "SSM"
+	categoryTimestream          = "Timestream"
+	categoryTransfer            = "Transfer"
+	categoryTranslate           = "Translate"
+	categoryWAF                 = "WAF"
+	categoryWorkspaces          = "Workspaces"
+	categoryXRay                = "XRay"
 )
 
 var cloudSploitFindingMap = map[string]cloudSploitFindingInformation{
 	categoryACM + "/acmCertificateExpiry":                 {Score: 6.0, Tags: []string{"pci", "reliability"}},
 	categoryACM + "/acmValidation":                        {Score: 6.0, Tags: []string{"reliability"}},
-	categoryAPIGateway + "/apigatewayWafEnabled":          {Score: 3.0, Tags: []string{}},
-	categoryAthena + "/workgroupEncrypted":                {Score: 3.0, Tags: []string{}},
-	categoryAthena + "/workgroupEnforceConfiguration":     {Score: 3.0, Tags: []string{}},
 	categoryAutoScaling + "/appTierAsgCloudwatchLogs":     {Score: 3.0, Tags: []string{"operation"}},
-	categoryAutoScaling + "/appTierIamRole":               {Score: 3.0, Tags: []string{}},
 	categoryAutoScaling + "/asgActiveNotifications":       {Score: 3.0, Tags: []string{"cost"}},
 	categoryAutoScaling + "/asgMissingELB":                {Score: 3.0, Tags: []string{"reliability"}},
 	categoryAutoScaling + "/asgMissingSecurityGroups":     {Score: 3.0, Tags: []string{"reliability"}},
@@ -63,40 +106,26 @@ var cloudSploitFindingMap = map[string]cloudSploitFindingInformation{
 	categoryAutoScaling + "/sameAzElb":                    {Score: 3.0, Tags: []string{"reliability"}},
 	categoryAutoScaling + "/webTierAsgAssociatedElb":      {Score: 3.0, Tags: []string{"reliability"}},
 	categoryAutoScaling + "/webTierAsgCloudwatchLogs":     {Score: 3.0, Tags: []string{"operation"}},
-	categoryAutoScaling + "/webTierIamRole":               {Score: 3.0, Tags: []string{}},
-	categoryCloudFormation + "/plainTextParameters":       {Score: 3.0, Tags: []string{}},
 	categoryCloudFront + "/cloudfrontHttpsOnly":           {Score: 3.0, Tags: []string{"hipaa"}},
 	categoryCloudFront + "/cloudfrontLoggingEnabled":      {Score: 3.0, Tags: []string{"hipaa", "pci", "operation"}},
-	categoryCloudFront + "/cloudfrontWafEnabled":          {Score: 3.0, Tags: []string{}},
 	categoryCloudFront + "/insecureProtocols":             {Score: 6.0, Tags: []string{"hipaa", "pci"}},
 	categoryCloudFront + "/publicS3Origin":                {Score: 3.0, Tags: []string{"hipaa"}},
 	categoryCloudFront + "/secureOrigin":                  {Score: 3.0, Tags: []string{"hipaa"}},
 	categoryCloudTrail + "/cloudtrailBucketAccessLogging": {Score: 3.0, Tags: []string{"hipaa", "pci", "cis1", "cis"}},
 	categoryCloudTrail + "/cloudtrailBucketDelete":        {Score: 3.0, Tags: []string{"hipaa"}},
 	categoryCloudTrail + "/cloudtrailBucketPrivate":       {Score: 8.0, Tags: []string{"cis1", "cis"}},
-	categoryCloudTrail + "/cloudtrailDataEvents":          {Score: 3.0, Tags: []string{}},
 	categoryCloudTrail + "/cloudtrailDeliveryFailing":     {Score: 8.0, Tags: []string{}},
 	categoryCloudTrail + "/cloudtrailEnabled":             {Score: 8.0, Tags: []string{"hipaa", "pci", "cis1", "cis"}},
 	categoryCloudTrail + "/cloudtrailEncryption":          {Score: 3.0, Tags: []string{"cis2", "cis"}},
 	categoryCloudTrail + "/cloudtrailFileValidation":      {Score: 3.0, Tags: []string{"hipaa", "cis2", "cis"}},
-	categoryCloudTrail + "/cloudtrailObjectLock":          {Score: 3.0, Tags: []string{}},
-	categoryCloudTrail + "/cloudtrailS3Bucket":            {Score: 3.0, Tags: []string{}},
 	categoryCloudTrail + "/cloudtrailToCloudwatch":        {Score: 3.0, Tags: []string{"cis1", "cis"}},
 	categoryCloudTrail + "/globalLoggingDuplicated":       {Score: 3.0, Tags: []string{"cost"}},
 	categoryCloudWatchLogs + "/monitoringMetrics":         {Score: 3.0, Tags: []string{"cis1", "cis", "operation"}},
-	categoryComprehend + "/outputResultEncryption":        {Score: 3.0, Tags: []string{}},
-	categoryComprehend + "/volumeEncryption":              {Score: 3.0, Tags: []string{}},
 	categoryConfigService + "/configServiceEnabled":       {Score: 3.0, Tags: []string{"pci", "cis1", "cis"}},
 	categoryDMS + "/dmsEncryptionEnabled":                 {Score: 3.0, Tags: []string{"hipaa"}},
-	categoryDynamoDB + "/daxClusterEncryption":            {Score: 3.0, Tags: []string{}},
-	categoryDynamoDB + "/dynamoKmsEncryption":             {Score: 3.0, Tags: []string{}},
-	categoryEC2 + "/allowedCustomPorts":                   {Score: 3.0, Tags: []string{}},
-	categoryEC2 + "/appTierInstanceIamRole":               {Score: 3.0, Tags: []string{}},
 	categoryEC2 + "/classicInstances":                     {Score: 3.0, Tags: []string{"hipaa", "pci", "operation"}},
 	categoryEC2 + "/crossVpcPublicPrivate":                {Score: 3.0, Tags: []string{"pci"}},
 	categoryEC2 + "/defaultSecurityGroup":                 {Score: 3.0, Tags: []string{"pci", "cis2", "cis"}},
-	categoryEC2 + "/defaultVpcExists":                     {Score: 3.0, Tags: []string{}},
-	categoryEC2 + "/defaultVpcInUse":                      {Score: 3.0, Tags: []string{}},
 	categoryEC2 + "/ebsEncryptedSnapshots":                {Score: 3.0, Tags: []string{"hipaa"}},
 	categoryEC2 + "/ebsEncryptionEnabled":                 {Score: 3.0, Tags: []string{"hipaa", "pci"}},
 	categoryEC2 + "/ebsOldSnapshots":                      {Score: 3.0, Tags: []string{"cost"}},
@@ -104,17 +133,13 @@ var cloudSploitFindingMap = map[string]cloudSploitFindingInformation{
 	categoryEC2 + "/ebsSnapshotPrivate":                   {Score: 8.0, Tags: []string{}},
 	categoryEC2 + "/ebsSnapshotPublic":                    {Score: 8.0, Tags: []string{}},
 	categoryEC2 + "/ebsUnusedVolumes":                     {Score: 3.0, Tags: []string{"cost"}},
-	categoryEC2 + "/ec2MetadataOptions":                   {Score: 3.0, Tags: []string{}},
 	categoryEC2 + "/elasticIpLimit":                       {Score: 3.0, Tags: []string{"reliability"}},
 	categoryEC2 + "/encryptedAmi":                         {Score: 3.0, Tags: []string{"hipaa"}},
 	categoryEC2 + "/excessiveSecurityGroups":              {Score: 3.0, Tags: []string{"pci"}},
 	categoryEC2 + "/flowLogsEnabled":                      {Score: 3.0, Tags: []string{"hipaa", "pci", "cis2", "cis"}},
-	categoryEC2 + "/instanceIamRole":                      {Score: 3.0, Tags: []string{}},
-	categoryEC2 + "/instanceKeyBasedLogin":                {Score: 3.0, Tags: []string{}},
 	categoryEC2 + "/instanceLimit":                        {Score: 3.0, Tags: []string{"reliability"}},
 	categoryEC2 + "/instanceMaxCount":                     {Score: 3.0, Tags: []string{"reliability"}},
 	categoryEC2 + "/instanceVcpusLimit":                   {Score: 3.0, Tags: []string{"reliability"}},
-	categoryEC2 + "/launchWizardSecurityGroups":           {Score: 3.0, Tags: []string{}},
 	categoryEC2 + "/managedNatGateway":                    {Score: 3.0, Tags: []string{"reliability"}},
 	categoryEC2 + "/multipleSubnets":                      {Score: 3.0, Tags: []string{"reliability"}},
 	categoryEC2 + "/natMultiAz":                           {Score: 3.0, Tags: []string{"reliability"}},
@@ -145,8 +170,6 @@ var cloudSploitFindingMap = map[string]cloudSploitFindingInformation{
 	categoryEC2 + "/openVNCServer":                        {Score: 8.0, Tags: []string{}},
 	categoryEC2 + "/overlappingSecurityGroups":            {Score: 3.0, Tags: []string{"operation"}},
 	categoryEC2 + "/publicAmi":                            {Score: 8.0, Tags: []string{}},
-	categoryEC2 + "/publicIpAddress":                      {Score: 3.0, Tags: []string{}},
-	categoryEC2 + "/securityGroupRfc1918":                 {Score: 3.0, Tags: []string{}},
 	categoryEC2 + "/subnetIpAvailability":                 {Score: 3.0, Tags: []string{"reliability"}},
 	categoryEC2 + "/unassociatedElasticIp":                {Score: 3.0, Tags: []string{"cost"}},
 	categoryEC2 + "/unusedAmi":                            {Score: 3.0, Tags: []string{"cost"}},
@@ -154,57 +177,28 @@ var cloudSploitFindingMap = map[string]cloudSploitFindingInformation{
 	categoryEC2 + "/unusedVirtualPrivateGateway":          {Score: 3.0, Tags: []string{"cost"}},
 	categoryEC2 + "/unusedVpcInternetGateways":            {Score: 3.0, Tags: []string{"cost"}},
 	categoryEC2 + "/vpcElasticIpLimit":                    {Score: 3.0, Tags: []string{"reliability"}},
-	categoryEC2 + "/vpcEndpointAcceptance":                {Score: 3.0, Tags: []string{}},
-	categoryEC2 + "/vpcEndpointExposed":                   {Score: 3.0, Tags: []string{}},
-	categoryEC2 + "/webTierInstanceIamRole":               {Score: 3.0, Tags: []string{}},
 	categoryECR + "/ecrRepositoryPolicy":                  {Score: 6.0, Tags: []string{}},
-	categoryECR + "/ecrRepositoryTagImmutability":         {Score: 3.0, Tags: []string{}},
-	categoryEFS + "/efsCmkEncrypted":                      {Score: 3.0, Tags: []string{}},
 	categoryEFS + "/efsEncryptionEnabled":                 {Score: 3.0, Tags: []string{"hipaa", "pci"}},
 	categoryEKS + "/eksKubernetesVersion":                 {Score: 3.0, Tags: []string{"operation"}},
 	categoryEKS + "/eksLoggingEnabled":                    {Score: 6.0, Tags: []string{}},
-	categoryEKS + "/eksPrivateEndpoint":                   {Score: 3.0, Tags: []string{}},
 	categoryEKS + "/eksSecurityGroups":                    {Score: 6.0, Tags: []string{}},
 	categoryElasticBeanstalk + "/managedPlatformUpdates":  {Score: 3.0, Tags: []string{"operation"}},
-	categoryELB + "/elbHttpsOnly":                         {Score: 3.0, Tags: []string{}},
 	categoryELB + "/elbLoggingEnabled":                    {Score: 3.0, Tags: []string{"hipaa", "pci"}},
 	categoryELB + "/elbNoInstances":                       {Score: 3.0, Tags: []string{"cost"}},
 	categoryELB + "/insecureCiphers":                      {Score: 3.0, Tags: []string{"hipaa", "pci"}},
 	categoryELBv2 + "/elbv2DeletionProtection":            {Score: 6.0, Tags: []string{"reliability"}},
-	categoryELBv2 + "/elbv2HttpsOnly":                     {Score: 3.0, Tags: []string{}},
 	categoryELBv2 + "/elbv2LoggingEnabled":                {Score: 3.0, Tags: []string{"hipaa", "pci"}},
 	categoryELBv2 + "/elbv2MinimumTargetInstances":        {Score: 3.0, Tags: []string{"reliability"}},
-	categoryELBv2 + "/elbv2NlbListenerSecurity":           {Score: 3.0, Tags: []string{}},
 	categoryELBv2 + "/elbv2NoInstances":                   {Score: 3.0, Tags: []string{"cost"}},
-	categoryELBv2 + "/elbv2WafEnabled":                    {Score: 3.0, Tags: []string{}},
-	categoryEMR + "/emrClusterLogging":                    {Score: 3.0, Tags: []string{}},
-	categoryEMR + "/emrEncryptionAtRest":                  {Score: 3.0, Tags: []string{}},
-	categoryEMR + "/emrEncryptionInTransit":               {Score: 3.0, Tags: []string{}},
-	categoryES + "/esAccessFromIps":                       {Score: 3.0, Tags: []string{}},
-	categoryES + "/esEncryptedDomain":                     {Score: 3.0, Tags: []string{}},
-	categoryES + "/esExposedDomain":                       {Score: 3.0, Tags: []string{}},
-	categoryES + "/esHttpsOnly":                           {Score: 3.0, Tags: []string{}},
-	categoryES + "/esLoggingEnabled":                      {Score: 3.0, Tags: []string{}},
-	categoryES + "/esNodeToNodeEncryption":                {Score: 3.0, Tags: []string{}},
-	categoryES + "/esPublicEndpoint":                      {Score: 3.0, Tags: []string{}},
-	categoryES + "/esRequireIAMAuth":                      {Score: 3.0, Tags: []string{}},
 	categoryES + "/esUpgradeAvailable":                    {Score: 3.0, Tags: []string{"operation"}},
 	categoryFirehose + "/firehoseEncrypted":               {Score: 3.0, Tags: []string{"hipaa"}},
-	categoryGlue + "/bookmarkEncryptionEnabled":           {Score: 3.0, Tags: []string{}},
 	categoryGuardDuty + "/guardDutyEnabled":               {Score: 6.0, Tags: []string{}},
-	categoryGuardDuty + "/guardDutyMaster":                {Score: 3.0, Tags: []string{}},
 	categoryIAM + "/accessKeysExtra":                      {Score: 6.0, Tags: []string{}},
 	categoryIAM + "/accessKeysLastUsed":                   {Score: 6.0, Tags: []string{"pci", "cis1", "cis"}},
 	categoryIAM + "/accessKeysRotated":                    {Score: 3.0, Tags: []string{"hipaa", "pci", "cis1", "cis"}},
-	categoryIAM + "/canaryKeysUsed":                       {Score: 3.0, Tags: []string{}},
 	categoryIAM + "/certificateExpiry":                    {Score: 8.0, Tags: []string{"reliability"}},
-	categoryIAM + "/crossAccountMfaExtIdAccess":           {Score: 3.0, Tags: []string{}},
-	categoryIAM + "/emptyGroups":                          {Score: 3.0, Tags: []string{}},
-	categoryIAM + "/groupInlinePolicies":                  {Score: 3.0, Tags: []string{}},
 	categoryIAM + "/iamRoleLastUsed":                      {Score: 6.0, Tags: []string{}},
-	categoryIAM + "/iamRolePolicies":                      {Score: 3.0, Tags: []string{}},
 	categoryIAM + "/iamUserAdmins":                        {Score: 6.0, Tags: []string{"pci"}},
-	categoryIAM + "/iamUserNameRegex":                     {Score: 3.0, Tags: []string{}},
 	categoryIAM + "/iamUserUnauthorizedToEdit":            {Score: 3.0, Tags: []string{"pci"}},
 	categoryIAM + "/maxPasswordAge":                       {Score: 3.0, Tags: []string{"pci"}},
 	categoryIAM + "/minPasswordLength":                    {Score: 3.0, Tags: []string{"pci", "cis1", "cis"}},
@@ -217,66 +211,36 @@ var cloudSploitFindingMap = map[string]cloudSploitFindingInformation{
 	categoryIAM + "/passwordReusePrevention":              {Score: 3.0, Tags: []string{"pci", "cis1", "cis"}},
 	categoryIAM + "/rootAccessKeys":                       {Score: 8.0, Tags: []string{"hipaa", "cis1", "cis"}},
 	categoryIAM + "/rootAccountInUse":                     {Score: 6.0, Tags: []string{"hipaa", "pci", "cis1", "cis"}},
-	categoryIAM + "/rootHardwareMfa":                      {Score: 3.0, Tags: []string{}},
 	categoryIAM + "/rootMfaEnabled":                       {Score: 8.0, Tags: []string{"pci", "cis1", "cis"}},
 	categoryIAM + "/rootSigningCertificate":               {Score: 8.0, Tags: []string{"hipaa"}},
-	categoryIAM + "/sshKeysRotated":                       {Score: 3.0, Tags: []string{}},
 	categoryIAM + "/usersMfaEnabled":                      {Score: 6.0, Tags: []string{"hipaa", "pci", "cis1", "cis"}},
 	categoryIAM + "/usersPasswordAndKeys":                 {Score: 6.0, Tags: []string{}},
 	categoryIAM + "/usersPasswordLastUsed":                {Score: 3.0, Tags: []string{"pci", "cis1", "cis"}},
 	categoryKinesis + "/kinesisEncrypted":                 {Score: 3.0, Tags: []string{"hipaa"}},
-	categoryKMS + "/kmsAppTierCmk":                        {Score: 3.0, Tags: []string{}},
 	categoryKMS + "/kmsDefaultKeyUsage":                   {Score: 3.0, Tags: []string{"pci"}},
-	categoryKMS + "/kmsKeyPolicy":                         {Score: 3.0, Tags: []string{}},
 	categoryKMS + "/kmsKeyRotation":                       {Score: 3.0, Tags: []string{"pci", "cis2", "cis"}},
 	categoryKMS + "/kmsScheduledDeletion":                 {Score: 6.0, Tags: []string{}},
-	categoryLambda + "/lambdaLogGroups":                   {Score: 3.0, Tags: []string{}},
-	categoryLambda + "/lambdaOldRuntimes":                 {Score: 3.0, Tags: []string{}},
 	categoryLambda + "/lambdaPublicAccess":                {Score: 6.0, Tags: []string{}},
-	categoryLambda + "/lambdaVpcConfig":                   {Score: 3.0, Tags: []string{}},
 	categoryOrganizations + "/enableAllFeatures":          {Score: 3.0, Tags: []string{"operation"}},
-	categoryOrganizations + "/organizationInvite":         {Score: 3.0, Tags: []string{}},
 	categoryRDS + "/rdsAutomatedBackups":                  {Score: 3.0, Tags: []string{"reliability"}},
-	categoryRDS + "/rdsCmkEncryptionEnabled":              {Score: 3.0, Tags: []string{}},
 	categoryRDS + "/rdsEncryptionEnabled":                 {Score: 6.0, Tags: []string{"hipaa", "pci"}},
-	categoryRDS + "/rdsLoggingEnabled":                    {Score: 3.0, Tags: []string{}},
 	categoryRDS + "/rdsMinorVersionUpgrade":               {Score: 3.0, Tags: []string{"operation"}},
 	categoryRDS + "/rdsMultiAz":                           {Score: 3.0, Tags: []string{"reliability"}},
 	categoryRDS + "/rdsPubliclyAccessible":                {Score: 6.0, Tags: []string{"hipaa", "pci"}},
 	categoryRDS + "/rdsRestorable":                        {Score: 3.0, Tags: []string{"pci", "reliability"}},
-	categoryRDS + "/rdsSnapshotEncryption":                {Score: 3.0, Tags: []string{}},
-	categoryRDS + "/rdsTransportEncryption":               {Score: 3.0, Tags: []string{}},
-	categoryRDS + "/sqlServerTLSVersion":                  {Score: 3.0, Tags: []string{}},
-	categoryRedshift + "/auditLoggingEnabled":             {Score: 3.0, Tags: []string{}},
 	categoryRedshift + "/redshiftAllowVersionUpgrade":     {Score: 3.0, Tags: []string{"operation"}},
-	categoryRedshift + "/redshiftClusterCmkEncrypted":     {Score: 3.0, Tags: []string{}},
 	categoryRedshift + "/redshiftEncryptionEnabled":       {Score: 6.0, Tags: []string{"hipaa"}},
 	categoryRedshift + "/redshiftPubliclyAccessible":      {Score: 8.0, Tags: []string{"hipaa", "pci"}},
-	categoryRedshift + "/redshiftSSLEnabled":              {Score: 3.0, Tags: []string{}},
-	categoryRedshift + "/userActivityLoggingEnabled":      {Score: 3.0, Tags: []string{}},
 	categoryRoute53 + "/danglingDnsRecords":               {Score: 6.0, Tags: []string{}},
 	categoryRoute53 + "/domainAutoRenew":                  {Score: 6.0, Tags: []string{"reliability"}},
 	categoryRoute53 + "/domainExpiry":                     {Score: 8.0, Tags: []string{"reliability"}},
-	categoryRoute53 + "/domainTransferLock":               {Score: 3.0, Tags: []string{}},
 	categoryS3 + "/bucketAllUsersAcl":                     {Score: 6.0, Tags: []string{"pci"}},
 	categoryS3 + "/bucketAllUsersPolicy":                  {Score: 6.0, Tags: []string{"pci"}},
-	categoryS3 + "/bucketEncryption":                      {Score: 3.0, Tags: []string{}},
-	categoryS3 + "/bucketEncryptionInTransit":             {Score: 3.0, Tags: []string{}},
-	categoryS3 + "/bucketEnforceEncryption":               {Score: 3.0, Tags: []string{}},
 	categoryS3 + "/bucketLogging":                         {Score: 3.0, Tags: []string{"hipaa", "pci"}},
-	categoryS3 + "/bucketPublicAccessBlock":               {Score: 3.0, Tags: []string{}},
-	categoryS3 + "/bucketSecureTransportEnabled":          {Score: 3.0, Tags: []string{}},
 	categoryS3 + "/bucketVersioning":                      {Score: 3.0, Tags: []string{"reliability"}},
-	categoryS3 + "/bucketWebsiteEnabled":                  {Score: 3.0, Tags: []string{}},
-	categoryS3 + "/s3Encryption":                          {Score: 3.0, Tags: []string{}},
 	categorySageMaker + "/notebookDataEncrypted":          {Score: 3.0, Tags: []string{"hipaa"}},
 	categorySageMaker + "/notebookDirectInternetAccess":   {Score: 6.0, Tags: []string{}},
 	categorySES + "/dkimEnabled":                          {Score: 6.0, Tags: []string{"reliability"}},
-	categoryShield + "/shieldAdvancedEnabled":             {Score: 3.0, Tags: []string{}},
-	categoryShield + "/shieldEmergencyContacts":           {Score: 3.0, Tags: []string{}},
-	categoryShield + "/shieldProtections":                 {Score: 3.0, Tags: []string{}},
-	categorySNS + "/topicCmkEncrypted":                    {Score: 3.0, Tags: []string{}},
-	categorySNS + "/topicEncrypted":                       {Score: 3.0, Tags: []string{}},
 	categorySNS + "/topicPolicies":                        {Score: 8.0, Tags: []string{}},
 	categorySQS + "/sqsCrossAccount":                      {Score: 3.0, Tags: []string{"pci"}},
 	categorySQS + "/sqsEncrypted":                         {Score: 3.0, Tags: []string{"hipaa", "pci"}},
@@ -286,8 +250,6 @@ var cloudSploitFindingMap = map[string]cloudSploitFindingInformation{
 	categorySSM + "/ssmAgentLatestVersion":                {Score: 3.0, Tags: []string{"operation"}},
 	categorySSM + "/ssmEncryptedParameters":               {Score: 3.0, Tags: []string{"hipaa", "pci"}},
 	categoryTransfer + "/transferLoggingEnabled":          {Score: 6.0, Tags: []string{"hipaa", "pci"}},
-	categoryWorkspaces + "/workspacesIpAccessControl":     {Score: 3.0, Tags: []string{}},
-	categoryXRay + "/xrayEncryptionEnabled":               {Score: 3.0, Tags: []string{}},
 }
 
 type cloudSploitFindingInformation struct {
