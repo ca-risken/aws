@@ -89,13 +89,14 @@ func (c *CloudsploitConfig) run(ctx context.Context, accountID string) ([]*cloud
 		c.logger.Warnf(ctx, "Failed to delete config file. error: %v", err)
 	}
 
-	if err := c.addMetaData(ctx, results); err != nil {
+	if err := c.addMetaData(ctx, accountID, results); err != nil {
 		return nil, err
 	}
 	return results, nil
 }
 
 type cloudSploitResult struct {
+	// CloudSpliot Scan Result
 	Plugin      string `json:"Plugin"`
 	Category    string `json:"Category"`
 	Title       string `json:"Title"`
@@ -105,13 +106,15 @@ type cloudSploitResult struct {
 	Status      string `json:"Status"`
 	Message     string `json:"Message"`
 
-	// Security Group
+	// MetaData
+	AccountID                      string   `json:"AccountID"`
 	SecurityGroupAttachedResources []string `json:"SecurityGroupAttachedResources,omitempty"`
 }
 
 const (
 	WARN_MESSAGE                   = "UNKNOWN status detected. Some scans may have failed. Please take action if you don't have enough permissions."
 	STATUS_DETAIL_LENGTH_THRESHOLD = 30000
+	LOW_SCORE                      = 3.0
 )
 
 func unknownFindings(findings []*cloudSploitResult) string {
@@ -144,51 +147,63 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-func (c *CloudsploitConfig) addMetaData(ctx context.Context, findings []*cloudSploitResult) error {
-	regions, err := c.listAvailableRegion(ctx)
+func (c *CloudsploitConfig) addMetaData(ctx context.Context, accountID string, findings []*cloudSploitResult) error {
+	availableRegions, err := c.listAvailableRegion(ctx)
 	if err != nil {
 		return err
 	}
 	for _, f := range findings {
-		if f.Status != resultFAIL {
-			continue
-		}
-		if ok := regions[f.Region]; !ok {
-			continue
-		}
-		if isSecurityGroupResource(f.Resource) {
-			continue
-		}
-		sgPlugin, ok := cloudSploitFindingMap[fmt.Sprintf("%s/%s", f.Category, f.Plugin)]
-		if !ok || sgPlugin.Score <= 0.3 {
-			continue
-		}
-
-		split := strings.Split(f.Resource, "/")
-		groupID := split[len(split)-1]
-		client, err := newEC2Session(ctx, c.assumeRole, c.externalID, f.Region)
-		if err != nil || client == nil {
-			return fmt.Errorf("failed to create ec2 client. region: %s, err: %v", f.Region, err)
-		}
-		eni, err := client.DescribeNetworkInterfaces(ctx, &ec2.DescribeNetworkInterfacesInput{
-			Filters: []types.Filter{
-				{
-					Name:   aws.String("group-id"),
-					Values: []string{groupID},
-				},
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("failed to invoke DescribeNetworkInterfaces. region: %s, err: %v", f.Region, err)
-		}
-		for _, n := range eni.NetworkInterfaces {
-			f.SecurityGroupAttachedResources = append(
-				f.SecurityGroupAttachedResources,
-				fmt.Sprintf("%s (%s)", *n.NetworkInterfaceId, *n.Description),
-			)
+		f.AccountID = accountID
+		if err := c.addSecurityGroupMetaData(ctx, f, availableRegions); err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+func (c *CloudsploitConfig) addSecurityGroupMetaData(ctx context.Context, f *cloudSploitResult, availableRegions map[string]bool) error {
+	if f.Status != resultFAIL {
+		return nil
+	}
+	if isSecurityGroupResource(f) {
+		return nil
+	}
+	if ok := availableRegions[f.Region]; !ok {
+		return nil
+	}
+	sgPlugin, ok := cloudSploitFindingMap[fmt.Sprintf("%s/%s", f.Category, f.Plugin)]
+	if !ok || sgPlugin.Score <= LOW_SCORE {
+		return nil
+	}
+
+	split := strings.Split(f.Resource, "/")
+	groupID := split[len(split)-1]
+	client, err := newEC2Session(ctx, c.assumeRole, c.externalID, f.Region)
+	if err != nil || client == nil {
+		return fmt.Errorf("failed to create ec2 client. region: %s, err: %v", f.Region, err)
+	}
+	eni, err := client.DescribeNetworkInterfaces(ctx, &ec2.DescribeNetworkInterfacesInput{
+		Filters: []types.Filter{
+			{
+				Name:   aws.String("group-id"),
+				Values: []string{groupID},
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to invoke DescribeNetworkInterfaces. region: %s, err: %v", f.Region, err)
+	}
+	for _, n := range eni.NetworkInterfaces {
+		f.SecurityGroupAttachedResources = append(
+			f.SecurityGroupAttachedResources,
+			fmt.Sprintf("%s (%s)", aws.ToString(n.NetworkInterfaceId), aws.ToString(n.Description)),
+		)
+	}
+	return nil
+}
+
+func isSecurityGroupResource(r *cloudSploitResult) bool {
+	return strings.HasPrefix(r.Resource, fmt.Sprintf("arn:aws:ec2:%s:%s:security-group/", r.Region, r.AccountID))
 }
 
 func (c *CloudsploitConfig) listAvailableRegion(ctx context.Context) (map[string]bool, error) {
@@ -209,8 +224,4 @@ func (c *CloudsploitConfig) listAvailableRegion(ctx context.Context) (map[string
 		availableRegions[*r.RegionName] = true
 	}
 	return availableRegions, nil
-}
-
-func isSecurityGroupResource(resource string) bool {
-	return strings.HasPrefix(resource, "arn:aws:ec2:") && strings.Contains(resource, "security-group")
 }

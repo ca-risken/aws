@@ -188,7 +188,7 @@ func getScore(result *cloudSploitResult) float32 {
 		return 3.0
 	default:
 		// Check SecurityGroup ...
-		if isSecurityGroupResource(result.Resource) && len(result.SecurityGroupAttachedResources) == 0 {
+		if isSecurityGroupResource(result) && len(result.SecurityGroupAttachedResources) == 0 {
 			return 1.0 // security group finding, but no attached resources(almost no risk).
 		}
 
