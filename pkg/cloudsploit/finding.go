@@ -14,7 +14,7 @@ import (
 	"github.com/ca-risken/datasource-api/proto/aws"
 )
 
-func (s *SqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResult, message *message.AWSQueueMessage) error {
+func (s *SqsHandler) putFindings(ctx context.Context, results []*cloudSploitResult, message *message.AWSQueueMessage) error {
 	maxScore, err := s.getCloudSploitMaxScore(ctx, message)
 	if err != nil {
 		return err
@@ -24,8 +24,8 @@ func (s *SqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 		resourceBatchParam []*finding.ResourceBatchForUpsert
 	)
 	resourceNameMap := map[string]bool{}
-	for _, result := range *results {
-		data, err := json.Marshal(map[string]cloudSploitResult{"data": result})
+	for _, result := range results {
+		data, err := json.Marshal(map[string]*cloudSploitResult{"data": result})
 		if err != nil {
 			return err
 		}
@@ -35,7 +35,7 @@ func (s *SqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 		resourceName := getResourceName(result.Resource, result.Category, message.AccountID)
 		serviceTag := getServiceTag(resourceName)
 		tags := []string{common.TagAWS, serviceTag, message.AccountID}
-		score := getScore(result.Status, result.Category, result.Plugin)
+		score := getScore(result)
 		if score == 0.0 {
 			// resource
 			if _, ok := resourceNameMap[resourceName]; ok {
@@ -102,7 +102,7 @@ func (s *SqsHandler) putFindings(ctx context.Context, results *[]cloudSploitResu
 	if err = s.putFindingBatch(ctx, message.ProjectID, findingBatchParam); err != nil {
 		return err
 	}
-	s.logger.Infof(ctx, "putFindings(%d) succeeded", len(*results))
+	s.logger.Infof(ctx, "putFindings(%d) succeeded", len(results))
 	return nil
 }
 
@@ -153,7 +153,7 @@ const (
 	resultOK      string = "OK"      // 0: PASS: No risks
 	resultWARN    string = "WARN"    // 1: WARN: The result represents a potential misconfiguration or issue but is not an immediate risk
 	resultUNKNOWN string = "UNKNOWN" // 3: UNKNOWN: The results could not be determined (API failure, wrong permissions, etc.)
-	// resultFAIL    string = "FAIL"    // 2: FAIL: The result presents an immediate risk to the security of the account
+	resultFAIL    string = "FAIL"    // 2: FAIL: The result presents an immediate risk to the security of the account
 )
 
 func getResourceName(resource, category, accountID string) string {
@@ -178,8 +178,8 @@ func getServiceTag(resource string) string {
 	return tag
 }
 
-func getScore(status, category, plugin string) float32 {
-	switch strings.ToUpper(status) {
+func getScore(result *cloudSploitResult) float32 {
+	switch strings.ToUpper(result.Status) {
 	case resultOK:
 		return 0.0
 	case resultUNKNOWN:
@@ -187,7 +187,12 @@ func getScore(status, category, plugin string) float32 {
 	case resultWARN:
 		return 3.0
 	default:
-		findingInf, ok := cloudSploitFindingMap[fmt.Sprintf("%s/%s", category, plugin)]
+		// Check SecurityGroup ...
+		if isSecurityGroupResource(result.Resource) && len(result.SecurityGroupAttachedResources) == 0 {
+			return 1.0 // security group finding, but no attached resources(almost no risk).
+		}
+
+		findingInf, ok := cloudSploitFindingMap[fmt.Sprintf("%s/%s", result.Category, result.Plugin)]
 		if ok {
 			return findingInf.Score
 		}

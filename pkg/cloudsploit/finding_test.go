@@ -7,50 +7,82 @@ import (
 
 func TestGetScore(t *testing.T) {
 	cases := []struct {
-		name     string
-		status   string
-		category string
-		plugin   string
-		want     float32
+		name  string
+		input *cloudSploitResult
+		want  float32
 	}{
 		{
-			name:     "OK",
-			status:   "OK",
-			category: "ACM",
-			plugin:   "acmCertificateExpiry",
-			want:     0.0,
+			name: "OK",
+			input: &cloudSploitResult{
+				Status:   "OK",
+				Category: "ACM",
+				Plugin:   "acmCertificateExpiry",
+			},
+			want: 0.0,
 		}, {
-			name:     "WARN",
-			status:   "WARN",
-			category: "ACM",
-			plugin:   "acmCertificateExpiry",
-			want:     3.0,
+			name: "WARN",
+			input: &cloudSploitResult{
+				Status:   "WARN",
+				Category: "ACM",
+				Plugin:   "acmCertificateExpiry",
+			},
+			want: 3.0,
 		},
 		{
-			name:     "UNKNOWN",
-			status:   "UNKNOWN",
-			category: "ACM",
-			plugin:   "acmCertificateExpiry",
-			want:     1.0,
+			name: "UNKNOWN",
+			input: &cloudSploitResult{
+				Status:   "UNKNOWN",
+				Category: "ACM",
+				Plugin:   "acmCertificateExpiry",
+			},
+			want: 1.0,
 		},
 		{
-			name:     "Fail match Map",
-			status:   "FAIL",
-			category: "ACM",
-			plugin:   "acmCertificateExpiry",
-			want:     6.0,
+			name: "Fail match Map",
+			input: &cloudSploitResult{
+				Status:   "FAIL",
+				Category: "ACM",
+				Plugin:   "acmCertificateExpiry",
+			},
+			want: 6.0,
 		},
 		{
-			name:     "Fail not match Map",
-			status:   "FAIL",
-			category: "ACM",
-			plugin:   "hogehogehogehoge",
-			want:     3.0,
+			name: "Fail not match Map",
+			input: &cloudSploitResult{
+				Status:   "FAIL",
+				Category: "ACM",
+				Plugin:   "unknown plugin",
+			},
+			want: 3.0,
+		},
+		{
+			name: "Fail SecurityGroup",
+			input: &cloudSploitResult{
+				Status:   "FAIL",
+				Category: "EC2",
+				Plugin:   "openAllPortsProtocols",
+				Resource: "arn:aws:ec2:ap-northeast-1:123456789012:security-group/sg-xxxxxxxx",
+				SecurityGroupAttachedResources: []string{
+					"eni-xxxxxxxxxx (RDS NetworkInterface)",
+					"eni-xxxxxxxxxx (EKS NetworkInterface)",
+				},
+			},
+			want: 8.0,
+		},
+		{
+			name: "Fail unused SecurityGroup",
+			input: &cloudSploitResult{
+				Status:   "FAIL",
+				Category: "EC2",
+				Plugin:   "openAllPortsProtocols",
+				Resource: "arn:aws:ec2:ap-northeast-1:123456789012:security-group/sg-xxxxxxxx",
+			},
+			want: 1.0,
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := getScore(c.status, c.category, c.plugin)
+			got := getScore(c.input)
 			if c.want != got {
 				t.Fatalf("Unexpected category name: want=%v, got=%v", c.want, got)
 			}
