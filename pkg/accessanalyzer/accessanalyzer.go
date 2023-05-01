@@ -104,9 +104,9 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *messa
 			if data.IsPublic != nil {
 				isPublic = *data.IsPublic
 			}
-			description := "AccessAnalyzer detected a resource"
+			description := "Unpublished resource detected"
 			if isPublic {
-				description = "The resource is accessible from Internet or any AWS account"
+				description = "The resource is public from Internet or any AWS account"
 			}
 			putData = append(putData, &finding.FindingForUpsert{
 				Description:      description,

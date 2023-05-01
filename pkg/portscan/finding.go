@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/ca-risken/aws/pkg/common"
 	"github.com/ca-risken/common/pkg/portscan"
 	"github.com/ca-risken/core/proto/finding"
@@ -158,16 +159,16 @@ func (s *SqsHandler) putFindingBatch(ctx context.Context, projectID uint32, para
 
 func getExcludeDescription(target, protocol string, fPort, tPort int, securityGroup string) string {
 	if securityGroup != "" {
-		return fmt.Sprintf("Too many ports are exposed.target:%v protocol: %v, port %v-%v,securiry_group: %v", target, protocol, fPort, tPort, securityGroup)
+		return fmt.Sprintf("Too many ports are exposed. (target=%s:%d-%d, securiry_group=%s", target, fPort, tPort, securityGroup)
 	}
-	return fmt.Sprintf("Too many ports are exposed.target:%v protocol: %v, port %v-%v", target, protocol, fPort, tPort)
+	return fmt.Sprintf("Too many ports are exposed. (target=%s:%d-%d", target, fPort, tPort)
 }
 
 func getSecurityGroupDescription(groupArn string, groupID *string, isPublic bool) string {
 	if groupID == nil {
-		return fmt.Sprintf("security group was found. groupArn: %v, Public: %v", groupArn, isPublic)
+		return fmt.Sprintf("Security group was found. (GroupArn: %s, Public: %t)", groupArn, isPublic)
 	}
-	return fmt.Sprintf("security group was found. groupID: %v, Public: %v", *groupID, isPublic)
+	return fmt.Sprintf("Security group was found. (GroupID: %s, Public: %t)", aws.ToString(groupID), isPublic)
 
 }
 
