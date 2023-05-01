@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -105,8 +104,12 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *messa
 			if data.IsPublic != nil {
 				isPublic = *data.IsPublic
 			}
+			description := "Unpublished resource detected"
+			if isPublic {
+				description = "The resource is public from Internet or any AWS account"
+			}
 			putData = append(putData, &finding.FindingForUpsert{
-				Description:      fmt.Sprintf("AccessAnalyzer: %s (public=%t)", *data.Resource, isPublic),
+				Description:      description,
 				DataSource:       msg.DataSource,
 				DataSourceId:     *data.Id,
 				ResourceName:     *data.Resource,
