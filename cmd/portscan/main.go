@@ -46,7 +46,7 @@ type AppConfig struct {
 
 	// grpc
 	CoreSvcAddr          string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
-	DataSourceAPISvcAddr string `required:"true" split_words:"true" default:"datasource-api.core.svc.cluster.local:8081"`
+	DataSourceAPISvcAddr string `required:"true" split_words:"true" default:"datasource-api.datasource.svc.cluster.local:8081"`
 
 	// portsan
 	ScanExcludePortNumber int   `split_words:"true" default:"1000"`
