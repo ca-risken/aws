@@ -238,9 +238,20 @@ func scoreAccessAnalyzerFinding(status types.FindingStatus, isPublic bool, actio
 	readable := false
 	writable := false
 	for _, action := range actions {
-		if strings.Contains(action, "List") ||
+		if strings.Contains(action, "Check") ||
+			strings.Contains(action, "Describe") ||
+			strings.Contains(action, "ESHttpHead") ||
 			strings.Contains(action, "Get") ||
-			strings.Contains(action, "Describe") {
+			strings.Contains(action, "List") ||
+			strings.Contains(action, "Lookup") ||
+			strings.Contains(action, "Query") ||
+			strings.Contains(action, "Read") ||
+			strings.Contains(action, "Retrieve") ||
+			strings.Contains(action, "Scan") ||
+			strings.Contains(action, "Search") ||
+			strings.Contains(action, "Select") ||
+			strings.Contains(action, "Validate") ||
+			strings.Contains(action, "View") {
 			readable = true
 			continue
 		}
