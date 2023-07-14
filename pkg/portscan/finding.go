@@ -82,7 +82,7 @@ func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 		return err
 	}
 	for _, f := range findingsNmap {
-		findingBatchParam = append(findingBatchParam, s.generateFindingBatch(ctx, msg.AccountID, categoryNmap, f))
+		findingBatchParam = append(findingBatchParam, s.generateFindingBatch(ctx, msg.AccountID, categoryNmap, f, true))
 	}
 
 	findingsExclude, err := makeExcludeFindings(excludeResults, msg)
@@ -90,7 +90,7 @@ func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 		return err
 	}
 	for _, f := range findingsExclude {
-		findingBatchParam = append(findingBatchParam, s.generateFindingBatch(ctx, msg.AccountID, categoryManyOpen, f))
+		findingBatchParam = append(findingBatchParam, s.generateFindingBatch(ctx, msg.AccountID, categoryManyOpen, f, true))
 	}
 
 	findingsSecurityGroup, err := makeSecurityGroupFindings(securityGroups, msg)
@@ -98,7 +98,7 @@ func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 		return err
 	}
 	for _, f := range findingsSecurityGroup {
-		findingBatchParam = append(findingBatchParam, s.generateFindingBatch(ctx, msg.AccountID, categoryManyOpen, f))
+		findingBatchParam = append(findingBatchParam, s.generateFindingBatch(ctx, msg.AccountID, categoryManyOpen, f, false))
 	}
 	if err := s.putFindingBatch(ctx, msg.ProjectID, findingBatchParam); err != nil {
 		return err
@@ -107,13 +107,16 @@ func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 	return nil
 }
 
-func (s *SqsHandler) generateFindingBatch(ctx context.Context, awsAccountID, category string, f *finding.FindingForUpsert) *finding.FindingBatchForUpsert {
+func (s *SqsHandler) generateFindingBatch(ctx context.Context, awsAccountID, category string, f *finding.FindingForUpsert, addPublicTag bool) *finding.FindingBatchForUpsert {
 	data := &finding.FindingBatchForUpsert{Finding: f}
 	// tag
 	tags := []*finding.FindingTagForBatch{
 		{Tag: common.TagAWS},
 		{Tag: common.TagPortscan},
 		{Tag: awsAccountID},
+	}
+	if addPublicTag {
+		tags = append(tags, &finding.FindingTagForBatch{Tag: common.TagPublicFacing})
 	}
 	service := common.GetAWSServiceTagByARN(f.ResourceName)
 	if service == common.TagEC2 && strings.Contains(f.ResourceName, "security-group") {

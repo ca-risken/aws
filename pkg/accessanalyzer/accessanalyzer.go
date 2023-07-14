@@ -89,7 +89,6 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *messa
 				"AccessAnalyzer.ListFindings error: analyzerArn=%s, accountID=%s, err=%+v", arn, msg.AccountID, err)
 			return nil, &[]string{}, err
 		}
-		a.logger.Debugf(ctx, "[Debug]Got findings, %+v", findings)
 		if findings == nil || len(*findings) == 0 {
 			a.logger.Infof(ctx, "No findings: analyzerArn=%s, accountID=%s", arn, msg.AccountID)
 			continue
@@ -183,4 +182,17 @@ func (a *accessAnalyzerClient) listFindings(ctx context.Context, accountID strin
 		time.Sleep(time.Millisecond * 500)
 	}
 	return &findings, nil
+}
+
+type accessAnalyzerAPIResponse struct {
+	IsPublic bool `json:"IsPublic"`
+}
+
+func isPublic(data string) (bool, error) {
+	var res accessAnalyzerAPIResponse
+	err := json.Unmarshal([]byte(data), &res)
+	if err != nil {
+		return false, err
+	}
+	return res.IsPublic, nil
 }

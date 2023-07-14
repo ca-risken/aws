@@ -3,6 +3,9 @@ package common
 import "strings"
 
 const (
+	// TagPublic
+	TagPublicFacing = "public-facing"
+
 	// TagAWS aws tag
 	TagAWS = "aws"
 	// TagGuardduty guard-duty tag
