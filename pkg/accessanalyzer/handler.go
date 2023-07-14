@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -137,6 +138,7 @@ func (s *SqsHandler) updateStatusToError(ctx context.Context, scanStatus *awsCli
 }
 
 func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessage, findings []*finding.FindingForUpsert) error {
+	sort.Slice(findings, func(i, j int) bool { return findings[i].OriginalScore < findings[j].OriginalScore })
 	for _, f := range findings {
 		// finding
 		resp, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
@@ -159,6 +161,19 @@ func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 				return err
 			}
 		}
+		public, err := isPublic(f.Data)
+		if err != nil {
+			return err
+		}
+		if public {
+			if err := s.tagFinding(ctx, common.TagPublicFacing, resp.Finding.FindingId, resp.Finding.ProjectId); err != nil {
+				return err
+			}
+		} else {
+			if err := s.untagResource(ctx, common.TagPublicFacing, resp.Finding.ResourceName, resp.Finding.ProjectId); err != nil {
+				return err
+			}
+		}
 		// recommend
 		if err := s.putRecommend(ctx, resp.Finding.ProjectId, resp.Finding.FindingId, awsServiceType); err != nil {
 			return err
@@ -177,6 +192,17 @@ func (s *SqsHandler) tagFinding(ctx context.Context, tag string, findingID uint6
 			Tag:       tag,
 		}}); err != nil {
 		return fmt.Errorf("failed to TagFinding, finding_id=%d, tag=%s, error=%+v", findingID, tag, err)
+	}
+	return nil
+}
+
+func (s *SqsHandler) untagResource(ctx context.Context, tag string, resourceName string, projectID uint32) error {
+	if _, err := s.findingClient.UntagByResourceName(ctx, &finding.UntagByResourceNameRequest{
+		ProjectId:    projectID,
+		ResourceName: resourceName,
+		Tag:          tag,
+	}); err != nil {
+		return fmt.Errorf("failed to UntagByResourceName, tag=%s, error=%+v", tag, err)
 	}
 	return nil
 }

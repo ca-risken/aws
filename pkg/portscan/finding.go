@@ -82,7 +82,11 @@ func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 		return err
 	}
 	for _, f := range findingsNmap {
-		findingBatchParam = append(findingBatchParam, s.generateFindingBatch(ctx, msg.AccountID, categoryNmap, f))
+		param, err := s.generateFindingBatch(ctx, msg.AccountID, categoryNmap, f)
+		if err != nil {
+			return err
+		}
+		findingBatchParam = append(findingBatchParam, param)
 	}
 
 	findingsExclude, err := makeExcludeFindings(excludeResults, msg)
@@ -90,7 +94,11 @@ func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 		return err
 	}
 	for _, f := range findingsExclude {
-		findingBatchParam = append(findingBatchParam, s.generateFindingBatch(ctx, msg.AccountID, categoryManyOpen, f))
+		param, err := s.generateFindingBatch(ctx, msg.AccountID, categoryManyOpen, f)
+		if err != nil {
+			return err
+		}
+		findingBatchParam = append(findingBatchParam, param)
 	}
 
 	findingsSecurityGroup, err := makeSecurityGroupFindings(securityGroups, msg)
@@ -98,7 +106,11 @@ func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 		return err
 	}
 	for _, f := range findingsSecurityGroup {
-		findingBatchParam = append(findingBatchParam, s.generateFindingBatch(ctx, msg.AccountID, categoryManyOpen, f))
+		param, err := s.generateFindingBatch(ctx, msg.AccountID, categoryManyOpen, f)
+		if err != nil {
+			return err
+		}
+		findingBatchParam = append(findingBatchParam, param)
 	}
 	if err := s.putFindingBatch(ctx, msg.ProjectID, findingBatchParam); err != nil {
 		return err
@@ -107,7 +119,11 @@ func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 	return nil
 }
 
-func (s *SqsHandler) generateFindingBatch(ctx context.Context, awsAccountID, category string, f *finding.FindingForUpsert) *finding.FindingBatchForUpsert {
+func (s *SqsHandler) generateFindingBatch(
+	ctx context.Context, awsAccountID, category string, f *finding.FindingForUpsert,
+) (
+	*finding.FindingBatchForUpsert, error,
+) {
 	data := &finding.FindingBatchForUpsert{Finding: f}
 	// tag
 	tags := []*finding.FindingTagForBatch{
@@ -119,25 +135,36 @@ func (s *SqsHandler) generateFindingBatch(ctx context.Context, awsAccountID, cat
 	if service == common.TagEC2 && strings.Contains(f.ResourceName, "security-group") {
 		tags = append(tags, &finding.FindingTagForBatch{Tag: "securitygroup"})
 	}
+	public, err := isPublic(f.Data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check public, err=%w", err)
+	}
+	if public {
+		tags = append(tags, &finding.FindingTagForBatch{Tag: common.TagPublicFacing})
+	} else {
+		if err := s.untagResource(ctx, common.TagPublicFacing, f.ResourceName, f.ProjectId); err != nil {
+			return nil, err
+		}
+	}
 	data.Tag = tags
 
 	// recommend
 	recommendType := getRecommendType(category, service)
 	if zero.IsZeroVal(recommendType) {
 		s.logger.Warnf(ctx, "Failed to get recommendation, Unknown category,service=%s", fmt.Sprintf("%v:%v", category, service))
-		return data
+		return data, nil
 	}
 	r := getRecommend(recommendType, service)
 	if r.Risk == "" && r.Recommendation == "" {
 		s.logger.Warnf(ctx, "Failed to get recommendation, Unknown reccomendType,service=%s", fmt.Sprintf("%v:%v", category, service))
-		return data
+		return data, nil
 	}
 	data.Recommend = &finding.RecommendForBatch{
 		Type:           recommendType,
 		Risk:           r.Risk,
 		Recommendation: r.Recommendation,
 	}
-	return data
+	return data, nil
 }
 
 func (s *SqsHandler) putFindingBatch(ctx context.Context, projectID uint32, params []*finding.FindingBatchForUpsert) error {
@@ -153,6 +180,17 @@ func (s *SqsHandler) putFindingBatch(ctx context.Context, projectID uint32, para
 		if _, err := s.findingClient.PutFindingBatch(ctx, req); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (s *SqsHandler) untagResource(ctx context.Context, tag string, resourceName string, projectID uint32) error {
+	if _, err := s.findingClient.UntagByResourceName(ctx, &finding.UntagByResourceNameRequest{
+		ProjectId:    projectID,
+		ResourceName: resourceName,
+		Tag:          tag,
+	}); err != nil {
+		return fmt.Errorf("failed to UntagByResourceName, tag=%s, error=%+v", tag, err)
 	}
 	return nil
 }
@@ -186,4 +224,20 @@ func makeURL(target string, port int) string {
 	default:
 		return fmt.Sprintf("http://%v:%v", target, port)
 	}
+}
+
+type portscanResponse struct {
+	Data struct {
+		Status              string `json:"status"`
+		TooManyPortsAllowed bool   `json:"too_many_ports_allowed"`
+	} `json:"data"`
+}
+
+func isPublic(data string) (bool, error) {
+	var res portscanResponse
+	err := json.Unmarshal([]byte(data), &res)
+	if err != nil {
+		return false, err
+	}
+	return res.Data.Status == "open" || res.Data.TooManyPortsAllowed, nil
 }

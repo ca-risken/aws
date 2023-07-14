@@ -445,13 +445,14 @@ func excludeScan(scanExcludePortNumber int, targets []*target) ([]*target, []*ex
 	for _, t := range targets {
 		if (t.ToPort - t.FromPort) > scanExcludePortNumber {
 			excludeList = append(excludeList, &excludeResult{
-				FromPort:      t.FromPort,
-				ToPort:        t.ToPort,
-				Protocol:      t.Protocol,
-				Target:        t.Target,
-				Arn:           t.Arn,
-				SecurityGroup: t.SecurityGroup,
-				Category:      t.Category,
+				FromPort:            t.FromPort,
+				ToPort:              t.ToPort,
+				Protocol:            t.Protocol,
+				Target:              t.Target,
+				Arn:                 t.Arn,
+				SecurityGroup:       t.SecurityGroup,
+				Category:            t.Category,
+				TooManyPortsAllowed: true,
 			})
 		} else {
 			scanTarget = append(scanTarget, t)
@@ -572,13 +573,14 @@ type infoRDS struct {
 }
 
 type excludeResult struct {
-	FromPort      int
-	ToPort        int
-	Protocol      string
-	Target        string
-	Arn           string
-	SecurityGroup string
-	Category      string
+	FromPort            int
+	ToPort              int
+	Protocol            string
+	Target              string
+	Arn                 string
+	SecurityGroup       string
+	Category            string
+	TooManyPortsAllowed bool
 }
 
 func convertNilString(s *string) string {
