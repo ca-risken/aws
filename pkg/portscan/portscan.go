@@ -10,6 +10,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/apigateway"
+	"github.com/aws/aws-sdk-go-v2/service/apigateway/types"
+	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
@@ -44,6 +47,8 @@ type portscanClient struct {
 	ELBv2                *elbv2.Client
 	RDS                  *rds.Client
 	Lightsail            *lightsail.Client
+	ApiGateway           *apigateway.Client
+	ApiGatewayV2         *apigatewayv2.Client
 	SecurityGroups       []*targetSG
 	relSecurityGroupARNs map[string]*relSecurityGroupArn
 	target               []*target
@@ -90,6 +95,8 @@ func (p *portscanClient) newAWSSession(ctx context.Context, region, assumeRole, 
 	p.ELBv2 = elbv2.New(elbv2.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	p.RDS = rds.New(rds.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	p.Lightsail = lightsail.New(lightsail.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	p.ApiGateway = apigateway.New(apigateway.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	p.ApiGatewayV2 = apigatewayv2.New(apigatewayv2.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	return nil
 }
 
@@ -139,7 +146,16 @@ func (p *portscanClient) getTargets(ctx context.Context, message *message.AWSQue
 		p.logger.Errorf(ctx, "Failed to getInstances(lightsail): err=%+v", err)
 		return []*target{}, map[string]*relSecurityGroupArn{}, err
 	}
-
+	err = p.listApiGateway(ctx)
+	if err != nil {
+		p.logger.Errorf(ctx, "Failed to getRestApis(apigateway): err=%+v", err)
+		return []*target{}, map[string]*relSecurityGroupArn{}, err
+	}
+	err = p.listApiGatewayV2(ctx)
+	if err != nil {
+		p.logger.Errorf(ctx, "Failed to getApis(apigatewayV2): err=%+v", err)
+		return []*target{}, map[string]*relSecurityGroupArn{}, err
+	}
 	return p.target, p.relSecurityGroupARNs, nil
 }
 
@@ -439,6 +455,66 @@ func getTargetProtocolFromlightsailProtocol(p lightsailtypes.NetworkProtocol) []
 	return protocol
 }
 
+func (p *portscanClient) listApiGateway(ctx context.Context) error {
+	apis, err := p.ApiGateway.GetRestApis(ctx, &apigateway.GetRestApisInput{})
+	if err != nil {
+		return err
+	}
+	for _, api := range apis.Items {
+		if isApiGatewayEndpointPrivate(api.EndpointConfiguration) {
+			continue
+		}
+		arn := fmt.Sprintf("arn:aws:apigateway:%s::/restapis/%s", p.Region, *api.Id)
+		domain := fmt.Sprintf("%s.execute-api.%s.amazonaws.com", *api.Id, p.Region)
+		p.target = append(p.target, &target{
+			Arn:      arn,
+			Target:   domain,
+			Protocol: "tcp",
+			FromPort: 443,
+			ToPort:   443,
+			Category: "apigateway",
+		})
+	}
+	return nil
+}
+
+func isApiGatewayEndpointPrivate(endpoint *types.EndpointConfiguration) bool {
+	if endpoint == nil {
+		return false
+	}
+	if endpoint.Types == nil {
+		return false
+	}
+	for _, t := range endpoint.Types {
+		if t == "PRIVATE" {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (p *portscanClient) listApiGatewayV2(ctx context.Context) error {
+	apis, err := p.ApiGatewayV2.GetApis(ctx, &apigatewayv2.GetApisInput{})
+	if err != nil {
+		return err
+	}
+	for _, api := range apis.Items {
+		arn := fmt.Sprintf("arn:aws:apigateway:%s::/apis/%s", p.Region, aws.ToString(api.ApiId))
+		domain := fmt.Sprintf("%s.execute-api.%s.amazonaws.com", aws.ToString(api.ApiId), p.Region)
+		p.target = append(p.target, &target{
+			Arn:      arn,
+			Target:   domain,
+			Protocol: "tcp",
+			FromPort: 443,
+			ToPort:   443,
+			Category: "apigateway",
+		})
+	}
+
+	return nil
+}
+
 func excludeScan(scanExcludePortNumber int, targets []*target) ([]*target, []*excludeResult) {
 	var excludeList []*excludeResult
 	var scanTarget []*target
@@ -488,6 +564,7 @@ func (p *portscanClient) scan(ctx context.Context, targets []*target, scanConcur
 	mutex := &sync.Mutex{}
 	sem := semaphore.NewWeighted(scanConcurrency)
 	for _, t := range targets {
+		p.logger.Infof(ctx, "scan start. target: %+v", t)
 		if err := sem.Acquire(ctx, 1); err != nil {
 			p.logger.Errorf(ctx, "failed to acquire semaphore: %v", err)
 			return nmapResults, err
@@ -518,7 +595,9 @@ func (p *portscanClient) scan(ctx context.Context, targets []*target, scanConcur
 		p.logger.Errorf(ctx, "failed to exec portscan: %v", err)
 		return nmapResults, err
 	}
-
+	for _, result := range nmapResults {
+		p.logger.Infof(ctx, "scan result. result: %+v", result)
+	}
 	return nmapResults, nil
 }
 

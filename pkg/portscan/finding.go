@@ -119,6 +119,7 @@ func (s *SqsHandler) generateFindingBatch(ctx context.Context, awsAccountID, cat
 		tags = append(tags, &finding.FindingTagForBatch{Tag: common.TagPublicFacing})
 	}
 	service := common.GetAWSServiceTagByARN(f.ResourceName)
+	tags = append(tags, &finding.FindingTagForBatch{Tag: service})
 	if service == common.TagEC2 && strings.Contains(f.ResourceName, "security-group") {
 		tags = append(tags, &finding.FindingTagForBatch{Tag: "securitygroup"})
 	}
