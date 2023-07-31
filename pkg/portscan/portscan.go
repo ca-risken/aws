@@ -479,10 +479,7 @@ func (p *portscanClient) listApiGateway(ctx context.Context) error {
 }
 
 func isApiGatewayEndpointPrivate(endpoint *types.EndpointConfiguration) bool {
-	if endpoint == nil {
-		return false
-	}
-	if endpoint.Types == nil {
+	if endpoint == nil || endpoint.Types == nil {
 		return false
 	}
 	for _, t := range endpoint.Types {
