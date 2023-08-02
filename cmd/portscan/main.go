@@ -11,7 +11,6 @@ import (
 	"github.com/ca-risken/common/pkg/profiler"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	"github.com/ca-risken/common/pkg/tracer"
-	"github.com/ca-risken/datasource-api/pkg/message"
 	"github.com/gassara-kys/envconfig"
 )
 
@@ -117,16 +116,10 @@ func main() {
 		appLogger.Fatalf(ctx, "Failed to create aws client, err=%+v", err)
 	}
 	handler := portscan.NewSqsHandler(fc, ac, awsc, conf.AWSRegion, conf.ScanExcludePortNumber, conf.ScanConcurrency, conf.RetryMaxAttempts, appLogger)
-	f, err := mimosasqs.NewFinalizer(message.AWSPortscanDataSource, settingURL, conf.CoreSvcAddr, nil)
-	if err != nil {
-		appLogger.Fatalf(ctx, "Failed to create Finalizer, err=%+v", err)
-	}
-
 	appLogger.Info(ctx, "Start the portscan SQS consumer server...")
 	consumer.Start(ctx,
 		mimosasqs.InitializeHandler(
 			mimosasqs.RetryableErrorHandler(
 				mimosasqs.TracingHandler(getFullServiceName(),
-					mimosasqs.StatusLoggingHandler(appLogger,
-						f.FinalizeHandler(handler))))))
+					mimosasqs.StatusLoggingHandler(appLogger, handler)))))
 }
