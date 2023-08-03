@@ -11,7 +11,6 @@ import (
 	"github.com/ca-risken/common/pkg/profiler"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	"github.com/ca-risken/common/pkg/tracer"
-	"github.com/ca-risken/datasource-api/pkg/message"
 	"github.com/gassara-kys/envconfig"
 )
 
@@ -103,11 +102,6 @@ func main() {
 		appLogger.Fatalf(ctx, "Failed to create aws client, err=%+v", err)
 	}
 	handler := adminchecker.NewSqsHandler(fc, ac, awsc, conf.AWSRegion, conf.RetryMaxAttempts, appLogger)
-	f, err := mimosasqs.NewFinalizer(message.AWSAdminCheckerDataSource, settingURL, conf.CoreSvcAddr, nil)
-	if err != nil {
-		appLogger.Fatalf(ctx, "Failed to create Finalizer, err=%+v", err)
-	}
-
 	sqsConf := &sqs.SQSConfig{
 		Debug:              conf.Debug,
 		AWSRegion:          conf.AWSRegion,
@@ -127,6 +121,5 @@ func main() {
 		mimosasqs.InitializeHandler(
 			mimosasqs.RetryableErrorHandler(
 				mimosasqs.TracingHandler(getFullServiceName(),
-					mimosasqs.StatusLoggingHandler(appLogger,
-						f.FinalizeHandler(handler))))))
+					mimosasqs.StatusLoggingHandler(appLogger, handler)))))
 }
