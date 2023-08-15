@@ -102,7 +102,7 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 	}
 	var iamUsers []iamUser
 	for _, user := range users.Users {
-		jobID, err := a.generateServiceLastAccessedDetails(ctx, *user.Arn)
+		jobID, err := a.generateServiceLastAccessedDetails(ctx, aws.ToString(user.Arn))
 		if err != nil {
 			return nil, err
 		}
@@ -114,13 +114,13 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 		if err != nil {
 			return nil, err
 		}
-		enabledVirtualMFA, err := a.enabledVirtualMFA(ctx, *user.Arn)
+		enabledVirtualMFA, err := a.enabledVirtualMFA(ctx, aws.ToString(user.Arn))
 		if err != nil {
 			return nil, err
 		}
-		boundary, err := a.getEnabledPermissionBoundary(ctx, user.UserName)
-		if err != nil {
-			return nil, err
+		boundary := ""
+		if user.PermissionsBoundary != nil && user.PermissionsBoundary.PermissionsBoundaryArn != nil {
+			boundary = aws.ToString(user.PermissionsBoundary.PermissionsBoundaryArn)
 		}
 		userAdminPolicy, err := a.getUserAdminPolicy(ctx, user.UserName)
 		if err != nil {
@@ -131,8 +131,8 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 			return nil, err
 		}
 		iamUsers = append(iamUsers, iamUser{
-			UserArn:                   *user.Arn,
-			UserName:                  *user.UserName,
+			UserArn:                   aws.ToString(user.Arn),
+			UserName:                  aws.ToString(user.UserName),
 			ActiveAccessKeyID:         *accessKeys,
 			EnabledPhysicalMFA:        enabledPhysicalMFA,
 			EnabledVirtualMFA:         enabledVirtualMFA,
@@ -264,21 +264,6 @@ func (a *adminCheckerClient) enabledVirtualMFA(ctx context.Context, userARN stri
 		}
 	}
 	return false, err
-}
-
-// ※ Permission Boundaryが有効かどうかだけ見ます（内容までは見ない）
-func (a *adminCheckerClient) getEnabledPermissionBoundary(ctx context.Context, userName *string) (string, error) {
-	result, err := a.Svc.GetUser(ctx, &iam.GetUserInput{
-		UserName: userName,
-	})
-	if err != nil {
-		return "", err
-	}
-	boundary := ""
-	if result.User != nil && result.User.PermissionsBoundary != nil && result.User.PermissionsBoundary.PermissionsBoundaryArn != nil {
-		boundary = *result.User.PermissionsBoundary.PermissionsBoundaryArn
-	}
-	return boundary, nil
 }
 
 func (a *adminCheckerClient) getUserAdminPolicy(ctx context.Context, userName *string) (*[]string, error) {
