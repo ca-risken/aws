@@ -314,7 +314,7 @@ func scoreAdminUser(user *iamUser) float32 {
 	if len(user.ActiveAccessKeyID) == 0 && enabledMFA {
 		return 0.5
 	}
-	if user.EnabledPermissionBoundory {
+	if user.EnabledPermissionBoundary {
 		return 0.7
 	}
 	return 0.9

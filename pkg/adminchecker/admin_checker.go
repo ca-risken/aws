@@ -69,11 +69,11 @@ type iamUser struct {
 	ActiveAccessKeyID         []string              `json:"active_access_key_id"`
 	EnabledPhysicalMFA        bool                  `json:"enabled_physical_mfa"`
 	EnabledVirtualMFA         bool                  `json:"enabled_virtual_mfa"`
-	EnabledPermissionBoundory bool                  `json:"enabled_permission_boundory"`
-	PermissionBoundoryName    string                `json:"permission_boundory_name"`
+	EnabledPermissionBoundary bool                  `json:"enabled_permission_boundary"`
+	PermissionBoundaryName    string                `json:"permission_boundary_name"`
 	IsUserAdmin               bool                  `json:"is_user_admin"`
 	UserAdminPolicy           []string              `json:"user_admin_policy"`
-	IsGroupAdmin              bool                  `json:"is_grorup_admin"`
+	IsGroupAdmin              bool                  `json:"is_group_admin"`
 	GroupAdminPolicy          []string              `json:"group_admin_policy"`
 	ServiceAccessedReport     serviceAccessedReport `json:"service_accessed_report"`
 }
@@ -118,7 +118,7 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 		if err != nil {
 			return nil, err
 		}
-		boundory, err := a.getEnabledPermissionBoundory(ctx, user.UserName)
+		boundary, err := a.getEnabledPermissionBoundary(ctx, user.UserName)
 		if err != nil {
 			return nil, err
 		}
@@ -136,8 +136,8 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 			ActiveAccessKeyID:         *accessKeys,
 			EnabledPhysicalMFA:        enabledPhysicalMFA,
 			EnabledVirtualMFA:         enabledVirtualMFA,
-			EnabledPermissionBoundory: boundory != "",
-			PermissionBoundoryName:    boundory,
+			EnabledPermissionBoundary: boundary != "",
+			PermissionBoundaryName:    boundary,
 			IsUserAdmin:               len(*userAdminPolicy) > 0,
 			UserAdminPolicy:           *userAdminPolicy,
 			IsGroupAdmin:              len(*groupAdminPolicy) > 0,
@@ -266,19 +266,19 @@ func (a *adminCheckerClient) enabledVirtualMFA(ctx context.Context, userARN stri
 	return false, err
 }
 
-// ※ Permission Boundoryが有効かどうかだけ見ます（内容までは見ない）
-func (a *adminCheckerClient) getEnabledPermissionBoundory(ctx context.Context, userName *string) (string, error) {
+// ※ Permission Boundaryが有効かどうかだけ見ます（内容までは見ない）
+func (a *adminCheckerClient) getEnabledPermissionBoundary(ctx context.Context, userName *string) (string, error) {
 	result, err := a.Svc.GetUser(ctx, &iam.GetUserInput{
 		UserName: userName,
 	})
 	if err != nil {
 		return "", err
 	}
-	boundory := ""
+	boundary := ""
 	if result.User != nil && result.User.PermissionsBoundary != nil && result.User.PermissionsBoundary.PermissionsBoundaryArn != nil {
-		boundory = *result.User.PermissionsBoundary.PermissionsBoundaryArn
+		boundary = *result.User.PermissionsBoundary.PermissionsBoundaryArn
 	}
-	return boundory, nil
+	return boundary, nil
 }
 
 func (a *adminCheckerClient) getUserAdminPolicy(ctx context.Context, userName *string) (*[]string, error) {

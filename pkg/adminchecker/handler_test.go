@@ -37,12 +37,12 @@ func TestScoreAdminUser(t *testing.T) {
 			want: 0.9,
 		},
 		{
-			name: "Admin user, but enabled PermissionBoundory",
+			name: "Admin user, but enabled PermissionBoundary",
 			input: &iamUser{
 				UserName:                  "alice",
 				IsUserAdmin:               true,
 				IsGroupAdmin:              true,
-				EnabledPermissionBoundory: true,
+				EnabledPermissionBoundary: true,
 			},
 			want: 0.7,
 		},
