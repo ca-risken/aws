@@ -69,13 +69,14 @@ type iamUser struct {
 	ActiveAccessKeyID         []string              `json:"active_access_key_id"`
 	EnabledPhysicalMFA        bool                  `json:"enabled_physical_mfa"`
 	EnabledVirtualMFA         bool                  `json:"enabled_virtual_mfa"`
-	EnabledPermissionBoundory bool                  `json:"enabled_permission_boundory"`
-	PermissionBoundoryName    string                `json:"permission_boundory_name"`
+	EnabledPermissionBoundary bool                  `json:"enabled_permission_boundary"`
+	PermissionBoundaryName    string                `json:"permission_boundary_name"`
 	IsUserAdmin               bool                  `json:"is_user_admin"`
 	UserAdminPolicy           []string              `json:"user_admin_policy"`
-	IsGroupAdmin              bool                  `json:"is_grorup_admin"`
+	IsGroupAdmin              bool                  `json:"is_group_admin"`
 	GroupAdminPolicy          []string              `json:"group_admin_policy"`
 	ServiceAccessedReport     serviceAccessedReport `json:"service_accessed_report"`
+	ConsoleLoginProfile       consoleLoginProfile   `json:"console_login_profile"`
 }
 
 type serviceAccessedReport struct {
@@ -84,6 +85,11 @@ type serviceAccessedReport struct {
 	AllowedServices  int     `json:"allowed_services"`
 	AccessedServices int     `json:"accessed_services"`
 	AccessRate       float32 `json:"access_rate"`
+}
+
+type consoleLoginProfile struct {
+	PasswordCreatedAt     *time.Time `json:"password_created_at,omitempty"`
+	PasswordResetRequired bool       `json:"password_reset_required"`
 }
 
 func (a *adminCheckerClient) listUserFinding(ctx context.Context, msg *message.AWSQueueMessage) (*[]iamUser, error) {
@@ -102,7 +108,7 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 	}
 	var iamUsers []iamUser
 	for _, user := range users.Users {
-		jobID, err := a.generateServiceLastAccessedDetails(ctx, *user.Arn)
+		jobID, err := a.generateServiceLastAccessedDetails(ctx, aws.ToString(user.Arn))
 		if err != nil {
 			return nil, err
 		}
@@ -114,11 +120,11 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 		if err != nil {
 			return nil, err
 		}
-		enabledVirtualMFA, err := a.enabledVirtualMFA(ctx, *user.Arn)
+		enabledVirtualMFA, err := a.enabledVirtualMFA(ctx, aws.ToString(user.Arn))
 		if err != nil {
 			return nil, err
 		}
-		boundory, err := a.getEnabledPermissionBoundory(ctx, user.UserName)
+		boundary, err := a.getEnabledPermissionBoundary(ctx, user.UserName)
 		if err != nil {
 			return nil, err
 		}
@@ -130,14 +136,18 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 		if err != nil {
 			return nil, err
 		}
+		loginProfile, err := a.getConsoleLoginProfile(ctx, user.UserName)
+		if err != nil {
+			return nil, err
+		}
 		iamUsers = append(iamUsers, iamUser{
-			UserArn:                   *user.Arn,
-			UserName:                  *user.UserName,
+			UserArn:                   aws.ToString(user.Arn),
+			UserName:                  aws.ToString(user.UserName),
 			ActiveAccessKeyID:         *accessKeys,
 			EnabledPhysicalMFA:        enabledPhysicalMFA,
 			EnabledVirtualMFA:         enabledVirtualMFA,
-			EnabledPermissionBoundory: boundory != "",
-			PermissionBoundoryName:    boundory,
+			EnabledPermissionBoundary: boundary != "",
+			PermissionBoundaryName:    boundary,
 			IsUserAdmin:               len(*userAdminPolicy) > 0,
 			UserAdminPolicy:           *userAdminPolicy,
 			IsGroupAdmin:              len(*groupAdminPolicy) > 0,
@@ -145,6 +155,7 @@ func (a *adminCheckerClient) listUser(ctx context.Context) (*[]iamUser, error) {
 			ServiceAccessedReport: serviceAccessedReport{
 				JobID: jobID,
 			},
+			ConsoleLoginProfile: *loginProfile,
 		})
 		time.Sleep(time.Millisecond * 1000) // For control the API call rating.
 	}
@@ -205,7 +216,6 @@ BREAK:
 			resp.JobStatus = "COMPLETED"
 			resp.AllowedServices = len(out.ServicesLastAccessed)
 			for _, accessed := range out.ServicesLastAccessed {
-				a.logger.Debugf(ctx, "ServicesLastAccessed: %+v", accessed)
 				if accessed.LastAuthenticated != nil {
 					resp.AccessedServices++
 				}
@@ -216,7 +226,6 @@ BREAK:
 			} else {
 				resp.AccessRate = float32(math.Floor(rate*100) / 100)
 			}
-			a.logger.Debugf(ctx, "serviceAccessedReport: %+v", resp)
 			break BREAK
 		default:
 			return nil, fmt.Errorf("unknown Job Status for GetServiceLastAccessedDetails: jobID=%s, status=%s", jobID, out.JobStatus)
@@ -266,19 +275,19 @@ func (a *adminCheckerClient) enabledVirtualMFA(ctx context.Context, userARN stri
 	return false, err
 }
 
-// ※ Permission Boundoryが有効かどうかだけ見ます（内容までは見ない）
-func (a *adminCheckerClient) getEnabledPermissionBoundory(ctx context.Context, userName *string) (string, error) {
+// ※ Permission Boundaryが有効かどうかだけ見ます（内容までは見ない）
+func (a *adminCheckerClient) getEnabledPermissionBoundary(ctx context.Context, userName *string) (string, error) {
 	result, err := a.Svc.GetUser(ctx, &iam.GetUserInput{
 		UserName: userName,
 	})
 	if err != nil {
 		return "", err
 	}
-	boundory := ""
+	boundary := ""
 	if result.User != nil && result.User.PermissionsBoundary != nil && result.User.PermissionsBoundary.PermissionsBoundaryArn != nil {
-		boundory = *result.User.PermissionsBoundary.PermissionsBoundaryArn
+		boundary = *result.User.PermissionsBoundary.PermissionsBoundaryArn
 	}
-	return boundory, nil
+	return boundary, nil
 }
 
 func (a *adminCheckerClient) getUserAdminPolicy(ctx context.Context, userName *string) (*[]string, error) {
@@ -367,6 +376,26 @@ func (a *adminCheckerClient) getGroupAdminPolicy(ctx context.Context, userName *
 		}
 	}
 	return &adminPolicy, nil
+}
+
+func (a *adminCheckerClient) getConsoleLoginProfile(ctx context.Context, userName *string) (*consoleLoginProfile, error) {
+	result, err := a.Svc.GetLoginProfile(ctx, &iam.GetLoginProfileInput{
+		UserName: userName,
+	})
+	if err != nil {
+		var notFound *types.NoSuchEntityException
+		if errors.As(err, &notFound) {
+			return &consoleLoginProfile{}, nil
+		}
+		return nil, err
+	}
+	if result.LoginProfile == nil {
+		return &consoleLoginProfile{}, nil
+	}
+	return &consoleLoginProfile{
+		PasswordCreatedAt:     result.LoginProfile.CreateDate,
+		PasswordResetRequired: result.LoginProfile.PasswordResetRequired,
+	}, nil
 }
 
 const (

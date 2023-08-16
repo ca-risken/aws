@@ -2,75 +2,100 @@ package adminchecker
 
 import (
 	"testing"
+	"time"
 )
 
 func TestScoreAdminUser(t *testing.T) {
+	now := time.Now()
 	cases := []struct {
 		name  string
 		input *iamUser
 		want  float32
 	}{
 		{
+			name: "No key & No password",
+			input: &iamUser{
+				UserName:            "alice",
+				IsUserAdmin:         false,
+				IsGroupAdmin:        false,
+				ActiveAccessKeyID:   []string{},
+				ConsoleLoginProfile: consoleLoginProfile{PasswordCreatedAt: nil},
+			},
+			want: 0.1,
+		},
+		{
 			name: "Not admin user",
 			input: &iamUser{
-				UserName:     "alice",
-				IsUserAdmin:  false,
-				IsGroupAdmin: false,
+				UserName:            "alice",
+				IsUserAdmin:         false,
+				IsGroupAdmin:        false,
+				ActiveAccessKeyID:   []string{"1"},
+				ConsoleLoginProfile: consoleLoginProfile{PasswordCreatedAt: &now},
 			},
 			want: 0.3,
-		}, {
+		},
+		{
 			name: "User admin",
 			input: &iamUser{
-				UserName:     "alice",
-				IsUserAdmin:  true,
-				IsGroupAdmin: false,
+				UserName:            "alice",
+				IsUserAdmin:         true,
+				IsGroupAdmin:        false,
+				ActiveAccessKeyID:   []string{"1"},
+				ConsoleLoginProfile: consoleLoginProfile{PasswordCreatedAt: &now},
 			},
 			want: 0.9,
 		},
 		{
 			name: "Group admin",
 			input: &iamUser{
-				UserName:     "alice",
-				IsUserAdmin:  false,
-				IsGroupAdmin: true,
+				UserName:            "alice",
+				IsUserAdmin:         false,
+				IsGroupAdmin:        true,
+				ActiveAccessKeyID:   []string{"1"},
+				ConsoleLoginProfile: consoleLoginProfile{PasswordCreatedAt: &now},
 			},
 			want: 0.9,
 		},
 		{
-			name: "Admin user, but enabled PermissionBoundory",
+			name: "Admin user, but enabled PermissionBoundary",
 			input: &iamUser{
 				UserName:                  "alice",
 				IsUserAdmin:               true,
 				IsGroupAdmin:              true,
-				EnabledPermissionBoundory: true,
+				EnabledPermissionBoundary: true,
+				ActiveAccessKeyID:         []string{"1"},
+				ConsoleLoginProfile:       consoleLoginProfile{PasswordCreatedAt: &now},
 			},
 			want: 0.7,
 		},
 		{
 			name: "Admin user, but enabled Physical MFA",
 			input: &iamUser{
-				UserName:           "Physical MFA",
-				IsUserAdmin:        true,
-				EnabledPhysicalMFA: true,
+				UserName:            "Physical MFA",
+				IsUserAdmin:         true,
+				EnabledPhysicalMFA:  true,
+				ConsoleLoginProfile: consoleLoginProfile{PasswordCreatedAt: &now},
 			},
 			want: 0.5,
 		},
 		{
 			name: "Admin user, but enabled Virtual MFA",
 			input: &iamUser{
-				UserName:          "Virtual MFA",
-				IsUserAdmin:       true,
-				EnabledVirtualMFA: true,
+				UserName:            "Virtual MFA",
+				IsUserAdmin:         true,
+				EnabledVirtualMFA:   true,
+				ConsoleLoginProfile: consoleLoginProfile{PasswordCreatedAt: &now},
 			},
 			want: 0.5,
 		},
 		{
 			name: "enabled MFA but access key is activated",
 			input: &iamUser{
-				UserName:          "Virtual MFA",
-				IsUserAdmin:       true,
-				EnabledVirtualMFA: true,
-				ActiveAccessKeyID: []string{"key-id"},
+				UserName:            "Virtual MFA",
+				IsUserAdmin:         true,
+				EnabledVirtualMFA:   true,
+				ActiveAccessKeyID:   []string{"key-id"},
+				ConsoleLoginProfile: consoleLoginProfile{PasswordCreatedAt: &now},
 			},
 			want: 0.9,
 		},

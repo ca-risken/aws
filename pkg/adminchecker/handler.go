@@ -238,7 +238,6 @@ func (s *SqsHandler) putFindings(ctx context.Context, findingType string, msg *m
 	if err := s.putRecommend(ctx, resp.Finding.ProjectId, resp.Finding.FindingId, findingType); err != nil {
 		return err
 	}
-	s.logger.Debugf(ctx, "Success to PutFinding, finding_id=%d", resp.Finding.FindingId)
 	return nil
 }
 
@@ -303,6 +302,9 @@ func (s *SqsHandler) putRecommend(ctx context.Context, projectID uint32, finding
 }
 
 func scoreAdminUser(user *iamUser) float32 {
+	if len(user.ActiveAccessKeyID) == 0 && user.ConsoleLoginProfile.PasswordCreatedAt == nil {
+		return 0.1 // no active access key and no password
+	}
 	isAdmin := false
 	if user.IsUserAdmin || user.IsGroupAdmin {
 		isAdmin = true
@@ -311,10 +313,10 @@ func scoreAdminUser(user *iamUser) float32 {
 		return 0.3
 	}
 	enabledMFA := user.EnabledPhysicalMFA || user.EnabledVirtualMFA
-	if len(user.ActiveAccessKeyID) == 0 && enabledMFA {
-		return 0.5
+	if len(user.ActiveAccessKeyID) == 0 && user.ConsoleLoginProfile.PasswordCreatedAt != nil && enabledMFA {
+		return 0.5 // can login console but enabled MFA
 	}
-	if user.EnabledPermissionBoundory {
+	if user.EnabledPermissionBoundary {
 		return 0.7
 	}
 	return 0.9
