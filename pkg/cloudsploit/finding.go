@@ -191,6 +191,10 @@ func getScore(result *cloudSploitResult) float32 {
 		if isSecurityGroupResource(result) && len(result.SecurityGroupAttachedResources) == 0 {
 			return 1.0 // security group finding, but no attached resources(almost no risk).
 		}
+		// Check IAM Role Findings ...
+		if common.IsManagedIAMRole(result.Resource) {
+			return 1.0 // Managed iam role finding (User has no control).
+		}
 
 		findingInf, ok := cloudSploitFindingMap[fmt.Sprintf("%s/%s", result.Category, result.Plugin)]
 		if ok {

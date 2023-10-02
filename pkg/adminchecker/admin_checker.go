@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -14,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/ca-risken/aws/pkg/common"
 	"github.com/ca-risken/common/pkg/logging"
 	"github.com/ca-risken/datasource-api/pkg/message"
 )
@@ -404,7 +404,7 @@ const (
 	iamAllAction      = "iam:*"
 	allAction1        = "*:*"
 	allAction2        = "*"
-	allResouce        = "*"
+	allResource       = "*"
 )
 
 // Policy Documentの内容がAdministrator or IAMFullAccess相当かチェックします
@@ -425,7 +425,7 @@ func (a *adminCheckerClient) isAdminPolicyDoc(doc policyDocument) bool {
 		}
 		dangerResource := false
 		for _, a := range stmt.Resource {
-			if a == allResouce {
+			if a == allResource {
 				dangerResource = true
 				break
 			}
@@ -523,8 +523,8 @@ func (a *adminCheckerClient) listRole(ctx context.Context) (*[]iamRole, error) {
 	}
 	var iamRoles []iamRole
 	for _, role := range roles.Roles {
-		if role.Path == nil || strings.HasPrefix(*role.Path, "/aws-service-role/") {
-			continue
+		if role.Arn != nil && common.IsManagedIAMRole(aws.ToString(role.Arn)) {
+			continue // Skip Managed Role
 		}
 		jobID, err := a.generateServiceLastAccessedDetails(ctx, *role.Arn)
 		if err != nil {

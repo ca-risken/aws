@@ -34,3 +34,7 @@ func IsMatchAccountIDArn(accountID, arn string) bool {
 	tmp := strings.Split(arn, "::")[1]
 	return strings.HasPrefix(tmp, accountID)
 }
+
+func IsManagedIAMRole(arn string) bool {
+	return strings.HasPrefix(arn, "arn:aws:iam::") && strings.Contains(arn, ":role/aws-service-role/")
+}

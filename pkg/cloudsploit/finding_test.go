@@ -93,6 +93,18 @@ func TestGetScore(t *testing.T) {
 			},
 			want: 1.0,
 		},
+		{
+			name: "Fail iamRoleLastUsed but managed role",
+			input: &cloudSploitResult{
+				Status:    "FAIL",
+				Category:  "IAM",
+				Plugin:    "iamRoleLastUsed",
+				Region:    "ap-northeast-1",
+				AccountID: "123456789012",
+				Resource:  "arn:aws:iam::123456789012:role/aws-service-role/managed-role",
+			},
+			want: 1.0,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
