@@ -45,3 +45,35 @@ func TestIsMatchAccountIDArn(t *testing.T) {
 		})
 	}
 }
+
+func TestIsManagedIAMRole(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  bool
+	}{
+		{
+			name:  "OK",
+			input: "arn:aws:iam::123456789012:role/aws-service-role/inspector2.amazonaws.com/AWSServiceRoleForAmazonInspector2",
+			want:  true,
+		},
+		{
+			name:  "Custom Role",
+			input: "arn:aws:iam::123456789012:role/custom-role",
+			want:  false,
+		},
+		{
+			name:  "Not IAM Role",
+			input: "arn:aws:unknown::123456789012:role/aws-service-role/unknown-role",
+			want:  false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := IsManagedIAMRole(c.input)
+			if c.want != got {
+				t.Fatalf("Unexpected resource name: want=%v, got=%v", c.want, got)
+			}
+		})
+	}
+}
