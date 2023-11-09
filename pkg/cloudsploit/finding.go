@@ -154,11 +154,16 @@ const (
 	resultWARN    string = "WARN"    // 1: WARN: The result represents a potential misconfiguration or issue but is not an immediate risk
 	resultUNKNOWN string = "UNKNOWN" // 3: UNKNOWN: The results could not be determined (API failure, wrong permissions, etc.)
 	resultFAIL    string = "FAIL"    // 2: FAIL: The result presents an immediate risk to the security of the account
+
+	resourceMaxLen = 512
 )
 
 func getResourceName(resource, category, accountID string) string {
 	if resource == cloudsploitUnknown {
 		return fmt.Sprintf("%s/%s/%s", accountID, category, resource)
+	}
+	if len(resource) > resourceMaxLen {
+		return resource[:resourceMaxLen]
 	}
 	return resource
 }

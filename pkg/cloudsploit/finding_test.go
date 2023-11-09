@@ -5,6 +5,14 @@ import (
 	"testing"
 )
 
+const (
+	STRING_LENGTH_10  = "1234567890"
+	STRING_LENGTH_50  = STRING_LENGTH_10 + STRING_LENGTH_10 + STRING_LENGTH_10 + STRING_LENGTH_10 + STRING_LENGTH_10
+	STRING_LENGTH_100 = STRING_LENGTH_50 + STRING_LENGTH_50
+	STRING_LENGTH_500 = STRING_LENGTH_100 + STRING_LENGTH_100 + STRING_LENGTH_100 + STRING_LENGTH_100 + STRING_LENGTH_100
+	STRING_LENGTH_513 = STRING_LENGTH_500 + STRING_LENGTH_10 + "123"
+)
+
 func TestGetScore(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -146,6 +154,55 @@ func TestGetComplianceTag(t *testing.T) {
 			got := getPluginTags(c.category, c.plugin)
 			if strings.Join(c.want, ",") != strings.Join(got, ",") {
 				t.Fatalf("Unexpected category name: want=%v, got=%v", c.want, got)
+			}
+		})
+	}
+}
+
+func TestGetResourceName(t *testing.T) {
+	type args struct {
+		resource  string
+		category  string
+		accountID string
+	}
+	cases := []struct {
+		name  string
+		input *args
+		want  string
+	}{
+		{
+			name: "OK",
+			input: &args{
+				resource:  "arn:aws:acm:ap-northeast-1:123456789012:certificate/xxxxxxxx",
+				category:  "ACM",
+				accountID: "123456789012",
+			},
+			want: "arn:aws:acm:ap-northeast-1:123456789012:certificate/xxxxxxxx",
+		},
+		{
+			name: "Unkonwn",
+			input: &args{
+				resource:  "Unknown",
+				category:  "ACM",
+				accountID: "123456789012",
+			},
+			want: "123456789012/ACM/Unknown",
+		},
+		{
+			name: "Over 512",
+			input: &args{
+				resource:  STRING_LENGTH_513,
+				category:  "ACM",
+				accountID: "123456789012",
+			},
+			want: STRING_LENGTH_513[:512],
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := getResourceName(c.input.resource, c.input.category, c.input.accountID)
+			if c.want != got {
+				t.Fatalf("Unexpected resource name: want=%s, got=%s", c.want, got)
 			}
 		})
 	}
