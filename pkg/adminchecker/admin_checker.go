@@ -572,8 +572,8 @@ func (a *adminCheckerClient) listRole(ctx context.Context) (*[]iamRole, error) {
 	return &iamRoles, nil
 }
 
-func containsAdminPolicy(poclicy []*iamPolicy) bool {
-	for _, policy := range poclicy {
+func containsAdminPolicy(policies []*iamPolicy) bool {
+	for _, policy := range policies {
 		if policy.IsAdmin {
 			return true
 		}
