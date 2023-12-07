@@ -582,6 +582,6 @@ func containsAdminPolicy(poclicy []*iamPolicy) bool {
 }
 
 func isManagedIamPolicy(policyArn string) bool {
-	// if managed policy arn does not have account id(12 digits), it is managed policy.
+	// If there is no account ID (12 digits) in arn, it is managed policy.
 	return strings.HasPrefix(policyArn, "arn:aws:iam::aws:policy/")
 }
