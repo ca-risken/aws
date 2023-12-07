@@ -24,14 +24,14 @@ type statementEntryRaw struct {
 }
 
 type policyDocument struct {
-	Version   string
-	Statement []statementEntry
+	Version   string           `json:"Version,omitempty"`
+	Statement []statementEntry `json:"Statement,omitempty"`
 }
 
 type statementEntry struct {
-	Effect   string
-	Action   []string
-	Resource []string
+	Effect   string   `json:"Effect,omitempty"`
+	Action   []string `json:"Action,omitempty"`
+	Resource []string `json:"Resource,omitempty"`
 	// Conditions map[string]interface{}
 }
 
