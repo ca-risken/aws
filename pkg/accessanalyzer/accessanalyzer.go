@@ -162,6 +162,10 @@ func (a *accessAnalyzerClient) listFindings(ctx context.Context, accountID strin
 		AnalyzerArn: aws.String(analyzerArn),
 		Filter: map[string]types.Criterion{
 			"resourceOwnerAccount": {Eq: []string{accountID}},
+
+			// EFS(ignore type): Access to EFS is excluded as it requires internal network reachability as a prerequisite.
+			// https://docs.aws.amazon.com/ja_jp/efs/latest/ug/NFS-access-control-efs.html
+			"resourceType": {Neq: []string{string(types.ResourceTypeAwsEfsFilesystem)}},
 		},
 		MaxResults: aws.Int32(50),
 	}
