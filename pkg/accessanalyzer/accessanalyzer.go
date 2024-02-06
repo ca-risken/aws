@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -13,6 +15,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/accessanalyzer/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/ca-risken/common/pkg/logging"
 	"github.com/ca-risken/core/proto/finding"
@@ -29,6 +34,8 @@ type accessAnalyzerAPI interface {
 type accessAnalyzerClient struct {
 	Svc    *accessanalyzer.Client
 	EC2    *ec2.Client
+	SNS    *sns.Client
+	SQS    *sqs.Client
 	logger logging.Logger
 }
 
@@ -67,6 +74,8 @@ func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, region, assume
 	}
 	a.Svc = accessanalyzer.New(accessanalyzer.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	a.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	a.SNS = sns.New(sns.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	a.SQS = sqs.New(sqs.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	return nil
 }
 
@@ -185,6 +194,17 @@ func (a *accessAnalyzerClient) listFindings(ctx context.Context, accountID strin
 		nextToken = *out.NextToken
 		time.Sleep(time.Millisecond * 500)
 	}
+
+	for idx, f := range findings {
+		if f.Condition == nil || len(f.Condition) == 0 {
+			// Condition is empty, so we will analyze more deeply.
+			condition, err := a.analyzeCondition(ctx, f)
+			if err != nil {
+				return nil, err
+			}
+			findings[idx].Condition = condition // Update condition
+		}
+	}
 	return &findings, nil
 }
 
@@ -199,4 +219,53 @@ func isPublic(data string) (bool, error) {
 		return false, err
 	}
 	return res.IsPublic, nil
+}
+
+func (a *accessAnalyzerClient) analyzeCondition(ctx context.Context, finding types.FindingSummary) (map[string]string, error) {
+	switch finding.ResourceType {
+	case types.ResourceTypeAwsSnsTopic:
+		return a.analyzeSnsTopicCondition(ctx, finding)
+	case types.ResourceTypeAwsSqsQueue:
+		return a.analyzeSqsQueueCondition(ctx, finding)
+	}
+	return nil, nil
+}
+
+func (a *accessAnalyzerClient) analyzeSnsTopicCondition(ctx context.Context, finding types.FindingSummary) (map[string]string, error) {
+	attr, err := a.SNS.GetTopicAttributes(ctx, &sns.GetTopicAttributesInput{
+		TopicArn: aws.String(*finding.Resource),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{
+		"Policy": attr.Attributes["Policy"],
+	}, nil
+}
+
+func (a *accessAnalyzerClient) analyzeSqsQueueCondition(ctx context.Context, finding types.FindingSummary) (map[string]string, error) {
+	url := getQueueURLFromArn(*finding.Resource)
+	if url == "" {
+		return nil, fmt.Errorf("failed to get queue name from ARN, ARN=%s", *finding.Resource)
+	}
+	attr, err := a.SQS.GetQueueAttributes(ctx, &sqs.GetQueueAttributesInput{
+		QueueUrl: aws.String(url),
+		AttributeNames: []sqstypes.QueueAttributeName{
+			sqstypes.QueueAttributeNamePolicy,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{
+		"Policy": attr.Attributes["Policy"],
+	}, nil
+}
+
+func getQueueURLFromArn(queueArn string) string {
+	parts := strings.Split(queueArn, ":")
+	if len(parts) < 6 {
+		return ""
+	}
+	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/%s", parts[3], parts[4], parts[5])
 }
