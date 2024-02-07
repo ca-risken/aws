@@ -48,22 +48,25 @@ func newAccessAnalyzerClient(ctx context.Context, region string, msg *message.AW
 		return nil, err
 	}
 	a.Svc = accessanalyzer.New(accessanalyzer.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	a.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 
-	if !strings.Contains(msg.AssumeRoleArn, msg.AccountID) {
-		// If AssumeRoleArn is different from AccountID, it is necessary to assume the role to access EC2, SNS, and SQS.
+	if strings.Contains(msg.AssumeRoleArn, msg.AccountID) {
+		a.SNS = sns.New(sns.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+		a.SQS = sqs.New(sqs.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	} else {
+		// If AssumeRoleArn is different from AccountID, it is necessary to assume the same account role to access specific services.
 		for _, d := range ds {
 			if strings.Contains(d.AssumeRoleArn, msg.AccountID) {
 				cfg, err = a.newAWSSession(ctx, region, d.AssumeRoleArn, d.ExternalId, retry) // overwrite session
 				if err != nil {
 					return nil, err
 				}
+				a.SNS = sns.New(sns.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+				a.SQS = sqs.New(sqs.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 				break
 			}
 		}
 	}
-	a.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
-	a.SNS = sns.New(sns.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
-	a.SQS = sqs.New(sqs.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	return &a, nil
 }
 
@@ -238,6 +241,9 @@ func isPublic(data string) (bool, error) {
 }
 
 func (a *accessAnalyzerClient) analyzeCondition(ctx context.Context, finding types.FindingSummary) (map[string]string, error) {
+	if a.SNS == nil || a.SQS == nil {
+		return nil, nil
+	}
 	switch finding.ResourceType {
 	case types.ResourceTypeAwsSnsTopic:
 		return a.analyzeSnsTopicCondition(ctx, finding)
@@ -261,6 +267,7 @@ func (a *accessAnalyzerClient) analyzeSnsTopicCondition(ctx context.Context, fin
 		if errors.As(err, &ae) {
 			a.logger.Warnf(ctx, "SNS.GetTopicAttributes error: code=%s, message=%s, fault=%s", ae.ErrorCode(), ae.ErrorMessage(), ae.ErrorFault().String())
 			if ae.ErrorCode() == ERROR_CODE_SNS_NOT_FOUND {
+				a.logger.Warnf(ctx, "SNS topic not found: arn=%s", *finding.Resource)
 				return nil, nil
 			}
 		}
@@ -277,7 +284,6 @@ func (a *accessAnalyzerClient) analyzeSqsQueueCondition(ctx context.Context, fin
 		return nil, fmt.Errorf("failed to get queue name from ARN, ARN=%s", *finding.Resource)
 	}
 	attr, err := a.SQS.GetQueueAttributes(ctx, &sqs.GetQueueAttributesInput{
-		// QueueUrl: aws.String(url),
 		QueueUrl: aws.String(url),
 		AttributeNames: []sqstypes.QueueAttributeName{
 			sqstypes.QueueAttributeNamePolicy,
