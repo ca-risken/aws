@@ -19,9 +19,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/aws/smithy-go"
 	"github.com/ca-risken/common/pkg/logging"
 	"github.com/ca-risken/core/proto/finding"
 	"github.com/ca-risken/datasource-api/pkg/message"
+	riskenaws "github.com/ca-risken/datasource-api/proto/aws"
 )
 
 type accessAnalyzerAPI interface {
@@ -39,26 +41,44 @@ type accessAnalyzerClient struct {
 	logger logging.Logger
 }
 
-func newAccessAnalyzerClient(ctx context.Context, region, assumeRole, externalID string, retry int, l logging.Logger) (accessAnalyzerAPI, error) {
+func newAccessAnalyzerClient(ctx context.Context, region string, msg *message.AWSQueueMessage, ds []*riskenaws.DataSource, retry int, l logging.Logger) (accessAnalyzerAPI, error) {
 	a := accessAnalyzerClient{logger: l}
-	if err := a.newAWSSession(ctx, region, assumeRole, externalID, retry); err != nil {
+	cfg, err := a.newAWSSession(ctx, region, msg.AssumeRoleArn, msg.ExternalID, retry)
+	if err != nil {
 		return nil, err
 	}
+	a.Svc = accessanalyzer.New(accessanalyzer.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+
+	if !strings.Contains(msg.AssumeRoleArn, msg.AccountID) {
+		// If AssumeRoleArn is different from AccountID, it is necessary to assume the role to access EC2, SNS, and SQS.
+		for _, d := range ds {
+			if strings.Contains(d.AssumeRoleArn, msg.AccountID) {
+				cfg, err = a.newAWSSession(ctx, region, d.AssumeRoleArn, d.ExternalId, retry) // overwrite session
+				if err != nil {
+					return nil, err
+				}
+				break
+			}
+		}
+	}
+	a.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	a.SNS = sns.New(sns.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	a.SQS = sqs.New(sqs.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	return &a, nil
 }
 
 const REGION_US_EAST_1 = "us-east-1"
 
-func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string, retry int) error {
+func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string, retry int) (*aws.Config, error) {
 	if assumeRole == "" {
-		return errors.New("required AWS AssumeRole")
+		return nil, errors.New("required AWS AssumeRole")
 	}
 	if externalID == "" {
-		return errors.New("required AWS ExternalID")
+		return nil, errors.New("required AWS ExternalID")
 	}
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(REGION_US_EAST_1))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	stsClient := sts.NewFromConfig(cfg)
 	provider := stscreds.NewAssumeRoleProvider(stsClient, assumeRole,
@@ -70,13 +90,9 @@ func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, region, assume
 	cfg.Credentials = aws.NewCredentialsCache(provider)
 	_, err = cfg.Credentials.Retrieve(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	a.Svc = accessanalyzer.New(accessanalyzer.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
-	a.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
-	a.SNS = sns.New(sns.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
-	a.SQS = sqs.New(sqs.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
-	return nil
+	return &cfg, nil
 }
 
 func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
@@ -231,11 +247,23 @@ func (a *accessAnalyzerClient) analyzeCondition(ctx context.Context, finding typ
 	return nil, nil
 }
 
+const (
+	ERROR_CODE_SNS_NOT_FOUND = "NotFound"
+	ERROR_CODE_SQS_NOT_FOUND = "AWS.SimpleQueueService.NonExistentQueue"
+)
+
 func (a *accessAnalyzerClient) analyzeSnsTopicCondition(ctx context.Context, finding types.FindingSummary) (map[string]string, error) {
 	attr, err := a.SNS.GetTopicAttributes(ctx, &sns.GetTopicAttributesInput{
 		TopicArn: aws.String(*finding.Resource),
 	})
 	if err != nil {
+		var ae smithy.APIError
+		if errors.As(err, &ae) {
+			a.logger.Warnf(ctx, "SNS.GetTopicAttributes error: code=%s, message=%s, fault=%s", ae.ErrorCode(), ae.ErrorMessage(), ae.ErrorFault().String())
+			if ae.ErrorCode() == ERROR_CODE_SNS_NOT_FOUND {
+				return nil, nil
+			}
+		}
 		return nil, err
 	}
 	return map[string]string{
@@ -249,12 +277,20 @@ func (a *accessAnalyzerClient) analyzeSqsQueueCondition(ctx context.Context, fin
 		return nil, fmt.Errorf("failed to get queue name from ARN, ARN=%s", *finding.Resource)
 	}
 	attr, err := a.SQS.GetQueueAttributes(ctx, &sqs.GetQueueAttributesInput{
+		// QueueUrl: aws.String(url),
 		QueueUrl: aws.String(url),
 		AttributeNames: []sqstypes.QueueAttributeName{
 			sqstypes.QueueAttributeNamePolicy,
 		},
 	})
 	if err != nil {
+		var ae smithy.APIError
+		if errors.As(err, &ae) {
+			a.logger.Warnf(ctx, "SQS.GetQueueAttributes error: code=%s, message=%s, fault=%s", ae.ErrorCode(), ae.ErrorMessage(), ae.ErrorFault().String())
+			if ae.ErrorCode() == ERROR_CODE_SQS_NOT_FOUND {
+				return nil, nil
+			}
+		}
 		return nil, err
 	}
 	return map[string]string{
