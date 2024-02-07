@@ -219,7 +219,9 @@ func (a *accessAnalyzerClient) listFindings(ctx context.Context, accountID strin
 			// Condition is empty, so we will analyze more deeply.
 			condition, err := a.analyzeCondition(ctx, f)
 			if err != nil {
-				return nil, err
+				// If failed to analyze condition, just log and continue to next finding.
+				a.logger.Warnf(ctx, "Failed to analyze condition: err=%+v", err)
+				continue
 			}
 			findings[idx].Condition = condition // Update condition
 		}
