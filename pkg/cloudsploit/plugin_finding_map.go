@@ -274,7 +274,7 @@ var cloudSploitFindingMap = map[string]cloudSploitFindingInformation{
 	categorySSM + "/ssmAgentAutoUpdateEnabled":            {Score: 3.0, Tags: []string{"operation"}},
 	categorySSM + "/ssmAgentLatestVersion":                {Score: 3.0, Tags: []string{"operation"}},
 	categorySSM + "/ssmEncryptedParameters":               {Score: 3.0, Tags: []string{"hipaa", "pci"}},
-	categorySSM + "/ssmDocumentPublicAccess":              {Score: 8.0, Tags: []string{}},
+	categorySSM + "/ssmDocumentPublicAccess":              {Score: 3.0, Tags: []string{}},
 	categoryTransfer + "/transferLoggingEnabled":          {Score: 6.0, Tags: []string{"hipaa", "pci"}},
 	categoryWorkspaces + "/unusedWorkspaces":              {Score: 3.0, Tags: []string{"cost"}},
 	categoryWorkspaces + "/workspacesDesiredBundleType":   {Score: 3.0, Tags: []string{"cost"}},
