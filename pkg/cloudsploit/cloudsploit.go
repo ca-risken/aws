@@ -121,7 +121,7 @@ func unknownFindings(findings []*cloudSploitResult) string {
 	unknowns := map[string]int{}
 	for _, f := range findings {
 		if f.Status == resultUNKNOWN {
-			unknowns[fmt.Sprintf("%s: %s", f.Category, f.Message)]++
+			unknowns[fmt.Sprintf("%s(%s): %s", f.Category, f.Plugin, f.Message)]++
 		}
 	}
 	statusDetail := ""
