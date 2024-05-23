@@ -238,7 +238,7 @@ var cloudSploitFindingMap = map[string]cloudSploitFindingInformation{
 	categoryMQ + "/mqDesiredInstanceType":                 {Score: 3.0, Tags: []string{"cost"}},
 	categoryMSK + "/mskClusterPublicAccess":               {Score: 6.0, Tags: []string{}},
 	categoryMWAA + "/environmentAdminPrivileges":          {Score: 6.0, Tags: []string{}},
-	categoryMWAA + "/webServerPublicAccess":               {Score: 8.0, Tags: []string{}},
+	categoryMWAA + "/webServerPublicAccess":               {Score: 3.0, Tags: []string{}},
 	categoryOrganizations + "/enableAllFeatures":          {Score: 3.0, Tags: []string{"operation"}},
 	categoryRDS + "/rdsAutomatedBackups":                  {Score: 3.0, Tags: []string{"reliability"}},
 	categoryRDS + "/rdsEncryptionEnabled":                 {Score: 6.0, Tags: []string{"hipaa", "pci"}},
