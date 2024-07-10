@@ -1,3 +1,4 @@
+// TODO: delete
 package cloudsploit
 
 const (
@@ -92,7 +93,7 @@ const (
 	categoryXRay                = "XRay"
 )
 
-var cloudSploitFindingMap = map[string]cloudSploitFindingInformation{
+var CloudSploitFindingMap = map[string]cloudSploitFindingInformation{
 	categoryACM + "/acmCertificateExpiry":                 {Score: 6.0, Tags: []string{"pci", "reliability"}},
 	categoryACM + "/acmValidation":                        {Score: 6.0, Tags: []string{"reliability"}},
 	categoryAutoScaling + "/appTierAsgCloudwatchLogs":     {Score: 3.0, Tags: []string{"operation"}},
