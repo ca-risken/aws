@@ -205,7 +205,7 @@ func (s *SqsHandler) getScore(result *cloudSploitResult) float32 {
 		if ok && findingInf.Score != nil {
 			return *findingInf.Score
 		}
-		return 3.0
+		return s.cloudsploitSetting.DefaultScore
 	}
 }
 

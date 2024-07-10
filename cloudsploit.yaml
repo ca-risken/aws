@@ -1,4 +1,4 @@
-defaultScore: 0.3
+defaultScore: 3
 
 ignorePlugin:
   - ecr/ecrRepositoryPolicy # Supported by access-analyzer
