@@ -114,7 +114,10 @@ func main() {
 		conf.MaxMemSizeMB,
 		appLogger,
 	)
-	handler := cloudsploit.NewSqsHandler(fc, ac, awsc, cloudsploitConf, appLogger)
+	handler, err := cloudsploit.NewSqsHandler(fc, ac, awsc, cloudsploitConf, appLogger)
+	if err != nil {
+		appLogger.Fatalf(ctx, "Failed to create handler, err=%+v", err)
+	}
 	sqsConf := &sqs.SQSConfig{
 		Debug:              conf.Debug,
 		AWSRegion:          conf.AWSRegion,

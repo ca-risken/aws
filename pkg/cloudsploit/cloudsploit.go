@@ -46,17 +46,17 @@ func NewCloudsploitConfig(
 	}
 }
 
-func (c *CloudsploitConfig) run(ctx context.Context, accountID string) ([]*cloudSploitResult, error) {
+func (s *SqsHandler) run(ctx context.Context, accountID string) ([]*cloudSploitResult, error) {
 	now := time.Now().UnixNano()
-	if c.MaxMemSizeMB > 0 {
-		os.Setenv("NODE_OPTIONS", fmt.Sprintf("--max-old-space-size=%d", c.MaxMemSizeMB))
+	if s.cloudsploitConf.MaxMemSizeMB > 0 {
+		os.Setenv("NODE_OPTIONS", fmt.Sprintf("--max-old-space-size=%d", s.cloudsploitConf.MaxMemSizeMB))
 	}
-	filePath := fmt.Sprintf("%v/%v_%v.json", c.ResultDir, accountID, now)
+	filePath := fmt.Sprintf("%v/%v_%v.json", s.cloudsploitConf.ResultDir, accountID, now)
 	if fileExists(filePath) {
 		return nil, fmt.Errorf("result file already exists: file=%s", filePath)
 	}
-	cmd := exec.Command(fmt.Sprintf("%v/index.js", c.CloudsploitDir),
-		"--config", c.ConfigPath,
+	cmd := exec.Command(fmt.Sprintf("%v/index.js", s.cloudsploitConf.CloudsploitDir),
+		"--config", s.cloudsploitConf.ConfigPath,
 		"--console", "none",
 		"--json", filePath,
 	)
@@ -81,15 +81,15 @@ func (c *CloudsploitConfig) run(ctx context.Context, accountID string) ([]*cloud
 	}
 	// delete result
 	if err := os.Remove(filePath); err != nil {
-		c.logger.Warnf(ctx, "Failed to delete result file. error: %v", err)
+		s.logger.Warnf(ctx, "Failed to delete result file. error: %v", err)
 	}
 
 	// delete config
-	if err := os.Remove(c.ConfigPath); err != nil {
-		c.logger.Warnf(ctx, "Failed to delete config file. error: %v", err)
+	if err := os.Remove(s.cloudsploitConf.ConfigPath); err != nil {
+		s.logger.Warnf(ctx, "Failed to delete config file. error: %v", err)
 	}
 
-	if err := c.addMetaData(ctx, accountID, results); err != nil {
+	if err := s.addMetaData(ctx, accountID, results); err != nil {
 		return nil, err
 	}
 	return results, nil
@@ -147,21 +147,21 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-func (c *CloudsploitConfig) addMetaData(ctx context.Context, accountID string, findings []*cloudSploitResult) error {
-	availableRegions, err := c.listAvailableRegion(ctx)
+func (s *SqsHandler) addMetaData(ctx context.Context, accountID string, findings []*cloudSploitResult) error {
+	availableRegions, err := s.cloudsploitConf.listAvailableRegion(ctx)
 	if err != nil {
 		return err
 	}
 	for _, f := range findings {
 		f.AccountID = accountID
-		if err := c.addSecurityGroupMetaData(ctx, f, availableRegions); err != nil {
+		if err := s.addSecurityGroupMetaData(ctx, f, availableRegions); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *CloudsploitConfig) addSecurityGroupMetaData(ctx context.Context, f *cloudSploitResult, availableRegions map[string]bool) error {
+func (s *SqsHandler) addSecurityGroupMetaData(ctx context.Context, f *cloudSploitResult, availableRegions map[string]bool) error {
 	if f.Status != resultFAIL {
 		return nil
 	}
@@ -171,14 +171,14 @@ func (c *CloudsploitConfig) addSecurityGroupMetaData(ctx context.Context, f *clo
 	if ok := availableRegions[f.Region]; !ok {
 		return nil
 	}
-	sgPlugin, ok := cloudSploitFindingMap[fmt.Sprintf("%s/%s", f.Category, f.Plugin)]
-	if !ok || sgPlugin.Score <= LOW_SCORE {
+	sgPlugin, ok := s.cloudsploitSetting.SpecificPluginSetting[fmt.Sprintf("%s/%s", f.Category, f.Plugin)]
+	if !ok || sgPlugin.Score == nil || *sgPlugin.Score <= LOW_SCORE {
 		return nil
 	}
 
 	split := strings.Split(f.Resource, "/")
 	groupID := split[len(split)-1]
-	client, err := newEC2Session(ctx, c.assumeRole, c.externalID, f.Region)
+	client, err := newEC2Session(ctx, s.cloudsploitConf.assumeRole, s.cloudsploitConf.externalID, f.Region)
 	if err != nil || client == nil {
 		return fmt.Errorf("failed to create ec2 client. region: %s, err: %v", f.Region, err)
 	}

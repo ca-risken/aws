@@ -1,3 +1,4 @@
+// TODO: delete
 package cloudsploit
 
 import "fmt"
@@ -8,7 +9,7 @@ type recommend struct {
 }
 
 func getRecommend(category, plugin string) recommend {
-	return recommendMap[fmt.Sprintf("%s/%s", category, plugin)]
+	return RecommendMap[fmt.Sprintf("%s/%s", category, plugin)]
 }
 
 // recommendMap maps risk and recommendation details to plugins.
@@ -26,7 +27,7 @@ func getRecommend(category, plugin string) recommend {
 //	  - link
 //	  `,
 //	 },
-var recommendMap = map[string]recommend{
+var RecommendMap = map[string]recommend{
 	categoryIAM + "/accessAnalyzerActiveFindings": {
 		Risk: `Access Analyzer Active Findings
 		- Ensure that IAM Access analyzer findings are reviewed and resolved by taking all necessary actions.

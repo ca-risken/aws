@@ -13,6 +13,18 @@ const (
 	STRING_LENGTH_513 = STRING_LENGTH_500 + STRING_LENGTH_10 + "123"
 )
 
+var testHandler *SqsHandler
+
+func init() {
+	setting, err := LoadDefaultCloudsploitSetting()
+	if err != nil {
+		panic(err)
+	}
+	testHandler = &SqsHandler{
+		cloudsploitSetting: setting,
+	}
+}
+
 func TestGetScore(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -116,9 +128,9 @@ func TestGetScore(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := getScore(c.input)
+			got := testHandler.getScore(c.input)
 			if c.want != got {
-				t.Fatalf("Unexpected category name: want=%v, got=%v", c.want, got)
+				t.Fatalf("Unexpected score: want=%v, got=%v", c.want, got)
 			}
 		})
 	}
@@ -151,9 +163,9 @@ func TestGetComplianceTag(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := getPluginTags(c.category, c.plugin)
+			got := testHandler.getPluginTags(c.category, c.plugin)
 			if strings.Join(c.want, ",") != strings.Join(got, ",") {
-				t.Fatalf("Unexpected category name: want=%v, got=%v", c.want, got)
+				t.Fatalf("Unexpected tags: want=%v, got=%v", c.want, got)
 			}
 		})
 	}

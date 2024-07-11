@@ -56,12 +56,16 @@ push-manifest: $(MANIFEST_PUSH_TARGETS)
 	docker manifest push $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(MANIFEST_TAG)
 	docker manifest inspect $(IMAGE_REGISTRY)/$(IMAGE_PREFIX)/$(*):$(MANIFEST_TAG)
 
+.PHONY: generate
+generate:
+	go generate ./...
+
 .PHONY: go-test
-go-test:
+go-test: generate
 	GO111MODULE=on go test ./...
 
 .PHONY: lint
-lint:
+lint: generate
 	GO111MODULE=on GOFLAGS=-buildvcs=false golangci-lint run --timeout 5m
 
 .PHONY: enqueue-accessanalyzer

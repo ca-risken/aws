@@ -19,11 +19,12 @@ import (
 )
 
 type SqsHandler struct {
-	findingClient   finding.FindingServiceClient
-	alertClient     alert.AlertServiceClient
-	awsClient       awsClient.AWSServiceClient
-	cloudsploitConf *CloudsploitConfig
-	logger          logging.Logger
+	findingClient      finding.FindingServiceClient
+	alertClient        alert.AlertServiceClient
+	awsClient          awsClient.AWSServiceClient
+	cloudsploitConf    *CloudsploitConfig
+	cloudsploitSetting *CloudsploitSetting
+	logger             logging.Logger
 }
 
 func NewSqsHandler(
@@ -32,14 +33,20 @@ func NewSqsHandler(
 	awsc awsClient.AWSServiceClient,
 	csConfig *CloudsploitConfig,
 	l logging.Logger,
-) *SqsHandler {
-	return &SqsHandler{
-		findingClient:   fc,
-		alertClient:     ac,
-		awsClient:       awsc,
-		cloudsploitConf: csConfig,
-		logger:          l,
+) (*SqsHandler, error) {
+	setting, err := LoadDefaultCloudsploitSetting()
+	if err != nil {
+		l.Errorf(context.Background(), "Failed to load cloudsploit setting. error: %v", err)
+		return nil, err
 	}
+	return &SqsHandler{
+		findingClient:      fc,
+		alertClient:        ac,
+		awsClient:          awsc,
+		cloudsploitConf:    csConfig,
+		cloudsploitSetting: setting,
+		logger:             l,
+	}, nil
 }
 
 func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) error {
@@ -78,7 +85,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	// Run cloudsploit
 	tspan, _ := tracer.StartSpanFromContext(ctx, "runCloudSploit")
 	s.logger.Infof(ctx, "start cloudsploit scan, RequestID=%s", requestID)
-	cloudsploitResult, err := s.cloudsploitConf.run(ctx, msg.AccountID)
+	cloudsploitResult, err := s.run(ctx, msg.AccountID)
 	tspan.Finish(tracer.WithError(err))
 	if err != nil {
 		s.logger.Errorf(ctx, "Failed to exec cloudsploit, error: %v", err)

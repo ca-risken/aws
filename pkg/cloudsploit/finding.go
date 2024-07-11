@@ -35,7 +35,7 @@ func (s *SqsHandler) putFindings(ctx context.Context, results []*cloudSploitResu
 		resourceName := getResourceName(result.Resource, result.Category, message.AccountID)
 		serviceTag := getServiceTag(resourceName)
 		tags := []string{common.TagAWS, serviceTag, message.AccountID}
-		score := getScore(result)
+		score := s.getScore(result)
 		if score == 0.0 {
 			// resource
 			if _, ok := resourceNameMap[resourceName]; ok {
@@ -68,7 +68,7 @@ func (s *SqsHandler) putFindings(ctx context.Context, results []*cloudSploitResu
 			Data:             string(data),
 		}
 		tags = append(tags, common.TagCloudsploit, result.Plugin)
-		tags = append(tags, getPluginTags(result.Category, result.Plugin)...)
+		tags = append(tags, s.getPluginTags(result.Category, result.Plugin)...)
 		var findingTagForBatch []*finding.FindingTagForBatch
 		for _, tag := range tags {
 			findingTagForBatch = append(findingTagForBatch, &finding.FindingTagForBatch{Tag: tag})
@@ -183,7 +183,7 @@ func getServiceTag(resource string) string {
 	return tag
 }
 
-func getScore(result *cloudSploitResult) float32 {
+func (s *SqsHandler) getScore(result *cloudSploitResult) float32 {
 	switch strings.ToUpper(result.Status) {
 	case resultOK:
 		return 0.0
@@ -201,17 +201,17 @@ func getScore(result *cloudSploitResult) float32 {
 			return 1.0 // Managed iam role finding (User has no control).
 		}
 
-		findingInf, ok := cloudSploitFindingMap[fmt.Sprintf("%s/%s", result.Category, result.Plugin)]
-		if ok {
-			return findingInf.Score
+		findingInf, ok := s.cloudsploitSetting.SpecificPluginSetting[fmt.Sprintf("%s/%s", result.Category, result.Plugin)]
+		if ok && findingInf.Score != nil {
+			return *findingInf.Score
 		}
-		return 3.0
+		return s.cloudsploitSetting.DefaultScore
 	}
 }
 
-func getPluginTags(category, plugin string) []string {
-	findingInf, ok := cloudSploitFindingMap[fmt.Sprintf("%s/%s", category, plugin)]
-	if ok {
+func (s *SqsHandler) getPluginTags(category, plugin string) []string {
+	findingInf, ok := s.cloudsploitSetting.SpecificPluginSetting[fmt.Sprintf("%s/%s", category, plugin)]
+	if ok && len(findingInf.Tags) > 0 {
 		return findingInf.Tags
 	}
 	return []string{}

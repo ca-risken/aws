@@ -1,0 +1,2130 @@
+defaultScore: 3
+
+ignorePlugin:
+  - ecr/ecrRepositoryPolicy # Supported by access-analyzer
+
+specificPluginSetting:
+  # aaaPlugin:
+  #   score: 0.8
+  #   skipResourceNamePattern: "arn:aws:s3:::bucket-name"
+  #   tags:
+  #     - tag1
+  #     - tag2
+  #   recomend:
+  #     risk: "..."
+  #     remediation: "xxxxx"
+  ACM/acmCertificateExpiry:
+    score: 6
+    tags:
+      - pci
+      - reliability
+    recommend:
+      risk: |-
+        ACM Certificate Expiry
+        - Detect upcoming expiration of ACM certificates
+        - Certificates that have expired will trigger warnings in all major browsers. AWS will attempt to automatically renew the certificate but may be unable to do so if email or DNS validation cannot be confirmed.
+      recommendation: |-
+        Ensure AWS is able to renew the certificate via email or DNS validation of the domain.
+        - https://docs.aws.amazon.com/acm/latest/userguide/managed-renewal.html
+  ACM/acmValidation:
+    score: 6
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        ACM Certificate Validation
+        - ACM certificates should be configured to use DNS validation.
+        - With DNS validation, ACM will automatically renew certificates before they expire, as long as the DNS CNAME record is in place.
+      recommendation: |-
+        Configure ACM managed certificates to use DNS validation.
+        - https://aws.amazon.com/blogs/security/easier-certificate-validation-using-dns-with-aws-certificate-manager/
+        - https://cloudsploit.com/remediations/aws/acm/acm-certificate-validation
+  AutoScaling/appTierAsgCloudwatchLogs:
+    tags:
+      - operation
+    recommend:
+      risk: |-
+        App-Tier Auto Scaling Group CloudWatch Logs Enabled
+        - Ensures that App-Tier Auto Scaling Groups are using CloudWatch logs agent.
+        - EC2 instance available within app-tier Auto Scaling Group (ASG) should use an AWS CloudWatch Logs agent to monitor, store and access log files.
+      recommendation: |-
+        Update app-tier Auto Scaling Group to use CloudWatch Logs agent
+        - https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Install-CloudWatch-Agent.html'
+  AutoScaling/asgActiveNotifications:
+    tags:
+      - cost
+    recommend:
+      risk: |-
+        Auto Scaling Notifications Active
+        - Ensures auto scaling groups have notifications active.
+        - Notifications can be sent to an SNS endpoint when scaling actions occur, which should be set to ensure all scaling activity is recorded.
+      recommendation: |-
+        Add a notification endpoint to the auto scaling group.
+        - https://docs.aws.amazon.com/autoscaling/ec2/userguide/ASGettingNotifications.html
+  AutoScaling/asgMissingELB:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Auto Scaling Group Missing ELB
+        - Ensures all Auto Scaling groups are referencing active load balancers.
+        - Each Auto Scaling group with a load balancer configured should reference an active ELB.
+      recommendation: |-
+        Ensure that the Auto Scaling group load balancer has not been deleted. If so, remove it from the ASG.
+        - https://docs.aws.amazon.com/autoscaling/ec2/userguide/attach-load-balancer-asg.html
+  AutoScaling/asgMissingSecurityGroups:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Launch Configuration Referencing Missing Security Groups
+        - Ensures that Auto Scaling launch configurations are not utilizing missing security groups.
+        - Auto Scaling launch configuration should utilize an active security group to ensure safety of managed instances.
+      recommendation: |-
+        Ensure that the launch configuration security group has not been deleted. If so, remove it from launch configurations
+        - https://docs.aws.amazon.com/autoscaling/ec2/userguide/GettingStartedTutorial.html
+  AutoScaling/asgMultiAz:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        ASG Multiple AZ
+        - Ensures that ASGs are created to be cross-AZ for high availability.
+        - ASGs can easily be configured to allow instances to launch in multiple availability zones. This ensures that the ASG can continue to scale, even when AWS is experiencing downtime in one or more zones.
+      recommendation: |-
+        Modify the autoscaling instance to enable scaling across multiple availability zones.
+        - http://docs.aws.amazon.com/autoscaling/latest/userguide/AutoScalingGroup.html
+  AutoScaling/asgSuspendedProcesses:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Suspended AutoScaling Groups
+        - Ensures that there are no Amazon AutoScaling groups with suspended processes.
+        - AutoScaling groups should not have any suspended processes to avoid disrupting the AutoScaling workflow.
+      recommendation: |-
+        Update the AutoScaling group to resume the suspended processes.
+        - https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-suspend-resume-processes.html
+  AutoScaling/elbHealthCheckActive:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        ELB Health Check Active
+        - Ensures all Auto Scaling groups have ELB health check active.
+        - Auto Scaling groups should have ELB health checks active to replace unhealthy instances in time.
+      recommendation: |-
+        Enable ELB health check for the Auto Scaling groups.
+        - https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-add-elb-healthcheck.html
+  AutoScaling/emptyASG:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Empty AutoScaling Group
+        - Ensures all autoscaling groups contain at least 1 instance.
+        - AutoScaling groups that are no longer in use should be deleted to prevent accidental use.
+      recommendation: |-
+        Delete the unused AutoScaling group.
+        - https://docs.aws.amazon.com/autoscaling/ec2/userguide/AutoScalingGroup.html
+  AutoScaling/sameAzElb:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        AutoScaling ELB Same Availability Zone
+        - Ensures all autoscaling groups with attached ELBs are operating in the same availability zone.
+        - To work properly and prevent orphaned instances, ELBs must be created in the same availability zones as the backend instances in the autoscaling group.
+      recommendation: |-
+        Update the ELB to use the same availability zones as the autoscaling group.
+        - https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-add-availability-zone.html
+  AutoScaling/webTierAsgApprovedAmi:
+    score: 6
+    recommend:
+      risk: |
+        Web-Tier ASG Launch Configurations Approved AMIs
+        - Ensures that Web-Tier Auto Scaling Group Launch Configurations are using approved AMIs.
+        - Web-Tier Auto Scaling Group Launch Configurations should use approved AMIs only to launch EC2 instances within the ASG
+      recommendation: |
+        Update Web-Tier ASG Launch Configuration to use approved AMIs only
+        - https://docs.aws.amazon.com/autoscaling/ec2/userguide/LaunchConfiguration.html
+  AutoScaling/webTierAsgAssociatedElb:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Web-Tier Auto Scaling Group Associated ELB
+        - Ensures that Web-Tier Auto Scaling Group has an associated Elastic Load Balancer
+        - Web-Tier Auto Scaling groups should have an ELB associated to distribute incoming traffic across EC2 instances.
+      recommendation: |-
+        Update Web-Tier Auto Scaling group to associate ELB to distribute incoming traffic.
+        - https://docs.aws.amazon.com/autoscaling/ec2/userguide/attach-load-balancer-asg.html
+  AutoScaling/webTierAsgCloudwatchLogs:
+    tags:
+      - operation
+    recommend:
+      risk: |-
+        Web-Tier Auto Scaling Group CloudWatch Logs Enabled
+        - Ensures that Web-Tier Auto Scaling Groups are using CloudWatch Logs agent.
+        - EC2 instance available within web-tier Auto Scaling Group (ASG) should use an AWS CloudWatch Logs agent to monitor, store and access log files.
+      recommendation: |-
+        Update web-tier Auto Scaling Group to use CloudWatch Logs agent
+        - https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Install-CloudWatch-Agent.html
+  CloudFront/cloudfrontHttpsOnly:
+    tags:
+      - hipaa
+    recommend:
+      risk: |-
+        CloudFront HTTPS Only
+        - Ensures CloudFront distributions are configured to redirect non-HTTPS traffic to HTTPS.
+        - For maximum security, CloudFront distributions can be configured to only accept HTTPS connections or to redirect HTTP connections to HTTPS.
+      recommendation: |-
+        Remove HTTP-only listeners from distributions.
+        - http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/CloudFront.html
+  CloudFront/cloudfrontLoggingEnabled:
+    tags:
+      - hipaa
+      - pci
+      - operation
+    recommend:
+      risk: |-
+        CloudFront Logging Enabled
+        - Ensures CloudFront distributions have request logging enabled.
+        - Logging requests to CloudFront distributions is a helpful way of detecting and investigating potential attacks, malicious activity, or misuse of backend resources. Logs can be sent to S3 and processed for further analysis.
+      recommendation: |-
+        Enable CloudFront request logging.
+        - http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/AccessLogs.html
+  CloudFront/compressObjectsAutomatically:
+    tags:
+      - cost
+    recommend:
+      risk: |
+        CloudFront Compress Objects Automatically
+        - Ensure that your Amazon Cloudfront distributions are configured to automatically compress files(object).
+        - Cloudfront data transfer is based on the total amount of data served, sending compressed files to the viewers is much less expensive than sending uncompressed files.
+        - To optimise your AWS cloud costs and speed up your web applications, configure your Cloudfront distributions to compress the web content served with compression enabled.
+      recommendation: |
+        Ensures that CloudFront is configured to automatically compress files
+        - https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html
+  CloudFront/enableOriginFailOver:
+    tags:
+      - reliability
+    recommend:
+      risk: |
+        CloudFront Enable Origin Failover
+        - Ensure that Origin Failover feature is enabled for your CloudFront distributions in order to improve the availability of the content delivered to your end users.
+        - With Origin Failover capability, you can setup two origins for your CloudFront web distributions primary and secondary. In the event of primary origin failure, your content is automatically served from the secondary origin, maintaining the distribution high reliability.
+      recommendation: |
+        Modify CloudFront distributions and configure origin group instead of a single origin
+        - https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_OriginGroupFailoverCriteria.html
+  CloudFront/insecureProtocols:
+    score: 6
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        Insecure CloudFront Protocols
+        - Detects the use of insecure HTTPS SSL/TLS protocols for use with HTTPS traffic between viewers and CloudFront
+        - CloudFront supports SSLv3 and TLSv1 protocols for use with HTTPS traffic, but only TLSv1.1 or higher should be used unless there is a valid business justification to support the older, insecure SSLv3.
+      recommendation: |-
+        Ensure that traffic sent between viewers and CloudFront is passed over HTTPS and uses TLSv1.1 or higher.
+        - http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/secure-connections-supported-viewer-protocols-ciphers.html
+  CloudFront/publicS3Origin:
+    tags:
+      - hipaa
+    recommend:
+      risk: |-
+        Public S3 CloudFront Origin
+        - Detects the use of an S3 bucket as a CloudFront origin without an origin access identity
+        - When S3 is used as an origin for a CloudFront bucket, the contents should be kept private and an origin access identity should allow CloudFront access. This prevents someone from bypassing the caching benefits that CloudFront provides, repeatedly loading objects directly from S3, and amassing a large access bill.
+      recommendation: |-
+        Create an origin access identity for CloudFront, then make the contents of the S3 bucket private.
+        - http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html
+  CloudFront/secureOrigin:
+    tags:
+      - hipaa
+    recommend:
+      risk: |-
+        Secure CloudFront Origin
+        - Detects the use of secure web origins with secure protocols for CloudFront.
+        - Traffic passed between the CloudFront edge nodes and the backend resource should be sent over HTTPS with modern protocols for all web-based origins.
+      recommendation: |-
+        Ensure that traffic sent between CloudFront and its origin is passed over HTTPS and uses TLSv1.1 or higher. Do not use the match-viewer option.
+        - http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web.html
+  CloudTrail/cloudtrailBucketAccessLogging:
+    tags:
+      - hipaa
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        CloudTrail Bucket Access Logging
+        - Ensures CloudTrail logging bucket has access logging enabled to detect tampering of log files
+        - CloudTrail buckets should utilize access logging for an additional layer of auditing. If the log files are deleted or modified in any way, the additional access logs can help determine who made the changes.
+      recommendation: |-
+        Enable access logging on the CloudTrail bucket from the S3 console
+        - http://docs.aws.amazon.com/AmazonS3/latest/UG/ManagingBucketLogging.html
+  CloudTrail/cloudtrailBucketDelete:
+    tags:
+      - hipaa
+    recommend:
+      risk: |-
+        CloudTrail Bucket Delete Policy
+        - Ensures CloudTrail logging bucket has a policy to prevent deletion of logs without an MFA token
+        - To provide additional security, CloudTrail logging buckets should require an MFA token to delete objects
+      recommendation: |-
+        Enable MFA delete on the CloudTrail bucket
+        - http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html#MultiFactorAuthenticationDelete
+  CloudTrail/cloudtrailBucketPrivate:
+    score: 8
+    tags:
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        CloudTrail Bucket Private
+        - Ensures CloudTrail logging bucket is not publicly accessible
+        - CloudTrail buckets contain large amounts of sensitive account data and should only be accessible by logged in users.
+      recommendation: |-
+        Set the S3 bucket access policy for all CloudTrail buckets to only allow known users to access its files.
+        - http://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html
+  CloudTrail/cloudtrailDeliveryFailing:
+    score: 8
+    recommend:
+      risk: |-
+        CloudTrail Delivery Failing
+        - Ensures that Amazon CloudTrail trail log files are delivered to destination S3 bucket.
+        - Amazon CloudTrail trail logs should be delivered to destination S3 bucket to be used for security audits.
+      recommendation: |-
+        Modify CloudTrail trail configurations so that logs are being delivered
+        - https://docs.aws.amazon.com/awscloudtrail/latest/userguide/how-cloudtrail-works.html
+  CloudTrail/cloudtrailEnabled:
+    score: 8
+    tags:
+      - hipaa
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        CloudTrail Enabled
+        - Ensures CloudTrail is enabled for all regions within an account
+        - CloudTrail should be enabled for all regions in order to detect suspicious activity in regions that are not typically used.
+      recommendation: |-
+        Enable CloudTrail for all regions and ensure that at least one region monitors global service events
+        - http://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-getting-started.html
+  CloudTrail/cloudtrailEncryption:
+    tags:
+      - cis2
+      - cis
+    recommend:
+      risk: |-
+        CloudTrail Encryption
+        - Ensures CloudTrail encryption at rest is enabled for logs
+        - CloudTrail log files contain sensitive information about an account and should be encrypted at rest for additional protection.
+      recommendation: |-
+        Enable CloudTrail log encryption through the CloudTrail console or API
+        - http://docs.aws.amazon.com/awscloudtrail/latest/userguide/encrypting-cloudtrail-log-files-with-aws-kms.html
+  CloudTrail/cloudtrailFileValidation:
+    tags:
+      - hipaa
+      - cis2
+      - cis
+    recommend:
+      risk: |-
+        CloudTrail File Validation
+        - Ensures CloudTrail file validation is enabled for all regions within an account
+        - CloudTrail file validation is essentially a hash of the file which can be used to ensure its integrity in the case of an account compromise.
+      recommendation: |-
+        Enable CloudTrail file validation for all regions
+        - http://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-enabling.html
+  CloudTrail/cloudtrailToCloudwatch:
+    tags:
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        CloudTrail To CloudWatch
+        - Ensures CloudTrail logs are being properly delivered to CloudWatch
+        - Sending CloudTrail logs to CloudWatch enables easy integration with AWS CloudWatch alerts, as well as an additional backup log storage location.
+      recommendation: |-
+        Enable CloudTrail CloudWatch integration for all regions
+        - http://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html
+  CloudTrail/globalLoggingDuplicated:
+    tags:
+      - cost
+    recommend:
+      risk: |-
+        CloudTrail Global Services Logging Duplicated
+        - Ensures that AWS CloudTrail trails are not duplicating global services events in log files.
+        - Only one trail should have Include Global Services feature enabled to avoid duplication of global services events in log files.
+      recommendation: |-
+        Update CloudTrail trails to log global services events enabled for only one trail
+        - https://docs.aws.amazon.com/IAM/latest/UserGuide/cloudtrail-integration.html
+  CloudWatchLogs/monitoringMetrics:
+    tags:
+      - cis1
+      - cis
+      - operation
+    recommend:
+      risk: |-
+        CloudWatch Monitoring Metrics
+        - Ensures metric filters are setup for CloudWatch logs to detect security risks from CloudTrail.
+        - Sending CloudTrail logs to CloudWatch is only useful if metrics are setup to detect risky activity from those logs. There are numerous metrics that should be used. For the exact filter patterns, please see this plugin on GitHub: https://github.com/cloudsploit/scans/blob/master/plugins/aws/cloudwatchlogs/monitoringMetrics.js
+      recommendation: |-
+        Enable metric filters to detect malicious activity in CloudTrail logs sent to CloudWatch.
+        - http://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html
+  ConfigService/configServiceEnabled:
+    tags:
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Config Service Enabled
+        - Ensures the AWS Config Service is enabled to detect changes to account resources
+        - The AWS Config Service tracks changes to a number of resources in an AWS account and is invaluable in determining how account changes affect other resources and in recovery in the event of an account intrusion or accidental configuration change.
+      recommendation: |-
+        Enable the AWS Config Service for all regions and resources in an account. Ensure that it is properly recording and delivering logs.
+        - https://aws.amazon.com/config/details/
+  DMS/dmsEncryptionEnabled:
+    tags:
+      - hipaa
+    recommend:
+      risk: |-
+        DMS Encryption Enabled
+        - Ensures DMS encryption is enabled using a CMK
+        - Data sent through the data migration service is encrypted using KMS. Encryption is enabled by default, but it is recommended to use customer managed keys.
+      recommendation: |-
+        Enable encryption using KMS CMKs for all DMS replication instances.
+        - https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Security.html
+  EC2/classicInstances:
+    tags:
+      - hipaa
+      - pci
+      - operation
+    recommend:
+      risk: |-
+        Detect EC2 Classic Instances
+        - Ensures AWS VPC is being used for instances instead of EC2 Classic
+        - VPCs are the latest and more secure method of launching AWS resources. EC2 Classic should not be used.
+      recommendation: |-
+        Migrate instances from EC2 Classic to VPC
+        - http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Introduction.html
+  EC2/crossVpcPublicPrivate:
+    tags:
+      - pci
+    recommend:
+      risk: |-
+        Cross VPC Public Private Communication
+        - Ensures communication between public and private VPC tiers is not enabled.
+        - Communication between the public tier of one VPC and the private tier of other VPCs should never be allowed. Instead, VPC peerings with proper NACLs and gateways should be used
+      recommendation: |-
+        Remove the NACL rules allowing communication between the public and private tiers of different VPCs
+        - https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html
+  EC2/defaultSecurityGroup:
+    tags:
+      - pci
+      - cis2
+      - cis
+    recommend:
+      risk: |-
+        Default Security Group
+        - Ensure the default security groups block all traffic by default
+        - The default security group is often used for resources launched without a defined security group. For this reason, the default rules should be to block all traffic to prevent an accidental exposure.
+      recommendation: |-
+        Update the rules for the default security group to deny all traffic by default
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html#default-security-group
+  EC2/ebsEncryptedSnapshots:
+    tags:
+      - hipaa
+    recommend:
+      risk: |-
+        EBS Encrypted Snapshots
+        - Ensures EBS snapshots are encrypted at rest
+        - EBS snapshots should have at-rest encryption enabled through AWS using KMS. If the volume was not encrypted and a snapshot was taken the snapshot will be unencrypted.
+      recommendation: |-
+        Configure volume encryption and delete unencrypted EBS snapshots.
+        - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html#encryption-support
+  EC2/ebsEncryptionEnabled:
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        EBS Encryption Enabled
+        - Ensures EBS volumes are encrypted at rest
+        - EBS volumes should have at-rest encryption enabled through AWS using KMS. If the volume is used for a root volume, the instance must be launched from an AMI that has been encrypted as well.
+      recommendation: |-
+        Enable encryption for EBS volumes.
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html
+  EC2/ebsOldSnapshots:
+    tags:
+      - cost
+    recommend:
+      risk: |-
+        EBS Volumes Too Old Snapshots
+        - Ensure that EBS volume snapshots are deleted after defined time period.
+        - EBS volume snapshots older than indicated should be deleted after defined time period for cost optimization.
+      recommendation: |-
+        Delete the EBS snapshots past their defined expiration date
+        - https://docs.amazonaws.cn/en_us/AWSEC2/latest/UserGuide/ebs-deleting-snapshot.html
+  EC2/ebsSnapshotLifecycle:
+    tags:
+      - cost
+    recommend:
+      risk: |-
+        Automate EBS Snapshot Lifecycle
+        - Ensure DLM is used to automate EBS volume snapshots management.
+        - Amazon Data Lifecycle Manager (DLM) service enables you to manage the lifecycle of EBS volume snapshots.
+        - Using DLM helps in enforcing regular backup schedule, retaining backups, deleting outdated EBS snapshots
+      recommendation: |-
+        Create lifecycle policy for EBS volumes.
+        - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/snapshot-lifecycle.html
+  EC2/ebsSnapshotPrivate:
+    score: 8
+    recommend:
+      risk: |-
+        EBS Volume Snapshot Public
+        - Ensures EBS volume snapshots are private
+        - EBS volumes often contain sensitive data from running EC2 instances and should be set to private so they cannot be accidentally shared with other accounts.
+      recommendation: |-
+        Ensure that each EBS snapshot has its permissions set to private.
+        - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-modifying-snapshot-permissions.html
+  EC2/ebsSnapshotPublic:
+    score: 8
+    recommend:
+      risk: |-
+        Amazon EBS Public Snapshots
+        - Ensure that Amazon EBS volume snapshots are not shared to all AWS accounts.
+        - AWS Elastic Block Store (EBS) volume snapshots should not be not publicly shared with other AWS account to avoid data exposure.
+      recommendation: |-
+        Modify the permissions of public snapshots to remove public access.
+        - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-modifying-snapshot-permissions.html
+  EC2/ebsUnusedVolumes:
+    tags:
+      - cost
+    recommend:
+      risk: |-
+        Unused EBS Volumes
+        - Ensures EBS volumes are in use and attached to EC2 instances
+        - EBS volumes should be deleted if the parent instance has been deleted to prevent accidental exposure of data.
+      recommendation: |-
+        Delete the unassociated EBS volume.
+        - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-deleting-volume.html
+  EC2/elasticIpLimit:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Elastic IP Limit
+        - Determine if the number of allocated EIPs is close to the AWS per-account limit
+        - AWS limits accounts to certain numbers of resources. Exceeding those limits could prevent resources from launching.
+      recommendation: |-
+        Contact AWS support to increase the number of EIPs available
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html#using-instance-addressing-limit
+  EC2/encryptedAmi:
+    tags:
+      - hipaa
+    recommend:
+      risk: |-
+        Encrypted AMI
+        - Ensures EBS-backed AMIs are configured to use encryption
+        - AMIs with unencrypted data volumes can be used to launch unencrypted instances that place data at risk.
+      recommendation: |-
+        Ensure all AMIs have encrypted EBS volumes.
+        - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIEncryption.html
+  EC2/excessiveSecurityGroups:
+    tags:
+      - pci
+    recommend:
+      risk: |-
+        Excessive Security Groups
+        - Determine if there are an excessive number of security groups in the account
+        - Keeping the number of security groups to a minimum helps reduce the attack surface of an account.
+        - Rather than creating new groups with the same rules for each project, common rules should be grouped under the same security groups. For example, instead of adding port 22 from a known IP to every group, create a single "SSH" security group which can be used on multiple instances.
+      recommendation: |-
+        Limit the number of security groups to prevent accidental authorizations
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/flowLogsEnabled:
+    tags:
+      - hipaa
+      - pci
+      - cis2
+      - cis
+    recommend:
+      risk: |-
+        VPC Flow Logs Enabled
+        - Ensures VPC flow logs are enabled for traffic logging
+        - VPC flow logs record all traffic flowing in to and out of a VPC. These logs are critical for auditing and review after security incidents.
+      recommendation: |-
+        Enable VPC flow logs for each VPC
+        - http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/flow-logs.html
+  EC2/instanceLimit:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Instance Limit
+        - Determine if the number of EC2 instances is close to the AWS per-account limit
+        - AWS limits accounts to certain numbers of resources. Exceeding those limits could prevent resources from launching.
+      recommendation: |-
+        Contact AWS support to increase the number of instances available
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html#using-instance-addressing-limit
+  EC2/instanceMaxCount:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        EC2 Max Instances
+        - Ensures the total number of EC2 instances does not exceed a set threshold.
+        - The number of running EC2 instances should be carefully audited, especially in unused regions, to ensure only approved applications are consuming compute resources.
+        - Many compromised AWS accounts see large numbers of EC2 instances launched.
+      recommendation: |-
+        Ensure that the number of running EC2 instances matches the expected count.
+        - If instances are launched above the threshold, investigate to ensure they are legitimate.
+        - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring_ec2.html
+  EC2/instanceVcpusLimit:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Instance vCPU On-Demand Based Limits
+        - Determine if the number of EC2 On-Demand instances is close to the regional vCPU based limit.
+        - AWS limits accounts to certain numbers of resources per region. Exceeding those limits could prevent resources from launching.
+      recommendation: |-
+        EC2 automatically increases On Demand Instance limits based on usage, limit increases can be requested via the Limits Page on Amazon EC2 console, the EC2 service page on the Service Quotas console, or the Service Quotas API/CLI.
+        - https://aws.amazon.com/ec2/faqs/#EC2_On-Demand_Instance_limits
+  EC2/managedNatGateway:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Managed NAT Gateway In Use
+        - Ensure AWS VPC Managed NAT (Network Address Translation) Gateway service is enabled for high availability (HA).
+        - VPCs should use highly available Managed NAT Gateways in order to enable EC2 instances to connect to the internet or with other AWS components.
+      recommendation: |-
+        Update VPCs to use Managed NAT Gateways instead of NAT instances
+        - https://aws.amazon.com/blogs/aws/new-managed-nat-network-address-translation-gateway-for-aws/
+  EC2/multipleSubnets:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        VPC Multiple Subnets
+        - Ensures that VPCs have multiple subnets to provide a layered architecture
+        - VPCs should be designed to have separate public and private subnets, ideally across availability zones, enabling a DMZ-style architecture.
+      recommendation: |-
+        Create at least two subnets in each VPC, utilizing one for public traffic and the other for private traffic.
+        - https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html#SubnetSecurity
+  EC2/natMultiAz:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        NAT Multiple AZ
+        - Ensures managed NAT instances exist in at least 2 AZs for availability purposes
+        - Creating NAT instances in a single AZ creates a single point of failure for all systems in the VPC.
+        - All managed NAT instances should be created in multiple AZs to ensure proper failover.
+      recommendation: |-
+        Launch managed NAT instances in multiple AZs.
+        - http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/vpc-nat-gateway.html
+  EC2/openAllPortsProtocols:
+    score: 8
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        Open All Ports Protocols
+        - Determine if security group has all ports or protocols open to the public
+        - Security groups should be created on a per-service basis and avoid allowing all ports or protocols.
+      recommendation: |-
+        Modify the security group to specify a specific port and protocol to allow.
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openCIFS:
+    score: 8
+    recommend:
+      risk: |-
+        Open CIFS
+        - Determine if UDP port 445 for CIFS is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as CIFS should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict UDP port 445 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openCustomPorts:
+    score: 8
+    recommend:
+      risk: |-
+        Open Custom Ports
+        - Ensure that defined custom ports are not open to public.
+        - Security groups should restrict access to ports from known networks.
+      recommendation: |-
+        Modify the security group to ensure the defined custom ports are not exposed publicly
+        - https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html
+  EC2/openDNS:
+    score: 8
+    recommend:
+      risk: |-
+        Open DNS
+        - Determine if TCP or UDP port 53 for DNS is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as DNS should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP and UDP port 53 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openDocker:
+    score: 8
+    recommend:
+      risk: |-
+        Open Docker
+        - Determine if Docker port 2375 or 2376 is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as Docker should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP ports 2375 and 2376 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openElasticsearch:
+    score: 8
+    recommend:
+      risk: |-
+        Open Elasticsearch
+        - Determine if TCP port 9200 for Elasticsearch is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as Elasticsearch should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 9200 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openFTP:
+    score: 8
+    recommend:
+      risk: |-
+        Open FTP
+        - Determine if TCP port 20 or 21 for FTP is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as FTP should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP ports 20 and 21 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openHadoopNameNode:
+    score: 8
+    recommend:
+      risk: |-
+        Open Hadoop HDFS NameNode Metadata Service
+        - Determine if TCP port 8020 for HDFS NameNode metadata service is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as Hadoop/HDFS should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 8020 to known IP addresses for Hadoop/HDFS
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openHadoopNameNodeWebUI:
+    score: 8
+    recommend:
+      risk: |-
+        Open Hadoop HDFS NameNode WebUI
+        - Determine if TCP port 50070 and 50470 for Hadoop/HDFS NameNode WebUI service is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as Hadoop/HDFS should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 50070 and 50470 to known IP addresses for Hadoop/HDFS
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openKibana:
+    score: 8
+    recommend:
+      risk: |-
+        Open Kibana
+        - Determine if TCP port 5601 for Kibana is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as Kibana should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 5601 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openMySQL:
+    score: 8
+    recommend:
+      risk: |-
+        Open MySQL
+        - Determine if TCP port 4333 or 3306 for MySQL is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as MySQL should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP ports 4333 and 3306 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openNetBIOS:
+    score: 8
+    recommend:
+      risk: |-
+        Open NetBIOS
+        - Determine if UDP port 137 or 138 for NetBIOS is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as NetBIOS should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict UDP ports 137 and 138 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openOracle:
+    score: 8
+    recommend:
+      risk: |-
+        Open Oracle
+        - Determine if TCP port 1521 for Oracle is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as Oracle should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP ports 1521 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openOracleAutoDataWarehouse:
+    score: 8
+    recommend:
+      risk: |-
+        Open Oracle Auto Data Warehouse
+        - Determine if TCP port 1522 for Oracle Auto Data Warehouse is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as Oracle Auto Data Warehouse should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP ports 1522 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openPostgreSQL:
+    score: 8
+    recommend:
+      risk: |-
+        Open PostgreSQL
+        - Determine if TCP port 5432 for PostgreSQL is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as PostgreSQL should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 5432 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openRDP:
+    score: 8
+    tags:
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Open RDP
+        - Determine if TCP port 3389 for RDP is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as RDP should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 3389 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openRPC:
+    score: 8
+    recommend:
+      risk: |-
+        Open RPC
+        - Determine if TCP port 135 for RPC is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as RPC should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 135 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openSMBoTCP:
+    score: 8
+    recommend:
+      risk: |-
+        Open SMBoTCP
+        - Determine if TCP port 445 for Windows SMB over TCP is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as SMB should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 445 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openSMTP:
+    score: 8
+    recommend:
+      risk: |-
+        Open SMTP
+        - Determine if TCP port 25 for SMTP is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as SMTP should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 25 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openSQLServer:
+    score: 8
+    recommend:
+      risk: |-
+        Open SQL Server
+        - Determine if TCP port 1433 or UDP port 1434 for SQL Server is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as SQL server should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 1433 and UDP port 1434 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openSSH:
+    score: 6
+    recommend:
+      risk: |-
+        Open SSH
+        - Determine if TCP port 22 for SSH is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as SSH should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 22 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openSalt:
+    score: 8
+    recommend:
+      risk: |-
+        Open Salt
+        - Determine if TCP ports 4505 or 4506 for the Salt master are open to the public
+        - Active Salt vulnerabilities, CVE-2020-11651 and CVE-2020-11652 are exploiting Salt instances exposed to the internet. These ports should be closed immediately.
+      recommendation: |-
+        Restrict TCP ports 4505 and 4506 to known IP addresses
+        - https://help.saltstack.com/hc/en-us/articles/360043056331-New-SaltStack-Release-Critical-Vulnerability
+  EC2/openTelnet:
+    score: 8
+    recommend:
+      risk: |-
+        Open Telnet
+        - Determine if TCP port 23 for Telnet is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as Telnet should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 23 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openVNCClient:
+    score: 8
+    recommend:
+      risk: |-
+        Open VNC Client
+        - Determine if TCP port 5500 for VNC Client is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as VNC Client should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 5500 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openVNCServer:
+    score: 8
+    recommend:
+      risk: |-
+        Open VNC Server
+        - Determine if TCP port 5900 for VNC Server is open to the public
+        - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as VNC Server should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 5900 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/outdatedAmiInUse:
+    score: 6
+    tags:
+      - operation
+    recommend:
+      risk: |
+        Outdated Amazon Machine Images
+        - Ensures that deprecated Amazon Machine Images are not in use.
+        - Deprecated Amazon Machine Images should not be used to make an instance.
+      recommendation: |
+        Delete the instances using deprecated AMIs
+        - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ami-deprecate.html
+  EC2/overlappingSecurityGroups:
+    tags:
+      - operation
+    recommend:
+      risk: |-
+        Overlapping Security Groups
+        - Determine if EC2 instances have security groups that share the same rules
+        - Overlapping security group rules make managing EC2 instance access much more difficult.
+        - If a rule is removed from one security group, the access may still remain in another resulting in unintended access to the instance.
+      recommendation: |-
+        Structure security groups to provide a single category of access and do not duplicate rules across groups used by the same instances.
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/publicAmi:
+    score: 8
+    recommend:
+      risk: |-
+        Public AMI
+        - Checks for publicly shared AMIs
+        - Accidentally sharing AMIs allows any AWS user to launch an EC2 instance using the image as a base. This can potentially expose sensitive information stored on the host.
+      recommendation: |-
+        Convert the public AMI a private image.
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sharingamis-intro.html
+  EC2/subnetIpAvailability:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Subnet IP Availability
+        - Determine if a subnet is at risk of running out of IP addresses
+        - Subnets have finite IP addresses. Running out of IP addresses could prevent resources from launching.
+      recommendation: |-
+        Add a new subnet with larger CIDR block and migrate resources.
+        - http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html
+  EC2/unassociatedElasticIp:
+    tags:
+      - cost
+    recommend:
+      risk: |-
+        Unassociated Elastic IP Addresses
+        - Ensures all EIPs are allocated to a resource to avoid accidental usage or reuse and to save costs
+        - EIPs should be deleted if they are not in use to avoid extra charges.
+      recommendation: |-
+        Delete the unassociated Elastic IP
+        - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html
+  EC2/unusedAmi:
+    tags:
+      - cost
+    recommend:
+      risk: |-
+        Unused Amazon Machine Images
+        - Ensures that all Amazon Machine Images are in use to ensure cost optimization.
+        - All unused/deregistered Amazon Machine Images should be deleted to avoid extraneous cost.
+      recommendation: |-
+        Delete the unused/deregistered AMIs
+        - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html
+  EC2/unusedEni:
+    tags:
+      - cost
+    recommend:
+      risk: |-
+        Unused Elastic Network Interfaces
+        - Ensures that unused AWS Elastic Network Interfaces (ENIs) are removed.
+        - Unused AWS ENIs should be removed to follow best practices and to avoid reaching the service limit.
+      recommendation: |-
+        Delete the unused AWS Elastic Network Interfaces
+        - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html
+  EC2/unusedVirtualPrivateGateway:
+    tags:
+      - cost
+    recommend:
+      risk: |-
+        Unused Virtual Private Gateway
+        - Ensures that unused Virtual Private Gateways (VGWs) are removed.
+        - Unused VGWs should be remove to follow best practices and to avoid reaching the service limit.
+      recommendation: |-
+        Remove the unused Virtual Private Gateways (VGWs)
+        - https://docs.aws.amazon.com/vpn/latest/s2svpn/delete-vpn.html
+  EC2/unusedVpcInternetGateways:
+    tags:
+      - cost
+    recommend:
+      risk: |-
+        Unused VPC Internet Gateways
+        - Ensures that unused VPC Internet Gateways and Egress-Only Internet Gateways are removed.
+        - Unused VPC Internet Gateways and Egress-Only Internet Gateways must be removed to avoid reaching the internet gateway limit.
+      recommendation: |-
+        Remove the unused/detached Internet Gateways and Egress-Only Internet Gateways
+        - https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html
+  EC2/vpcElasticIpLimit:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        VPC Elastic IP Limit
+        - Determine if the number of allocated VPC EIPs is close to the AWS per-account limit
+        - AWS limits accounts to certain numbers of resources. Exceeding those limits could prevent resources from launching.
+      recommendation: |-
+        Contact AWS support to increase the number of EIPs available
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html#using-instance-addressing-limit
+  EC2/vpcPeeringConnections:
+    recommend:
+      risk: |
+        Cross Organization VPC Peering Connections
+        - Ensures that VPC peering communication is only between AWS accounts, members of the same AWS Organization.
+      recommendation: |
+        Update VPC peering connections to allow connections to AWS Accounts, members of the same organization
+        - https://docs.aws.amazon.com/vpc/latest/peering/working-with-vpc-peering.html
+  EFS/efsEncryptionEnabled:
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        EFS Encryption Enabled
+        - Ensures that EFS volumes are encrypted at rest
+        - EFS offers data at rest encryption using keys managed through AWS Key Management Service (KMS).
+      recommendation: |-
+        Encryption of data at rest can only be enabled during file system creation.
+        Encryption of data in transit is configured when mounting your file system.
+
+        1. Backup your data in not encrypted efs
+        2. Recreate the EFS and select 'Enable encryption of data at rest'
+  EKS/eksKubernetesVersion:
+    tags:
+      - operation
+    recommend:
+      risk: |-
+        EKS Kubernetes Version
+        - Ensures the latest version of Kubernetes is installed on EKS clusters
+        - EKS supports provisioning clusters from several versions of Kubernetes. Clusters should be kept up to date to ensure Kubernetes security patches are applied.
+      recommendation: |-
+        Upgrade the version of Kubernetes on all EKS clusters to the latest available version.
+        - https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html
+  EKS/eksLoggingEnabled:
+    score: 6
+    recommend:
+      risk: |-
+        EKS Logging Enabled
+        - Ensures all EKS cluster logs are being sent to CloudWatch
+        - EKS supports routing of cluster event and audit logs to CloudWatch, including control plane logs.
+        - All logs should be sent to CloudWatch for security analysis.
+      recommendation: |-
+        Enable all EKS cluster logs to be sent to CloudWatch with proper log retention limits.
+        - https://docs.aws.amazon.com/eks/latest/userguide/control-plane-logs.html
+  EKS/eksSecurityGroups:
+    score: 6
+    recommend:
+      risk: |-
+        EKS Security Groups
+        - Ensures the EKS control plane only allows inbound traffic on port 443.
+        - The EKS control plane only requires port 443 access. Security groups for the control plane should not add additional port access.
+      recommendation: |-
+        Configure security groups for the EKS control plane to allow access only on port 443.
+        - https://docs.aws.amazon.com/eks/latest/userguide/sec-group-reqs.html
+  ELB/elbLoggingEnabled:
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        ELB Logging Enabled
+        - Ensures load balancers have request logging enabled.
+        - Logging requests to ELB endpoints is a helpful way of detecting and investigating potential attacks, malicious activity, or misuse of backend resources.
+        - Logs can be sent to S3 and processed for further analysis.
+      recommendation: |-
+        Enable ELB request logging
+        - http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html
+  ELB/elbNoInstances:
+    tags:
+      - cost
+    recommend:
+      risk: |-
+        ELB No Instances
+        - Detects ELBs that have no backend instances attached
+        - All ELBs should have backend server resources.
+        - Those without any are consuming costs without providing any functionality. Additionally, old ELBs with no instances present a security concern if new instances are accidentally attached.
+      recommendation: |-
+        Delete old ELBs that no longer have backend resources.
+        - http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-backend-instances.html
+  ELB/insecureCiphers:
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        Insecure Ciphers
+        - Detect use of insecure ciphers on ELBs
+        - Various security vulnerabilities have rendered several ciphers insecure. Only the recommended ciphers should be used.
+      recommendation: |-
+        Update your ELBs to use the recommended cipher suites
+        - http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-security-policy-options.html
+  ELBv2elbv2SslTermination:
+    score: 6
+  ELBv2/elbv2DeletionProtection:
+    score: 6
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        ELBv2 Deletion Protection
+        - Ensures ELBv2 load balancers are configured with deletion protection.
+        - ELBv2 load balancers should be configured with deletion protection to prevent accidental deletion of live resources in production environments.
+      recommendation: |-
+        Update ELBv2 load balancers to use deletion protection to prevent accidental deletion
+        - https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection
+  ELBv2/elbv2LoggingEnabled:
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        ELBv2 Logging Enabled
+        - Ensures load balancers have request logging enabled.
+        - Logging requests to ELB endpoints is a helpful way of detecting and investigating potential attacks, malicious activity, or misuse of backend resources.
+        - Logs can be sent to S3 and processed for further analysis.
+      recommendation: |-
+        Enable ELB request logging
+        - http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html
+  ELBv2/elbv2MinimumTargetInstances:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        ELBv2 Minimum Number of EC2 Target Instances
+        - Ensures that there is a minimum number of two healthy target instances associated with each AWS ELBv2 load balancer.
+        - There should be a minimum number of two healthy target instances associated with each AWS ELBv2 load balancer to ensure fault tolerance.
+      recommendation: |-
+        Associate at least two healthy target instances to AWS ELBv2 load balancer
+        - https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html
+  ELBv2/elbv2NoInstances:
+    tags:
+      - cost
+    recommend:
+      risk: |-
+        ELBv2 No Instances
+        - Detects ELBs that have no target groups attached
+        - All ELBs should have backend server resources.
+        - Those without any are consuming costs without providing any functionality.
+        - Additionally, old ELBs with no target groups present a security concern if new target groups are accidentally attached.
+      recommendation: |-
+        Delete old ELBs that no longer have backend resources.
+        - https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html
+  ES/esClusterStatus:
+    score: 6
+    recommend:
+      risk: |
+        ElasticSearch Cluster Status
+        - Ensure that ElasticSearch clusters are healthy, i.e status is green.
+        - Unhealthy Amazon ES clusters with the status set to "Red" is crucial for availability of ElasticSearch applications.
+      recommendation: |
+        Configure alarms to send notification if cluster status remains red for more than a minute.
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/cloudwatch-alarms.html
+  ES/esDesiredInstanceTypes:
+    tags:
+      - cost
+    recommend:
+      risk: |
+        ElasticSearch Desired Instance Type
+        - Ensure that all your Amazon Elasticsearch cluster instances are of given instance types.
+        - Limiting the type of Amazon Elasticsearch cluster instances that can be provisioned will help address compliance requirements and prevent unexpected charges on the AWS bill.
+      recommendation: |
+        Reconfigure the domain to have the desired instance types.
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html
+  ES/esUpgradeAvailable:
+    tags:
+      - operation
+    recommend:
+      risk: |-
+        ElasticSearch Upgrade Available
+        - Ensures ElasticSearch domains are running the latest service software
+        - ElasticSearch domains should be configured to run the latest service software which often contains security updates.
+      recommendation: |-
+        Ensure each ElasticSearch domain is running the latest service software and update out-of-date domains.
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-version-migration.html
+  ElastiCache/elasticacheNodesCount:
+    tags:
+      - cost
+    recommend:
+      risk: |
+        ElastiCache Nodes Count
+        - Ensure that the number of ElastiCache cluster cache nodes has not reached the limit quota established by your organization.
+        - Defining limits for the maximum number of ElastiCache cluster nodes that can be created within your AWS account will help you to better manage your ElastiCache compute resources and prevent unexpected charges on your AWS bill.
+      recommendation: |
+        Enable limit for ElastiCache cluster nodes count
+        - https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/CacheNodes.html
+  ElastiCache/elasticacheRedisMultiAZ:
+    tags:
+      - reliability
+    recommend:
+      risk: |
+        ElastiCache Redis Cluster Have Multi-AZ
+        - Ensure that your ElastiCache Redis Cache clusters are using a Multi-AZ deployment configuration to enhance High Availability.
+        - Enabling the Multi-AZ feature for your Redis Cache clusters will improve the fault tolerance in case the read/write primary node becomes unreachable due to loss of network connectivity, loss of availability in the primary’s AZ, etc.
+      recommendation: |
+        Enable Redis Multi-AZ for ElastiCache clusters
+        - https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/AutoFailover.html#AutoFailover.Enable
+  ElastiCache/elasticaheDesiredNodeType:
+    tags:
+      - cost
+    recommend:
+      risk: |
+        ElastiCache Desired Node Type
+        - Ensure that the Amazon ElastiCache cluster nodes provisioned in your AWS account have the desired node type established within your organization based on the workload deployed.
+        - Setting limits for the type of Amazon ElastiCache cluster nodes will help you address internal compliance requirements and prevent unexpected charges on your AWS bill.
+      recommendation: |
+        Create ElastiCache clusters with desired node types
+        - https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/WhatIs.html
+  ElastiCache/idleElastiCacheNode:
+    tags:
+      - cost
+    recommend:
+      risk: |
+        ElastiCache idle Cluster Status.
+        - Identify ElastiCache clusters having CPU utilization below defined threshold within last 24 hours (idle clusters).
+        - Idle Amazon ElastiCache cache cluster nodes represent a good candidate to reduce your monthly AWS costs and avoid accumulating unnecessary usage charges.
+      recommendation: |
+        Identify and remove idle ElastiCache clusters
+        - https://aws.amazon.com/elasticache/features/
+  ElasticBeanstalk/enviromentAccessLogs:
+    score: 6
+  ElasticBeanstalk/managedPlatformUpdates:
+    tags:
+      - operation
+    recommend:
+      risk: |-
+        ElasticBeanstalk Managed Platform Updates
+        - Ensures ElasticBeanstalk applications are configured to use managed updates.
+        - Environments for an application should be configured to allow platform managed updates.
+      recommendation: |-
+        Update the environment to enable managed updates.
+        - https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/environment-platform-update-managed.html
+  Firehose/firehoseEncrypted:
+    tags:
+      - hipaa
+    recommend:
+      risk: |-
+        Firehose Delivery Streams Encrypted
+        - Ensures Firehose Delivery Stream encryption is enabled
+        - Data sent through Firehose Delivery Streams can be encrypted using KMS server-side encryption.
+        - Existing delivery streams can be modified to add encryption with minimal overhead.
+      recommendation: |-
+        Enable encryption using KMS for all Firehose Delivery Streams.
+        - https://docs.aws.amazon.com/firehose/latest/dev/encryption.html
+  Glacier/vaultPublicAccess:
+    score: 6
+    recommend:
+      risk: |
+        S3 Glacier Vault Public Access
+        - Ensure that S3 Glacier Vault public access block is enabled for the account.
+        - Blocking S3 Glacier Vault public access at the account level ensures objects are not accidentally exposed.
+      recommendation: |
+        Add access policy for the S3 Glacier Vault to block public access for the AWS account.
+        - https://docs.aws.amazon.com/amazonglacier/latest/dev/access-control-overview.html
+  GuardDuty/guardDutyEnabled:
+    score: 6
+    recommend:
+      risk: |-
+        GuardDuty is Enabled
+        - GuardDuty provides threat intelligence by analyzing several AWS data sources for security risks and should be enabled in all accounts.
+      recommendation: |-
+        Enable GuardDuty for all AWS accounts.
+        - https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html
+  IAM/accessKeysExtra:
+    score: 6
+    recommend:
+      risk: |-
+        Access Keys Extra
+        - Detects the use of more than one access key by any single user
+        - Having more than one access key for a single user increases the chance of accidental exposure.
+        - Each account should only have one key that defines the users permissions.
+      recommendation: |-
+        Remove the extra access key for the specified user.
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingCredentials.html
+  IAM/accessKeysLastUsed:
+    score: 6
+    tags:
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Access Keys Last Used
+        - Detects access keys that have not been used for a period of time and that should be decommissioned
+        - Having numerous, unused access keys extends the attack surface. Access keys should be removed if they are no longer being used.
+      recommendation: |-
+        Log into the IAM portal and remove the offending access key.
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingCredentials.html
+  IAM/accessKeysRotated:
+    tags:
+      - hipaa
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Access Keys Rotated
+        - Ensures access keys are not older than 180 days in order to reduce accidental exposures
+        - Access keys should be rotated frequently to avoid having them accidentally exposed.
+      recommendation: |-
+        To rotate an access key, first create a new key, replace the key and secret throughout your app or scripts, then set the previous key to disabled.
+        - Once you ensure that no services are broken, then fully delete the old key.
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingCredentials.html
+  IAM/certificateExpiry:
+    score: 8
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Certificate Expiry
+        - Detect upcoming expiration of certificates used with ELBs
+        - Certificates that have expired will trigger warnings in all major browsers
+      recommendation: |-
+        Update your certificates before the expiration date
+        - http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-update-ssl-cert.html
+  IAM/iamRoleLastUsed:
+    score: 6
+    recommend:
+      risk: |-
+        IAM Role Last Used
+        - Ensures IAM roles that have not been used within the given time frame are deleted.
+        - IAM roles that have not been used for a long period may contain old access policies that could allow unintended access to resources if accidentally attached to new services.
+        - These roles should be deleted.
+      recommendation: |-
+        Delete IAM roles that have not been used within the expected time frame.
+        - https://aws.amazon.com/about-aws/whats-new/2019/11/identify-unused-iam-roles-easily-and-remove-them-confidently-by-using-the-last-used-timestamp/
+  IAM/iamUserAdmins:
+    score: 6
+    tags:
+      - pci
+    recommend:
+      risk: |-
+        IAM User Admins
+        - Ensures the number of IAM admins in the account are minimized
+        - While at least two IAM admin users should be configured, the total number of admins should be kept to a minimum.
+      recommendation: |-
+        Keep two users with admin permissions but ensure other IAM users have more limited permissions.
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/getting-started_create-admin-group.html
+  IAM/iamUserUnauthorizedToEdit:
+    tags:
+      - pci
+    recommend:
+      risk: |-
+        IAM User Unauthorized to Edit
+        - Ensures AWS IAM users that are not authorized to edit IAM access policies are decommissioned.
+        - Only authorized IAM users should have permission to edit IAM access policies to prevent any unauthorized requests.
+      recommendation: |-
+        Update unauthorized IAM users to remove permissions to edit IAM access policies.
+        - Update unauthorized IAM users to remove permissions to edit IAM access policies.
+  IAM/maxPasswordAge:
+    tags:
+      - pci
+    recommend:
+      risk: |-
+        Maximum Password Age
+        - Ensures password policy requires passwords to be reset every 180 days
+        - A strong password policy enforces minimum length, expirations, reuse, and symbol usage
+      recommendation: |-
+        Descrease the maximum allowed age of passwords for the password policy
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html
+  IAM/minPasswordLength:
+    tags:
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Minimum Password Length
+        - Ensures password policy requires a password of at least a minimum number of characters
+        - A strong password policy enforces minimum length, expirations, reuse, and symbol usage
+      recommendation: |-
+        Increase the minimum length requirement for the password policy
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html
+  IAM/noUserIamPolicies:
+    tags:
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        No User IAM Policies
+        - Ensures IAM policies are not connected directly to IAM users
+        - To reduce management complexity, IAM permissions should only be assigned to roles and groups. Users can then be added to those groups.
+        - Policies should not be applied directly to a user.
+      recommendation: |-
+        Create groups with the required policies, move the IAM users to the applicable groups, and then remove the inline and directly attached policies from the IAM user.
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#use-groups-for-permissions
+  IAM/passwordExpiration:
+    tags:
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Password Expiration
+        - Ensures password policy enforces a password expiration
+        - A strong password policy enforces minimum length, expirations, reuse, and symbol usage
+      recommendation: |-
+        Enable password expiration for the account
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html
+  IAM/passwordRequiresLowercase:
+    tags:
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Password Requires Lowercase
+        - Ensures password policy requires at least one lowercase letter
+        - A strong password policy enforces minimum length, expirations, reuse, and symbol usage
+      recommendation: |-
+        Update the password policy to require the use of lowercase letters
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html
+  IAM/passwordRequiresNumbers:
+    tags:
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Password Requires Numbers
+        - Ensures password policy requires the use of numbers
+        - A strong password policy enforces minimum length, expirations, reuse, and symbol usage
+      recommendation: |-
+        Update the password policy to require the use of numbers
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html
+  IAM/passwordRequiresSymbols:
+    tags:
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Password Requires Symbols
+        - Ensures password policy requires the use of symbols
+        - A strong password policy enforces minimum length, expirations, reuse, and symbol usage
+      recommendation: |-
+        Update the password policy to require the use of symbols
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html
+  IAM/passwordRequiresUppercase:
+    tags:
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Password Requires Uppercase
+        - Ensures password policy requires at least one uppercase letter
+        - A strong password policy enforces minimum length, expirations, reuse, and symbol usage
+      recommendation: |-
+        Update the password policy to require the use of uppercase letters
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html
+  IAM/passwordReusePrevention:
+    tags:
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Password Reuse Prevention
+        - Ensures password policy prevents previous password reuse
+        - A strong password policy enforces minimum length, expirations, reuse, and symbol usage
+      recommendation: |-
+        Increase the minimum previous passwords that can be reused to 24.
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html
+  IAM/rootAccessKeys:
+    score: 8
+    tags:
+      - hipaa
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Root Access Keys
+        - Ensures the root account is not using access keys
+        - The root account should avoid using access keys.
+        - Since the root account has full permissions across the entire account, creating access keys for it only increases the chance that they are compromised.
+        - Instead, create IAM users with predefined roles.
+      recommendation: |-
+        Remove access keys for the root account and setup IAM users with limited permissions instead
+        - http://docs.aws.amazon.com/general/latest/gr/managing-aws-access-keys.html
+  IAM/rootAccountInUse:
+    score: 6
+    tags:
+      - hipaa
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Root Account In Use
+        - Ensures the root account is not being actively used
+        - The root account should not be used for day-to-day account management.
+        - IAM users, roles, and groups should be used instead.
+      recommendation: |-
+        Create IAM users with appropriate group-level permissions for account access.
+        - Create an MFA token for the root account, and store its password and token generation QR codes in a secure place.
+        - http://docs.aws.amazon.com/general/latest/gr/root-vs-iam.html
+  IAM/rootMfaEnabled:
+    score: 8
+    tags:
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Root MFA Enabled
+        - Ensures a multi-factor authentication device is enabled for the root account
+        - The root account should have an MFA device setup to enable two-factor authentication.
+      recommendation: |-
+        Enable an MFA device for the root account and then use an IAM user for managing services
+        - http://docs.aws.amazon.com/general/latest/gr/managing-aws-access-keys.html
+  IAM/rootSigningCertificate:
+    score: 8
+    tags:
+      - hipaa
+    recommend:
+      risk: |-
+        Root Account Active Signing Certificates
+        - Ensures the root user is not using x509 signing certificates
+        - AWS supports using x509 signing certificates for API access, but these should not be attached to the root user, which has full access to the account.
+      recommendation: |-
+        Delete the x509 certificates associated with the root account.
+        - https://docs.aws.amazon.com/whitepapers/latest/aws-overview-security-processes/x.509-certificates.html
+  IAM/usersMfaEnabled:
+    score: 6
+    tags:
+      - hipaa
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Users MFA Enabled
+        - Ensures a multi-factor authentication device is enabled for all users within the account
+        - User accounts should have an MFA device setup to enable two-factor authentication
+      recommendation: |-
+        Enable an MFA device for the user account
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html
+  IAM/usersPasswordAndKeys:
+    score: 6
+    recommend:
+      risk: |-
+        Users Password And Keys
+        - Detects whether users with a console password are also using access keys
+        - Access keys should only be assigned to machine users and should not be used for accounts that have console password access.
+      recommendation: |-
+        Remove access keys from all users with console access.
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingCredentials.html
+  IAM/usersPasswordLastUsed:
+    tags:
+      - pci
+      - cis1
+      - cis
+    recommend:
+      risk: |-
+        Users Password Last Used
+        - Detects users with password logins that have not been used for a period of time and that should be decommissioned
+        - Having numerous, unused user accounts extends the attack surface.
+        - If users do not log into their accounts for more than the defined period of time, the account should be deleted.
+      recommendation: |-
+        Delete old user accounts that allow password-based logins and have not been used recently.
+        - http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_admin-change-user.html
+  KMS/kmsDefaultKeyUsage:
+    tags:
+      - pci
+    recommend:
+      risk: |-
+        KMS Default Key Usage
+        - Checks AWS services to ensure the default KMS key is not being used
+        - It is recommended not to use the default key to avoid encrypting disparate sets of data with the same key.
+        - Each application should have its own customer-managed KMS key
+      recommendation: |-
+        Avoid using the default KMS key
+        - http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html
+  KMS/kmsKeyRotation:
+    tags:
+      - pci
+      - cis2
+      - cis
+    recommend:
+      risk: |-
+        KMS Key Rotation
+        - Ensures KMS keys are set to rotate on a regular schedule
+        - All KMS keys should have key rotation enabled.
+        - AWS will handle the rotation of the encryption key itself, as well as storage of previous keys, so previous data does not need to be re-encrypted before the rotation occurs.
+      recommendation: |-
+        Enable yearly rotation for the KMS key
+        - http://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html
+  KMS/kmsScheduledDeletion:
+    score: 6
+    recommend:
+      risk: |-
+        KMS Scheduled Deletion
+        - Detects KMS keys that are scheduled for deletion
+        - Deleting a KMS key will permanently prevent all data encrypted using that key from being decrypted.
+        - Avoid deleting keys unless no encrypted data is in use.
+      recommendation: |-
+        Disable the key deletion before the scheduled deletion time.
+        - http://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys.html
+  Kinesis/kinesisEncrypted:
+    tags:
+      - hipaa
+    recommend:
+      risk: |-
+        Kinesis Streams Encrypted
+        - Ensures Kinesis Streams encryption is enabled
+        - Data sent to Kinesis Streams can be encrypted using KMS server-side encryption.
+        - Existing streams can be modified to add encryption with minimal overhead.
+      recommendation: |-
+        Enable encryption using KMS for all Kinesis Streams.
+        - https://docs.aws.amazon.com/streams/latest/dev/server-side-encryption.html
+  Lambda/lambdaAdminPrivileges:
+    score: 6
+    recommend:
+      risk: |
+        Lambda Admin Privileges
+        - Ensures no Lambda function available in your AWS account has admin privileges.
+        - AWS Lambda Function should have most-restrictive IAM permissions for Lambda security best practices.
+      recommendation: |
+        Modify IAM role attached with Lambda function to provide the minimal amount of access required to perform its tasks
+        - link
+  Lambda/lambdaPublicAccess:
+    score: 6
+    recommend:
+      risk: |-
+        Lambda Public Access
+        - Ensures Lambda functions are not accessible globally
+        - The Lambda function execution policy should not allow public invocation of the function.
+      recommendation: |-
+        Update the Lambda policy to prevent access from the public.
+        - https://docs.aws.amazon.com/lambda/latest/dg/access-control-resource-based.html
+  MQ/mqAutoMinorVersionUpgrade:
+    tags:
+      - operation
+    recommend:
+      risk: |
+        MQ Auto Minor Version Upgrade
+        - Ensure that Amazon MQ brokers have the Auto Minor Version Upgrade feature enabled.
+        - As AWS MQ deprecates minor engine version periodically and provides new versions for upgrade, it is highly recommended that Auto Minor Version Upgrade feature is enabled to apply latest upgrades.
+      recommendation: |
+        Enabled Auto Minor Version Upgrade feature for MQ brokers
+        - https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/broker.html
+  MQ/mqDesiredInstanceType:
+    tags:
+      - cost
+    recommend:
+      risk: |
+        MQ Desired Broker Instance Type
+        - Ensure that the Amazon MQ broker instances are created with desired instance types.
+        - Set limits for the type of Amazon MQ broker instances created in your AWS account to address internal compliance requirements and prevent unexpected charges on your AWS bill.
+      recommendation: |
+        Create MQ broker with desired instance types
+        - https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/amazon-mq-broker-architecture.html
+  MSK/mskClusterPublicAccess:
+    score: 6
+    recommend:
+      risk: |
+        MSK Cluster Public Access
+        - Ensure that public access feature within the cluster is disabled for your Amazon MSK clusters.
+        - Amazon MSK gives you the option to turn on public access to the brokers of MSK clusters running Apache Kafka 2.6.0 or later versions. For security reasons, you cannot turn on public access while creating an MSK cluster. However, you can update an existing cluster to make it publicly accessible.
+      recommendation: |
+        Check for public access feature within the cluster for all MSK clusters
+        - https://docs.aws.amazon.com/msk/latest/developerguide/public-access.html
+  MWAA/environmentAdminPrivileges:
+    score: 6
+    recommend:
+      risk: |
+        Environment Admin Privileges
+        - Ensures no Amazon MWAA environment available in your AWS account has admin privileges.
+        - Amazon MWAA environments should have most-restrictive IAM permissions for security best practices.
+      recommendation: |
+        Modify IAM role attached with MWAA environment to provide the minimal amount of access required to perform its tasks
+        - https://docs.aws.amazon.com/mwaa/latest/userguide/manage-access.html
+  MWAA/webServerPublicAccess:
+    recommend:
+      risk: |
+        Web Server Public Access
+        - Ensures web access to the Apache Airflow UI in your MWAA environment is not public.
+        - To restrict access to the Apache Airflow UI, environment should be configured to be accessible only from within the VPC selected.
+      recommendation: |
+        Modify Amazon MWAA environments to set web server access mode to be private only
+        - https://docs.aws.amazon.com/mwaa/latest/userguide/vpc-create.html
+  Organizations/enableAllFeatures:
+    tags:
+      - operation
+    recommend:
+      risk: |-
+        Enable All Organization Features
+        - Ensures all Organization features are enabled
+        - All AWS Organizations should be enabled to take advantage of all shared security controls and policies across all member accounts.
+      recommendation: |-
+        Enable all AWS Organizations features.
+        - https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html?icmpid=docs_orgs_console
+  RDS/rdsAutomatedBackups:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        RDS Automated Backups
+        - Ensures automated backups are enabled for RDS instances
+        - AWS provides a simple method of backing up RDS instances at a regular interval.
+        - This should be enabled to provide an option for restoring data in the event of a database compromise or hardware failure.
+      recommendation: |-
+        Enable automated backups for the RDS instance
+        - http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html
+  RDS/rdsEncryptionEnabled:
+    score: 6
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        RDS Encryption Enabled
+        - Ensures at-rest encryption is setup for RDS instances
+        - AWS provides at-read encryption for RDS instances which should be enabled to ensure the integrity of data stored within the databases.
+      recommendation: |-
+        RDS does not currently allow modifications to encryption after the instance has been launched, so a new instance will need to be created with encryption enabled.
+        - http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html
+  RDS/rdsMinorVersionUpgrade:
+    tags:
+      - operation
+    recommend:
+      risk: |-
+        RDS DocumentDB Minor Version Upgrade
+        - Ensures Auto Minor Version Upgrade is enabled on RDS and DocumentDB databases
+        - RDS supports automatically upgrading the minor version of the database, which should be enabled to ensure security fixes are quickly deployed.
+      recommendation: |-
+        Enable automatic minor version upgrades on RDS and DocumentDB databases
+        - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Upgrading.html#USER_UpgradeDBInstance.Upgrading.AutoMinorVersionUpgrades
+  RDS/rdsMultiAz:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        RDS Multiple AZ
+        - Ensures that RDS instances are created to be cross-AZ for high availability.
+        - Creating RDS instances in a single AZ creates a single point of failure for all systems relying on that database.
+        - All RDS instances should be created in multiple AZs to ensure proper failover.
+      recommendation: |-
+        Modify the RDS instance to enable scaling across multiple availability zones.
+        - http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.html
+  RDS/rdsPubliclyAccessible:
+    score: 6
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        RDS Publicly Accessible
+        - Ensures RDS instances are not launched into the public cloud
+        - Unless there is a specific business requirement, RDS instances should not have a public endpoint and should be accessed from within a VPC only.
+      recommendation: |-
+        Remove the public endpoint from the RDS instance
+        - http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.html
+  RDS/rdsRestorable:
+    tags:
+      - pci
+      - reliability
+    recommend:
+      risk: |-
+        RDS Restorable
+        - Ensures RDS instances can be restored to a recent point
+        - AWS will maintain a point to which the database can be restored.
+        - This point should not drift too far into the past, or else the risk of irrecoverable data loss may occur.
+      recommendation: |-
+        Ensure the instance is running and configured properly.
+        - If the time drifts too far, consider opening a support ticket with AWS.
+        - http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PIT.html
+  RDS/rdsSnapshotPubliclyAccessible:
+    score: 8
+    recommend:
+      risk: |
+        RDS Snapshot Publicly Accessible
+        - Ensure that Amazon RDS database snapshots are not publicly exposed.
+        - If an RDS snapshot is exposed to the public, any AWS account can copy the snapshot and create a new database instance from it.
+        - It is a best practice to ensure RDS snapshots are not exposed to the public to avoid any accidental leak of sensitive information.
+      recommendation: |
+        Ensure Amazon RDS database snapshot is not publicly accessible and available for any AWS account to copy or restore it.
+        - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ShareSnapshot.html
+  Redshift/redshiftAllowVersionUpgrade:
+    tags:
+      - operation
+    recommend:
+      risk: |-
+        Redshift Cluster Allow Version Upgrade
+        - Ensure that version upgrade is enabled for Redshift clusters to automatically receive upgrades during the maintenance window.
+        - Redshift clusters should be configured to allow version upgrades to get the newest features, bug fixes or the latest security patches released.
+      recommendation: |-
+        Modify Redshift clusters to allow version upgrade
+        - https://docs.amazonaws.cn/en_us/redshift/latest/mgmt/redshift-mgmt.pdf
+  Redshift/redshiftDesiredNodeType:
+    tags:
+      - cost
+    recommend:
+      risk: |
+        Redshift Desired Node Type
+        - Ensures that Amazon Redshift cluster nodes are of given types.
+        - Amazon Redshift clusters nodes should be of the given types to ensure the internal compliance and prevent unexpected billing charges.
+      recommendation: |
+        Take snapshot of the Amazon Redshift cluster and launch a new cluster of the desired node type using the snapshot.
+        - https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#working-with-clusters-overview
+  Redshift/redshiftEncryptionEnabled:
+    score: 6
+    tags:
+      - hipaa
+    recommend:
+      risk: |-
+        Redshift Encryption Enabled
+        - Ensures at-rest encryption is setup for Redshift clusters
+        - AWS provides at-read encryption for Redshift clusters which should be enabled to ensure the integrity of data stored within the cluster.
+      recommendation: |-
+        Redshift does not currently allow modifications to encryption after the cluster has been launched, so a new cluster will need to be created with encryption enabled.
+        - http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-db-encryption.html
+  Redshift/redshiftNodesCount:
+    tags:
+      - cost
+    recommend:
+      risk: |
+        Redshift Nodes Count
+        - Ensures that each AWS region has not reached the limit set for the number of Redshift cluster nodes.
+        - The number of provisioned Amazon Redshift cluster nodes must be less than the provided nodes limit to avoid reaching the limit and exceeding the set budget.
+      recommendation: |
+        Remove Redshift clusters over defined limit
+        - https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#working-with-clusters-overview
+  Redshift/redshiftPubliclyAccessible:
+    score: 8
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        Redshift Publicly Accessible
+        - Ensures Redshift clusters are not launched into the public cloud
+        - Unless there is a specific business requirement, Redshift clusters should not have a public endpoint and should be accessed from within a VPC only.
+      recommendation: |-
+        Remove the public endpoint from the Redshift cluster
+        - http://docs.aws.amazon.com/redshift/latest/mgmt/getting-started-cluster-in-vpc.html
+  Redshift/redshiftUnusedReservedNodes:
+    tags:
+      - cost
+    recommend:
+      risk: |
+        Redshift Unused Reserved Nodes
+        - Ensures that Amazon Redshift Reserved Nodes are being utilized.
+        - Amazon Redshift reserved nodes must be utilized to avoid unnecessary billing.
+      recommendation: |
+        Provision new Redshift clusters matching the criteria of reserved nodes
+        - https://docs.aws.amazon.com/redshift/latest/mgmt/purchase-reserved-node-instance.html
+  Route53/danglingDnsRecords:
+    score: 6
+    recommend:
+      risk: |-
+        Route53 Dangling DNS Records
+        - Ensures that AWS Route53 DNS records are not pointing to invalid/deleted EIPs.
+        - AWS Route53 DNS records should not point to invalid/deleted EIPs to prevent malicious activities.
+      recommendation: |-
+        Delete invalid/dangling AWS Route53 DNS records
+        - https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-to-aws-resources.html
+  Route53/domainAutoRenew:
+    score: 6
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Domain Auto Renew
+        - Ensures domains are set to auto renew through Route53
+        - Domains purchased through Route53 should be set to auto renew.
+        - Domains that are not renewed can quickly be acquired by a third-party and cause loss of access for customers.
+      recommendation: |-
+        Enable auto renew for the domain
+        - http://docs.aws.amazon.com/Route53/latest/APIReference/api-enable-domain-auto-renew.html
+  Route53/domainExpiry:
+    score: 8
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Domain Expiry
+        - Ensures domains are not expiring too soon
+        - Expired domains can be lost and reregistered by a third-party.
+      recommendation: |-
+        Reregister the expiring domain
+        - http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/registrar.html
+  S3/bucketAllUsersAcl:
+    score: 6
+    tags:
+      - pci
+    recommend:
+      risk: |-
+        S3 Bucket All Users ACL
+        - Ensures S3 buckets do not allow global write, delete, or read ACL permissions
+        - S3 buckets can be configured to allow anyone, regardless of whether they are an AWS user or not, to write objects to a bucket or delete objects.
+        - This option should not be configured unless there is a strong business requirement.
+      recommendation: |-
+        Disable global all users policies on all S3 buckets and ensure both the bucket ACL is configured with least privileges.
+        - http://docs.aws.amazon.com/AmazonS3/latest/UG/EditingBucketPermissions.html
+  S3/bucketAllUsersPolicy:
+    score: 6
+    tags:
+      - pci
+    recommend:
+      risk: |-
+        S3 Bucket All Users Policy
+        - Ensures S3 bucket policies do not allow global write, delete, or read permissions
+        - S3 buckets can be configured to allow the global principal to access the bucket via the bucket policy. This policy should be restricted only to known users or accounts.
+      recommendation: |-
+        Remove wildcard principals from the bucket policy statements.
+        - https://docs.aws.amazon.com/AmazonS3/latest/dev/using-iam-policies.html
+  S3/bucketLogging:
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        S3 Bucket Logging
+        - Ensures S3 bucket logging is enabled for S3 buckets
+        - S3 bucket logging helps maintain an audit trail of access that can be used in the event of a security incident.
+      recommendation: |-
+        Enable bucket logging for each S3 bucket.
+        - http://docs.aws.amazon.com/AmazonS3/latest/dev/Logging.html
+  S3/bucketPolicyCloudFrontOac:
+    score: 6
+    recommend:
+      risk: |
+        S3 Bucket Policy CloudFront OAC
+        - Ensures S3 bucket is origin to only one distribution and allows only that distribution.
+        - Access to CloudFront origins should only happen via ClouFront URL and not from S3 URL or any source in order to restrict access to private data.
+        -
+      recommendation: |
+        Review the access policy for S3 bucket which is an origin to a CloudFront distribution. Make sure the S3 bucket is origin to only one distribution.
+        - Modify the S3 bucket access policy to allow CloudFront OAC for only the associated CloudFront distribution and restrict access from any other source.
+        - https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html
+  S3/bucketVersioning:
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        S3 Bucket Versioning
+        - Ensures object versioning is enabled on S3 buckets
+        - Object versioning can help protect against the overwriting of objects or data loss in the event of a compromise.
+      recommendation: |-
+        Enable object versioning for buckets with sensitive contents at a minimum and for all buckets ideally.
+        - http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html
+  SES/dkimEnabled:
+    score: 6
+    tags:
+      - reliability
+    recommend:
+      risk: |-
+        Email DKIM Enabled
+        - Ensures DomainKeys Identified Mail (DKIM) is enabled for domains and addresses in SES.
+        - DKIM is a security feature that allows recipients of an email to veriy that the sender domain has authorized the message and that it has not been spoofed.
+      recommendation: |-
+        Enable DKIM for all domains and addresses in all regions used to send email through SES.
+        - http://docs.aws.amazon.com/ses/latest/DeveloperGuide/easy-dkim.html
+  SNS/topicPolicies:
+    score: 8
+    recommend:
+      risk: |-
+        SNS Topic Policies
+        - Ensures SNS topics do not allow global send or subscribe.
+        - SNS policies should not be configured to allow any AWS user to subscribe or send messages.
+        - This could result in data leakage or financial DDoS.
+      recommendation: |-
+        Adjust the topic policy to only allow authorized AWS users in known accounts to subscribe.
+        - http://docs.aws.amazon.com/sns/latest/dg/AccessPolicyLanguage.html
+  SQS/sqsCrossAccount:
+    tags:
+      - pci
+    recommend:
+      risk: |-
+        SQS Cross Account Access
+        - Ensures SQS policies disallow cross-account access
+        - SQS policies should be carefully restricted to prevent publishing or reading from the queue from unexpected sources.
+        - Queue policies can be used to limit these privileges.
+      recommendation: |-
+        Update the SQS policy to prevent access from external accounts.
+        - http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-creating-custom-policies.html
+  SQS/sqsEncrypted:
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        SQS Encrypted
+        - Ensures SQS encryption is enabled
+        - Messages sent to SQS queues can be encrypted using KMS server-side encryption.
+        - Existing queues can be modified to add encryption with minimal overhead.
+      recommendation: |-
+        Enable encryption using KMS for all SQS queues.
+        - http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-server-side-encryption.html
+  SQS/sqsPublicAccess:
+    score: 6
+    recommend:
+      risk: |-
+        SQS Public Access
+        - Ensures that SQS queues are not publicly accessible
+        - SQS queues should be not be publicly accessible to prevent unauthorized actions.
+      recommendation: |-
+        Update the SQS queue policy to prevent public access.
+        - http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-creating-custom-policies.html
+  SSM/ssmActiveOnAllInstances:
+    tags:
+      - operation
+    recommend:
+      risk: |-
+        SSM Agent Active All Instances
+        - Ensures SSM agents are installed and active on all servers
+        - SSM allows for centralized monitoring of all servers and should be activated on all EC2 instances.
+      recommendation: |-
+        Install SSM on all servers and ensure it is active.
+        - https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up.html
+  SSM/ssmAgentAutoUpdateEnabled:
+    tags:
+      - operation
+    recommend:
+      risk: |-
+        SSM Agent Auto Update Enabled
+        - Ensures the SSM agent is configured to automatically update to new versions
+        - To ensure the latest version of the SSM agent is installed, it should be configured to consume automatic updates.
+      recommendation: |-
+        Update the SSM agent configuration for all managed instances to use automatic updates.
+        - https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-agent-automatic-updates.html
+  SSM/ssmAgentLatestVersion:
+    tags:
+      - operation
+    recommend:
+      risk: |-
+        SSM Agent Latest Version
+        - Ensures SSM agents installed on Linux hosts are running the latest version
+        - SSM agent software provides sensitive access to servers and should be kept up-to-date.
+      recommendation: |-
+        Update the SSM agent on all Linux hosts to the latest version.
+        - https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-agent-automatic-updates.html
+  SSM/ssmDocumentPublicAccess:
+    recommend:
+      risk: |
+        SSM Documents Public Access
+        - Ensure that SSM service has block public sharing setting enabled.
+        - Public documents can be viewed by all AWS accounts.
+        - To prevent unwanted access to your documents, turn on the block public access sharing setting.
+      recommendation: |
+        Enable block public sharing setting under SSM  documents preferences.
+        - https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-share-block.html
+  SSM/ssmEncryptedParameters:
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        SSM Encrypted Parameters
+        - Ensures SSM Parameters are encrypted
+        - SSM Parameters should be encrypted.
+        - This allows their values to be used by approved systems, while restricting access to other users of the account.
+      recommendation: |-
+        Recreate unencrypted SSM Parameters with Type set to SecureString.
+        - https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-about.html#sysman-paramstore-securestring
+  SageMaker/notebookDataEncrypted:
+    tags:
+      - hipaa
+    recommend:
+      risk: |-
+        Notebook Data Encrypted
+        - Ensure Notebook data is encrypted
+        - An optional encryption key can be supplied during Notebook Instance creation.
+      recommendation: |-
+        An existing KMS key should be supplied during Notebook Instance creation.
+        - https://docs.aws.amazon.com/sagemaker/latest/dg/API_CreateNotebookInstance.html#API_CreateNotebookInstance_RequestSyntax
+  SageMaker/notebookDirectInternetAccess:
+    score: 6
+    recommend:
+      risk: |-
+        Notebook Direct Internet Access
+        - Ensure Notebook Instance is not publicly available.
+        - SageMaker notebooks should not be exposed to the Internet. Public availability can be configured via the DirectInternetAccess attribute.
+      recommendation: |-
+        Disable DirectInternetAccess for each SageMaker notebook.
+        - https://docs.aws.amazon.com/sagemaker/latest/dg/appendix-additional-considerations.html#appendix-notebook-and-internet-access
+  Secrets Manager/secretsManagerRotation:
+    tags:
+      - operation
+  Transfer/transferLoggingEnabled:
+    score: 6
+    tags:
+      - hipaa
+      - pci
+    recommend:
+      risk: |-
+        Transfer Logging Enabled
+        - Ensures AWS Transfer servers have CloudWatch logging enabled.
+        - AWS Transfer servers can log activity to CloudWatch if a proper IAM service role is provided.
+        - This role should be configured for all servers to ensure proper access logging.
+      recommendation: |-
+        Provide a valid IAM service role for AWS Transfer servers.
+        - https://docs.aws.amazon.com/transfer/latest/userguide/monitoring.html
+  Workspaces/unusedWorkspaces:
+    tags:
+      - cost
+    recommend:
+      risk: |
+        Unused WorkSpaces
+        - Ensure that there are no unused AWS WorkSpaces instances available within your AWS account.
+        - An AWS WorkSpaces instance is considered unused if it has 0 known user connections registered within the past 30 days. Remove these instances to avoid unnecessary billing.
+      recommendation: |
+        Identify and remove unused Workspaces instance
+        - https://aws.amazon.com/workspaces/pricing/
+  Workspaces/workspacesDesiredBundleType:
+    tags:
+      - cost
+    recommend:
+      risk: |
+        WorkSpaces Desired Bundle Type
+        - Ensure that AWS WorkSpaces bundles are of desired types.
+        - A bundle in AWS WorkSpaces defines the hardware and software for AWS WorkSpaces.
+        - You can create a WorkSpaces instance using a predefined or custom bundle.
+        - Setting a limit to the types that can be used will help you control billing and address internal compliance requirements.
+      recommendation: |
+        Ensure that WorkSpaces instances are using desired bundle types
+        - https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-bundles.html
+  Workspaces/workspacesInstanceCount:
+    tags:
+      - cost
+    recommend:
+      risk: |
+        WorkSpaces Instance Count
+        - Ensure that the number of Amazon WorkSpaces provisioned in your AWS account has not reached set limit.
+        - In order to manage your WorkSpaces compute resources efficiently and prevent unexpected charges on your AWS bill, monitor and configure limits for the maximum number of WorkSpaces instances provisioned within your AWS account.
+      recommendation: |
+        Ensure that number of WorkSpaces created within your AWS account is within set limit
+        - https://docs.aws.amazon.com/workspaces/latest/adminguide/workspaces-limits.html
