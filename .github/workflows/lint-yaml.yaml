@@ -1,0 +1,17 @@
+name: lint-yaml
+on:
+  pull_request:
+    paths:
+      - 'cloudsploit.yaml'
+permissions:
+  contents: read
+jobs:
+  lintAllTheThings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      # https://github.com/marketplace/actions/yaml-lint
+      - name: yaml-lint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: cloudsploit.yaml

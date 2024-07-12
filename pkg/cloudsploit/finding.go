@@ -77,14 +77,14 @@ func (s *SqsHandler) putFindings(ctx context.Context, results []*cloudSploitResu
 		// recommend
 		var recommend *finding.RecommendForBatch
 		recommendType := fmt.Sprintf("%s/%s", result.Category, result.Plugin)
-		r := getRecommend(result.Category, result.Plugin)
-		if r.Risk == "" && r.Recommendation == "" {
+		r := s.getRecommend(result.Category, result.Plugin)
+		if r == nil {
 			s.logger.Warnf(ctx, "Failed to get recommendation, Unknown plugin=%s", recommendType)
 		} else {
 			recommend = &finding.RecommendForBatch{
 				Type:           recommendType,
-				Risk:           r.Risk,
-				Recommendation: r.Recommendation,
+				Risk:           *r.Risk,
+				Recommendation: *r.Recommendation,
 			}
 		}
 
@@ -229,4 +229,12 @@ func (s *SqsHandler) getCloudSploitMaxScore(ctx context.Context, msg *message.AW
 	}
 	s.logger.Debugf(ctx, "Got datasource: %+v", resp.DataSource[0])
 	return resp.DataSource[0].MaxScore, nil
+}
+
+func (s *SqsHandler) getRecommend(category, plugin string) *PluginRecommend {
+	pluginSetting, ok := s.cloudsploitSetting.SpecificPluginSetting[fmt.Sprintf("%s/%s", category, plugin)]
+	if ok && pluginSetting.Recommend != nil {
+		return pluginSetting.Recommend
+	}
+	return nil
 }
