@@ -232,9 +232,9 @@ func (s *SqsHandler) getCloudSploitMaxScore(ctx context.Context, msg *message.AW
 }
 
 func (s *SqsHandler) getRecommend(category, plugin string) *PluginRecommend {
-	findingInf, ok := s.cloudsploitSetting.SpecificPluginSetting[fmt.Sprintf("%s/%s", category, plugin)]
-	if ok && len(findingInf.Tags) > 0 {
-		return findingInf.Recommend
+	pluginSetting, ok := s.cloudsploitSetting.SpecificPluginSetting[fmt.Sprintf("%s/%s", category, plugin)]
+	if ok && pluginSetting.Recommend != nil {
+		return pluginSetting.Recommend
 	}
 	return nil
 }

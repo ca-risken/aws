@@ -3,6 +3,8 @@ package cloudsploit
 import (
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 const (
@@ -215,6 +217,41 @@ func TestGetResourceName(t *testing.T) {
 			got := getResourceName(c.input.resource, c.input.category, c.input.accountID)
 			if c.want != got {
 				t.Fatalf("Unexpected resource name: want=%s, got=%s", c.want, got)
+			}
+		})
+	}
+}
+
+func TestGetRecommend(t *testing.T) {
+	cases := []struct {
+		name     string
+		category string
+		plugin   string
+		want     *PluginRecommend
+	}{
+		{
+			name:     "OK",
+			category: "ACM",
+			plugin:   "acmCertificateExpiry",
+			want: &PluginRecommend{
+				Risk: ptr(`ACM Certificate Expiry
+- Detect upcoming expiration of ACM certificates
+- Certificates that have expired will trigger warnings in all major browsers. AWS will attempt to automatically renew the certificate but may be unable to do so if email or DNS validation cannot be confirmed.`),
+				Recommendation: ptr(`Ensure AWS is able to renew the certificate via email or DNS validation of the domain.
+- https://docs.aws.amazon.com/acm/latest/userguide/managed-renewal.html`),
+			},
+		}, {
+			name:     "Not exist recommend",
+			category: "Unknown",
+			plugin:   "hogehogehoge",
+			want:     nil,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := testHandler.getRecommend(c.category, c.plugin)
+			if diff := cmp.Diff(c.want, got); diff != "" {
+				t.Fatalf("Unexpected recommend: diff=%s", diff)
 			}
 		})
 	}
