@@ -51,10 +51,11 @@ type AppConfig struct {
 	DataSourceAPISvcAddr string `required:"true" split_words:"true" default:"datasource-api.datasource.svc.cluster.local:8081"`
 
 	// cloudsploit
-	ResultDir      string `required:"true" split_words:"true" default:"/tmp"`
-	ConfigDir      string `required:"true" split_words:"true" default:"/tmp"`
-	CloudsploitDir string `required:"true" split_words:"true" default:"/opt/cloudsploit"`
-	MaxMemSizeMB   int    `split_words:"true" default:"0"`
+	ResultDir              string `required:"true" split_words:"true" default:"/tmp"`
+	ConfigDir              string `required:"true" split_words:"true" default:"/tmp"`
+	CloudsploitDir         string `required:"true" split_words:"true" default:"/opt/cloudsploit"`
+	MaxMemSizeMB           int    `split_words:"true" default:"0"`
+	CloudSploitSettingPath string `envconfig:"CLOUDSPLOIT_SETTING_PATH" default:""`
 }
 
 func main() {
@@ -114,7 +115,7 @@ func main() {
 		conf.MaxMemSizeMB,
 		appLogger,
 	)
-	handler, err := cloudsploit.NewSqsHandler(fc, ac, awsc, cloudsploitConf, appLogger)
+	handler, err := cloudsploit.NewSqsHandler(fc, ac, awsc, cloudsploitConf, conf.CloudSploitSettingPath, appLogger)
 	if err != nil {
 		appLogger.Fatalf(ctx, "Failed to create handler, err=%+v", err)
 	}

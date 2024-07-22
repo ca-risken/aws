@@ -76,16 +76,16 @@ specificPluginSetting:
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := parseDefaultCloudsploitSetting(tt.input)
+			result, err := parseCloudsploitSettingYaml(tt.input)
 
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseDefaultCloudsploitSetting() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("parseCloudsploitSettingYaml() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
 			if !tt.wantErr {
 				if diff := cmp.Diff(tt.want, result); diff != "" {
-					t.Errorf("parseDefaultCloudsploitSetting() mismatch (-want +got):\n%s", diff)
+					t.Errorf("parseCloudsploitSettingYaml() mismatch (-want +got):\n%s", diff)
 				}
 			}
 		})

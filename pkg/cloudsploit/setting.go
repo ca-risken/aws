@@ -2,6 +2,7 @@ package cloudsploit
 
 import (
 	"embed"
+	"os"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
@@ -34,21 +35,28 @@ type PluginRecommend struct {
 	Recommendation *string `yaml:"recommendation,omitempty"`
 }
 
-func LoadDefaultCloudsploitSetting() (*CloudsploitSetting, error) {
-	data, err := readDefaultCloudsploitSetting()
+func LoadCloudsploitSetting(path string) (*CloudsploitSetting, error) {
+	data, err := readCloudsploitSetting(path)
 	if err != nil {
 		return nil, err
 	}
 
-	setting, err := parseDefaultCloudsploitSetting(data)
+	setting, err := parseCloudsploitSettingYaml(data)
 	if err != nil {
 		return nil, err
 	}
 	return setting, nil
 }
 
-func readDefaultCloudsploitSetting() ([]byte, error) {
-	data, err := static.ReadFile(CLOUDSPLOIT_FILE)
+func readCloudsploitSetting(path string) ([]byte, error) {
+	var data []byte
+	var err error
+
+	if path != "" {
+		data, err = os.ReadFile(path) // Read from path
+	} else {
+		data, err = static.ReadFile(CLOUDSPLOIT_FILE) // Read from default
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +65,7 @@ func readDefaultCloudsploitSetting() ([]byte, error) {
 
 var validate = validator.New()
 
-func parseDefaultCloudsploitSetting(data []byte) (*CloudsploitSetting, error) {
+func parseCloudsploitSettingYaml(data []byte) (*CloudsploitSetting, error) {
 	var setting CloudsploitSetting
 	if err := yaml.Unmarshal(data, &setting); err != nil {
 		return nil, err

@@ -32,9 +32,10 @@ func NewSqsHandler(
 	ac alert.AlertServiceClient,
 	awsc awsClient.AWSServiceClient,
 	csConfig *CloudsploitConfig,
+	settingYamlPath string,
 	l logging.Logger,
 ) (*SqsHandler, error) {
-	setting, err := LoadDefaultCloudsploitSetting()
+	setting, err := LoadCloudsploitSetting(settingYamlPath)
 	if err != nil {
 		l.Errorf(context.Background(), "Failed to load cloudsploit setting. error: %v", err)
 		return nil, err
