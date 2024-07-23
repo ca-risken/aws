@@ -18,7 +18,7 @@ const (
 var testHandler *SqsHandler
 
 func init() {
-	setting, err := LoadDefaultCloudsploitSetting()
+	setting, err := LoadCloudsploitSetting("")
 	if err != nil {
 		panic(err)
 	}
