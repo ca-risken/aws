@@ -3,6 +3,8 @@ package cloudsploit
 import (
 	"embed"
 	"os"
+	"slices"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
@@ -76,4 +78,15 @@ func parseCloudsploitSettingYaml(data []byte) (*CloudsploitSetting, error) {
 		return nil, err
 	}
 	return &setting, nil
+}
+
+func (c *CloudsploitSetting) IsIgnorePlugin(plugin string) bool {
+	return slices.Contains(c.IgnorePlugin, plugin)
+}
+
+func (c *CloudsploitSetting) IsSkipResourceNamePattern(plugin string, resourceName string) bool {
+	if c.SpecificPluginSetting[plugin].SkipResourceNamePattern == nil {
+		return false
+	}
+	return strings.Contains(resourceName, *c.SpecificPluginSetting[plugin].SkipResourceNamePattern)
 }
