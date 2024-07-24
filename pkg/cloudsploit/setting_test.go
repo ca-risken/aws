@@ -15,7 +15,8 @@ ignorePlugin:
 specificPluginSetting:
   plugin3:
     score: 7.5
-    skipResourceNamePattern: "test.*"
+    skipResourceNamePattern:
+      - "_test"
     tags:
       - tag1
       - tag2
@@ -41,7 +42,7 @@ func TestParseDefaultCloudsploitSetting(t *testing.T) {
 				SpecificPluginSetting: map[string]PluginSetting{
 					"plugin3": {
 						Score:                   ptr(float32(7.5)),
-						SkipResourceNamePattern: []string{"test.*"},
+						SkipResourceNamePattern: []string{"_test"},
 						Tags:                    []string{"tag1", "tag2"},
 						Recommend: &PluginRecommend{
 							Risk:           ptr("High risk"),
