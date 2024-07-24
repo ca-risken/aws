@@ -1,7 +1,13 @@
 defaultScore: 3
 
 ignorePlugin:
-  - ecr/ecrRepositoryPolicy # Supported by access-analyzer
+  # Supported by access-analyzer
+  - ecr/ecrRepositoryPolicy
+  - EC2/ebsSnapshotPublic
+  - Lambda/lambdaPublicAccess
+  - RDS/rdsSnapshotPubliclyAccessible
+  - SNS/topicPolicies
+  - SQS/sqsPublicAccess
 
 specificPluginSetting:
   # aaaPlugin:
