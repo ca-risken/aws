@@ -3,6 +3,8 @@ package cloudsploit
 import (
 	"embed"
 	"os"
+	"slices"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
@@ -25,7 +27,7 @@ type CloudsploitSetting struct {
 
 type PluginSetting struct {
 	Score                   *float32         `yaml:"score,omitempty"`
-	SkipResourceNamePattern *string          `yaml:"skipResourceNamePattern,omitempty"`
+	SkipResourceNamePattern []string         `yaml:"skipResourceNamePattern,omitempty"`
 	Tags                    []string         `yaml:"tags,omitempty"`
 	Recommend               *PluginRecommend `yaml:"recommend,omitempty"`
 }
@@ -76,4 +78,20 @@ func parseCloudsploitSettingYaml(data []byte) (*CloudsploitSetting, error) {
 		return nil, err
 	}
 	return &setting, nil
+}
+
+func (c *CloudsploitSetting) IsIgnorePlugin(plugin string) bool {
+	return slices.Contains(c.IgnorePlugin, plugin)
+}
+
+func (c *CloudsploitSetting) IsSkipResourceNamePattern(plugin string, resourceName string) bool {
+	if c.SpecificPluginSetting[plugin].SkipResourceNamePattern == nil {
+		return false
+	}
+	for _, pattern := range c.SpecificPluginSetting[plugin].SkipResourceNamePattern {
+		if strings.Contains(resourceName, pattern) {
+			return true
+		}
+	}
+	return false
 }

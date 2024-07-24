@@ -89,6 +89,10 @@ func (s *SqsHandler) run(ctx context.Context, accountID string) ([]*cloudSploitR
 		s.logger.Warnf(ctx, "Failed to delete config file. error: %v", err)
 	}
 
+	// remove ignore plugin
+	results = s.removeIgnorePlugin(ctx, results)
+
+	// add meta data
 	if err := s.addMetaData(ctx, accountID, results); err != nil {
 		return nil, err
 	}
@@ -224,4 +228,20 @@ func (c *CloudsploitConfig) listAvailableRegion(ctx context.Context) (map[string
 		availableRegions[*r.RegionName] = true
 	}
 	return availableRegions, nil
+}
+
+func (s *SqsHandler) removeIgnorePlugin(ctx context.Context, findings []*cloudSploitResult) []*cloudSploitResult {
+	removedResult := []*cloudSploitResult{}
+	for _, f := range findings {
+		plugin := fmt.Sprintf("%s/%s", f.Category, f.Plugin)
+		if s.cloudsploitSetting.IsIgnorePlugin(plugin) {
+			continue
+		}
+		if s.cloudsploitSetting.IsSkipResourceNamePattern(plugin, f.Resource) {
+			s.logger.Infof(ctx, "Ignore resource: %s", f.Resource)
+			continue
+		}
+		removedResult = append(removedResult, f)
+	}
+	return removedResult
 }

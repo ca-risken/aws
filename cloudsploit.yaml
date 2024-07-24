@@ -6,7 +6,9 @@ ignorePlugin:
 specificPluginSetting:
   # aaaPlugin:
   #   score: 0.8
-  #   skipResourceNamePattern: "arn:aws:s3:::bucket-name"
+  #   skipResourceNamePattern:
+  #     - "arn:aws:s3:::bucket-name"
+  #     - "ignoreResourceName"
   #   tags:
   #     - tag1
   #     - tag2
