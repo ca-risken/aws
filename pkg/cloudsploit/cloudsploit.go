@@ -238,7 +238,7 @@ func (s *SqsHandler) removeIgnorePlugin(ctx context.Context, findings []*cloudSp
 			continue
 		}
 		if s.cloudsploitSetting.IsSkipResourceNamePattern(plugin, f.Resource) {
-			s.logger.Warnf(ctx, "Ignore resource: %s", f.Resource)
+			s.logger.Infof(ctx, "Ignore resource: %s", f.Resource)
 			continue
 		}
 		removedResult = append(removedResult, f)
