@@ -41,7 +41,7 @@ func TestParseDefaultCloudsploitSetting(t *testing.T) {
 				SpecificPluginSetting: map[string]PluginSetting{
 					"plugin3": {
 						Score:                   ptr(float32(7.5)),
-						SkipResourceNamePattern: ptr("test.*"),
+						SkipResourceNamePattern: []string{"test.*"},
 						Tags:                    []string{"tag1", "tag2"},
 						Recommend: &PluginRecommend{
 							Risk:           ptr("High risk"),
@@ -154,7 +154,7 @@ func TestIsSkipResourceNamePattern(t *testing.T) {
 				setting: &CloudsploitSetting{
 					SpecificPluginSetting: map[string]PluginSetting{
 						"plugin1": {
-							SkipResourceNamePattern: ptr("test"),
+							SkipResourceNamePattern: []string{"ignore", "test"},
 						},
 					},
 				},
@@ -169,7 +169,7 @@ func TestIsSkipResourceNamePattern(t *testing.T) {
 				setting: &CloudsploitSetting{
 					SpecificPluginSetting: map[string]PluginSetting{
 						"plugin1": {
-							SkipResourceNamePattern: ptr("test"),
+							SkipResourceNamePattern: []string{"ignore", "test"},
 						},
 					},
 				},

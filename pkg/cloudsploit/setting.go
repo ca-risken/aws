@@ -27,7 +27,7 @@ type CloudsploitSetting struct {
 
 type PluginSetting struct {
 	Score                   *float32         `yaml:"score,omitempty"`
-	SkipResourceNamePattern *string          `yaml:"skipResourceNamePattern,omitempty"`
+	SkipResourceNamePattern []string         `yaml:"skipResourceNamePattern,omitempty"`
 	Tags                    []string         `yaml:"tags,omitempty"`
 	Recommend               *PluginRecommend `yaml:"recommend,omitempty"`
 }
@@ -88,5 +88,10 @@ func (c *CloudsploitSetting) IsSkipResourceNamePattern(plugin string, resourceNa
 	if c.SpecificPluginSetting[plugin].SkipResourceNamePattern == nil {
 		return false
 	}
-	return strings.Contains(resourceName, *c.SpecificPluginSetting[plugin].SkipResourceNamePattern)
+	for _, pattern := range c.SpecificPluginSetting[plugin].SkipResourceNamePattern {
+		if strings.Contains(resourceName, pattern) {
+			return true
+		}
+	}
+	return false
 }

@@ -15,7 +15,7 @@ func TestRemoveIgnorePlugin(t *testing.T) {
 			IgnorePlugin: []string{"category/ignorePlugin"},
 			SpecificPluginSetting: map[string]PluginSetting{
 				"category/plugin1": {
-					SkipResourceNamePattern: ptr("ignore"),
+					SkipResourceNamePattern: []string{"ignore", "test"},
 				},
 			},
 		},
@@ -55,6 +55,15 @@ func TestRemoveIgnorePlugin(t *testing.T) {
 			input: args{
 				findings: []*cloudSploitResult{
 					{Category: "category", Plugin: "plugin1", Resource: "ignoreResourceName"},
+				},
+			},
+			want: []*cloudSploitResult{},
+		},
+		{
+			name: "Ignore resource name pattern2",
+			input: args{
+				findings: []*cloudSploitResult{
+					{Category: "category", Plugin: "plugin1", Resource: "testResourceName"},
 				},
 			},
 			want: []*cloudSploitResult{},
