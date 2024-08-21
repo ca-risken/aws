@@ -84,12 +84,15 @@ func (c *CloudsploitSetting) IsIgnorePlugin(plugin string) bool {
 	return slices.Contains(c.IgnorePlugin, plugin)
 }
 
-func (c *CloudsploitSetting) IsSkipResourceNamePattern(plugin string, resourceName string) bool {
+func (c *CloudsploitSetting) IsSkipResourceNamePattern(plugin, resourceName, aliasResourceName string) bool {
 	if c.SpecificPluginSetting[plugin].SkipResourceNamePattern == nil {
 		return false
 	}
 	for _, pattern := range c.SpecificPluginSetting[plugin].SkipResourceNamePattern {
 		if strings.Contains(resourceName, pattern) {
+			return true
+		}
+		if aliasResourceName != "" && strings.Contains(aliasResourceName, pattern) {
 			return true
 		}
 	}

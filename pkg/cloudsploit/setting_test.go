@@ -140,9 +140,10 @@ func TestIsIgnorePlugin(t *testing.T) {
 
 func TestIsSkipResourceNamePattern(t *testing.T) {
 	type args struct {
-		setting      *CloudsploitSetting
-		plugin       string
-		resourceName string
+		setting           *CloudsploitSetting
+		plugin            string
+		resourceName      string
+		aliasResourceName string
 	}
 	tests := []struct {
 		name  string
@@ -159,8 +160,25 @@ func TestIsSkipResourceNamePattern(t *testing.T) {
 						},
 					},
 				},
-				plugin:       "plugin1",
-				resourceName: "testResourceName",
+				plugin:            "plugin1",
+				resourceName:      "testResourceName",
+				aliasResourceName: "alias",
+			},
+			want: true,
+		},
+		{
+			name: "Skip alias name pattern matches",
+			input: args{
+				setting: &CloudsploitSetting{
+					SpecificPluginSetting: map[string]PluginSetting{
+						"plugin1": {
+							SkipResourceNamePattern: []string{"ignore", "test"},
+						},
+					},
+				},
+				plugin:            "plugin1",
+				resourceName:      "ResourceName",
+				aliasResourceName: "ignoreAlias",
 			},
 			want: true,
 		},
@@ -174,8 +192,9 @@ func TestIsSkipResourceNamePattern(t *testing.T) {
 						},
 					},
 				},
-				plugin:       "plugin1",
-				resourceName: "resourceName",
+				plugin:            "plugin1",
+				resourceName:      "resourceName",
+				aliasResourceName: "alias",
 			},
 			want: false,
 		},
@@ -187,8 +206,9 @@ func TestIsSkipResourceNamePattern(t *testing.T) {
 						"plugin1": {},
 					},
 				},
-				plugin:       "plugin1",
-				resourceName: "resourceName",
+				plugin:            "plugin1",
+				resourceName:      "resourceName",
+				aliasResourceName: "alias",
 			},
 			want: false,
 		},
@@ -198,8 +218,9 @@ func TestIsSkipResourceNamePattern(t *testing.T) {
 				setting: &CloudsploitSetting{
 					SpecificPluginSetting: map[string]PluginSetting{},
 				},
-				plugin:       "plugin1",
-				resourceName: "resourceName",
+				plugin:            "plugin1",
+				resourceName:      "resourceName",
+				aliasResourceName: "alias",
 			},
 			want: false,
 		},
@@ -207,7 +228,7 @@ func TestIsSkipResourceNamePattern(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.input.setting.IsSkipResourceNamePattern(tt.input.plugin, tt.input.resourceName); got != tt.want {
+			if got := tt.input.setting.IsSkipResourceNamePattern(tt.input.plugin, tt.input.resourceName, tt.input.aliasResourceName); got != tt.want {
 				t.Errorf("IsSkipResourceNamePattern() = %v, want %v", got, tt.want)
 			}
 		})
