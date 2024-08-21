@@ -1,7 +1,13 @@
 defaultScore: 3
 
 ignorePlugin:
-  - ecr/ecrRepositoryPolicy # Supported by access-analyzer
+  # Supported by access-analyzer
+  - ecr/ecrRepositoryPolicy
+  - EC2/ebsSnapshotPublic
+  - Lambda/lambdaPublicAccess
+  - RDS/rdsSnapshotPubliclyAccessible
+  - SNS/topicPolicies
+  - SQS/sqsPublicAccess
 
 specificPluginSetting:
   # aaaPlugin:
@@ -705,6 +711,26 @@ specificPluginSetting:
         - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as FTP should be restricted to known IP addresses.
       recommendation: |-
         Restrict TCP ports 20 and 21 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openHTTP:
+    score: 3
+    recommend:
+      risk: |-
+        Open HTTP
+        - Determine if TCP port 80 for HTTP is open to the public
+        - While some ports are required to be open to the public to function properly, more sensitive services such as HTTP should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 80 to known IP addresses
+        - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
+  EC2/openHTTPS:
+    score: 3
+    recommend:
+      risk: |-
+        Open HTTPS
+        - Determine if TCP port 443 for HTTPS is open to the public
+        - While some ports are required to be open to the public to function properly, more sensitive services such as HTTPS should be restricted to known IP addresses.
+      recommendation: |-
+        Restrict TCP port 443 to known IP addresses.
         - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
   EC2/openHadoopNameNode:
     score: 8

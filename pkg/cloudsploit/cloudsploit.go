@@ -93,7 +93,8 @@ func (s *SqsHandler) run(ctx context.Context, accountID string) ([]*cloudSploitR
 	results = s.removeIgnorePlugin(ctx, results)
 
 	// add meta data
-	if err := s.addMetaData(ctx, accountID, results); err != nil {
+	results, err = s.addMetaData(ctx, accountID, results)
+	if err != nil {
 		return nil, err
 	}
 	return results, nil
@@ -113,6 +114,7 @@ type cloudSploitResult struct {
 	// MetaData
 	AccountID                      string   `json:"AccountID"`
 	SecurityGroupAttachedResources []string `json:"SecurityGroupAttachedResources,omitempty"`
+	AliasResourceName              string   `json:"AliasResourceName,omitempty"`
 }
 
 const (
@@ -151,41 +153,45 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-func (s *SqsHandler) addMetaData(ctx context.Context, accountID string, findings []*cloudSploitResult) error {
+func (s *SqsHandler) addMetaData(ctx context.Context, accountID string, findings []*cloudSploitResult) ([]*cloudSploitResult, error) {
 	availableRegions, err := s.cloudsploitConf.listAvailableRegion(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	updatedFindings := []*cloudSploitResult{}
 	for _, f := range findings {
 		f.AccountID = accountID
-		if err := s.addSecurityGroupMetaData(ctx, f, availableRegions); err != nil {
-			return err
+		updatedF, err := s.addSecurityGroupMetaData(ctx, *f, availableRegions)
+		if err != nil {
+			return nil, err
 		}
+		updatedFindings = append(updatedFindings, updatedF)
 	}
-	return nil
+	return updatedFindings, nil
 }
 
-func (s *SqsHandler) addSecurityGroupMetaData(ctx context.Context, f *cloudSploitResult, availableRegions map[string]bool) error {
+func (s *SqsHandler) addSecurityGroupMetaData(ctx context.Context, f cloudSploitResult, availableRegions map[string]bool) (*cloudSploitResult, error) {
 	if f.Status != resultFAIL {
-		return nil
+		return &f, nil
 	}
-	if isSecurityGroupResource(f) {
-		return nil
+	if !isSecurityGroupResource(&f) {
+		return &f, nil
 	}
 	if ok := availableRegions[f.Region]; !ok {
-		return nil
+		return &f, nil
 	}
 	sgPlugin, ok := s.cloudsploitSetting.SpecificPluginSetting[fmt.Sprintf("%s/%s", f.Category, f.Plugin)]
 	if !ok || sgPlugin.Score == nil || *sgPlugin.Score <= LOW_SCORE {
-		return nil
+		return &f, nil
 	}
 
-	split := strings.Split(f.Resource, "/")
-	groupID := split[len(split)-1]
 	client, err := newEC2Session(ctx, s.cloudsploitConf.assumeRole, s.cloudsploitConf.externalID, f.Region)
 	if err != nil || client == nil {
-		return fmt.Errorf("failed to create ec2 client. region: %s, err: %v", f.Region, err)
+		return nil, fmt.Errorf("failed to create ec2 client. region: %s, err: %v", f.Region, err)
 	}
+
+	// Find the ENI where the security group is used
+	groupID := getSecurityGroupID(f.Resource)
 	eni, err := client.DescribeNetworkInterfaces(ctx, &ec2.DescribeNetworkInterfacesInput{
 		Filters: []types.Filter{
 			{
@@ -195,7 +201,7 @@ func (s *SqsHandler) addSecurityGroupMetaData(ctx context.Context, f *cloudSploi
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("failed to invoke DescribeNetworkInterfaces. region: %s, err: %v", f.Region, err)
+		return nil, fmt.Errorf("failed to invoke DescribeNetworkInterfaces. region: %s, err: %v", f.Region, err)
 	}
 	for _, n := range eni.NetworkInterfaces {
 		f.SecurityGroupAttachedResources = append(
@@ -203,17 +209,46 @@ func (s *SqsHandler) addSecurityGroupMetaData(ctx context.Context, f *cloudSploi
 			fmt.Sprintf("%s (%s)", aws.ToString(n.NetworkInterfaceId), aws.ToString(n.Description)),
 		)
 	}
-	return nil
+	if len(f.SecurityGroupAttachedResources) == 0 {
+		return &f, nil
+	}
+
+	// Get Security Group Name
+	sg, err := client.DescribeSecurityGroups(ctx, &ec2.DescribeSecurityGroupsInput{
+		GroupIds: []string{groupID},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to invoke DescribeSecurityGroups. region: %s, groupID: %s, err: %v", f.Region, groupID, err)
+	}
+	if len(sg.SecurityGroups) > 0 {
+		f.AliasResourceName = aws.ToString(sg.SecurityGroups[0].GroupName)
+		s.logger.Infof(ctx, "GroupID(%s) has alias name(%s)", groupID, f.AliasResourceName) // TODO: remove
+	}
+	return &f, nil
 }
 
 func isSecurityGroupResource(r *cloudSploitResult) bool {
-	return strings.HasPrefix(r.Resource, fmt.Sprintf("arn:aws:ec2:%s:%s:security-group/", r.Region, r.AccountID))
+	// ARN
+	if !strings.HasPrefix(r.Resource, fmt.Sprintf("arn:aws:ec2:%s:%s:security-group/", r.Region, r.AccountID)) {
+		return false
+	}
+
+	// sg-xxxx
+	return strings.HasPrefix(getSecurityGroupID(r.Resource), "sg-")
+}
+
+func getSecurityGroupID(resource string) string {
+	split := strings.Split(resource, "/")
+	if len(split) < 2 {
+		return ""
+	}
+	return split[len(split)-1]
 }
 
 func (c *CloudsploitConfig) listAvailableRegion(ctx context.Context) (map[string]bool, error) {
 	client, err := newEC2Session(ctx, c.assumeRole, c.externalID, REGION_US_EAST_1)
 	if err != nil || client == nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create EC2 client: %w", err)
 	}
 	out, err := client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
@@ -237,7 +272,7 @@ func (s *SqsHandler) removeIgnorePlugin(ctx context.Context, findings []*cloudSp
 		if s.cloudsploitSetting.IsIgnorePlugin(plugin) {
 			continue
 		}
-		if s.cloudsploitSetting.IsSkipResourceNamePattern(plugin, f.Resource) {
+		if s.cloudsploitSetting.IsSkipResourceNamePattern(plugin, f.Resource, f.AliasResourceName) {
 			s.logger.Infof(ctx, "Ignore resource: %s", f.Resource)
 			continue
 		}
