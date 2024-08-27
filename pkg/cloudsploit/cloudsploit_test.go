@@ -68,6 +68,15 @@ func TestRemoveIgnorePlugin(t *testing.T) {
 			},
 			want: []*cloudSploitResult{},
 		},
+		{
+			name: "Ignore alias resource name pattern",
+			input: args{
+				findings: []*cloudSploitResult{
+					{Category: "category", Plugin: "plugin1", Resource: "resourceName", AliasResourceName: "AliasResource_test_Name"},
+				},
+			},
+			want: []*cloudSploitResult{},
+		},
 	}
 
 	for _, tt := range tests {
