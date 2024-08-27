@@ -89,14 +89,14 @@ func (s *SqsHandler) run(ctx context.Context, accountID string) ([]*cloudSploitR
 		s.logger.Warnf(ctx, "Failed to delete config file. error: %v", err)
 	}
 
-	// remove ignore plugin
-	results = s.removeIgnorePlugin(ctx, results)
-
 	// add meta data
 	results, err = s.addMetaData(ctx, accountID, results)
 	if err != nil {
 		return nil, err
 	}
+
+	// remove ignore plugin
+	results = s.removeIgnorePlugin(ctx, results)
 	return results, nil
 }
 
@@ -222,7 +222,6 @@ func (s *SqsHandler) addSecurityGroupMetaData(ctx context.Context, f cloudSploit
 	}
 	if len(sg.SecurityGroups) > 0 {
 		f.AliasResourceName = aws.ToString(sg.SecurityGroups[0].GroupName)
-		s.logger.Infof(ctx, "GroupID(%s) has alias name(%s)", groupID, f.AliasResourceName) // TODO: remove
 	}
 	return &f, nil
 }
