@@ -760,7 +760,7 @@ specificPluginSetting:
         - Determine if TCP port 5601 for Kibana is open to the public
         - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as Kibana should be restricted to known IP addresses.
       recommendation: |-
-        Restrict TCP port 27017 or 27018 or 27019 to known IP addresses
+        Restrict TCP port 5601 to known IP addresses
         - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
   EC2/openMongoDB:
     score: 8
@@ -770,7 +770,7 @@ specificPluginSetting:
         - Determine if TCP port 27017 or 27018 or 27019 for MongoDB is open to the public
         - While some ports such as HTTP and HTTPS are required to be open to the public to function properly, more sensitive services such as MongoDB should be restricted to known IP addresses.
       recommendation: |-
-        Restrict TCP port 5601 to known IP addresses
+        Restrict TCP port 27017 or 27018 or 27019 to known IP addresses
         - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
   EC2/openMySQL:
     score: 8
