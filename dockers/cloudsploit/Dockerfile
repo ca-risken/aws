@@ -10,13 +10,13 @@ FROM node:lts-alpine3.12 as cloudsploit
 # 2023/03/20時点で最新
 ARG CLOUDSPLOIT_COMMIT_HASH=3d5f72d46e495ffcb8d9ebf44e60b6551fddbf4e
 RUN apk add --no-cache ca-certificates tzdata git \
-  && mkdir -p /opt/cloudsploit \
+  && git clone https://github.com/aquasecurity/cloudsploit.git /opt/cloudsploit \
   && cd /opt/cloudsploit \
-  && git init \
-  && git remote add origin https://github.com/aquasecurity/cloudsploit.git \
-  && git fetch origin ${CLOUDSPLOIT_COMMIT_HASH} --depth 1 \
-  && git checkout FETCH_HEAD \
-  && yarn install  \
+  && git checkout ${CLOUDSPLOIT_COMMIT_HASH}
+WORKDIR /opt/cloudsploit
+# CloudSploitではyarn.lockがないためコピーする（動作確認済みのバージョンを使用）
+COPY dockers/cloudsploit/yarn.lock /opt/cloudsploit/
+RUN yarn install --frozen-lockfile \
   && chmod +x index.js
 
 FROM public.ecr.aws/risken/base/risken-base:v0.0.1 as risken-base
