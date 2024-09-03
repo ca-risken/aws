@@ -4,3 +4,4 @@ env_local.sh
 
 .idea/
 go.work*
+tmp

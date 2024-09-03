@@ -60,6 +60,12 @@ push-manifest: $(MANIFEST_PUSH_TARGETS)
 generate:
 	go generate ./...
 
+.PHONY: generate-yaml
+generate-yaml:
+	PLUGIN_FILE=cloudsploit.yaml \
+	PLUGIN_DIR=plugins/aws \
+	go run tool/generate-cloudsploit-yaml/main.go
+
 .PHONY: go-test
 go-test: generate
 	GO111MODULE=on go test ./...
