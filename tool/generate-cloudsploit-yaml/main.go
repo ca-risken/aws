@@ -12,6 +12,7 @@ import (
 	"github.com/ca-risken/aws/pkg/cloudsploit"
 	"github.com/dop251/goja"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"gopkg.in/yaml.v3"
 )
 
@@ -26,6 +27,7 @@ var (
 	// parameters
 	pluginDir  = ""
 	pluginFile = ""
+	commitHash = ""
 )
 
 func init() {
@@ -37,6 +39,10 @@ func init() {
 	pluginFile = PLUGIN_FILE
 	if os.Getenv("PLUGIN_FILE") != "" {
 		pluginFile = os.Getenv("PLUGIN_FILE")
+	}
+
+	if os.Getenv("COMMIT_HASH") != "" {
+		commitHash = os.Getenv("COMMIT_HASH")
 	}
 }
 
@@ -74,6 +80,24 @@ func getRemotePlugin() (*cloudsploit.CloudsploitSetting, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("Failed to clone repo: %v", err)
+	}
+
+	// 指定されたcommit hashにチェックアウト
+	if commitHash != "" {
+		repo, err := git.PlainOpen(repoDir)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to open repository: %v", err)
+		}
+		worktree, err := repo.Worktree()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get worktree: %v", err)
+		}
+		err = worktree.Checkout(&git.CheckoutOptions{
+			Hash: plumbing.NewHash(commitHash),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("Failed to checkout commit %s: %v", commitHash, err)
+		}
 	}
 
 	// プラグインディレクトリを処理 (plugins/aws/{service}/{plugin}.js)
@@ -182,6 +206,15 @@ func updatePlugin(currentPlugin, remotePlugin *cloudsploit.CloudsploitSetting) e
 		SpecificPluginSetting: map[string]cloudsploit.PluginSetting{}, // プラグインは空にしておく
 	}
 
+	// 削除されたプラグイン
+	deletedPlugins := map[string]bool{}
+	for pluginFullName := range currentPlugin.SpecificPluginSetting {
+		if _, ok := remotePlugin.SpecificPluginSetting[pluginFullName]; !ok {
+			deletedPlugins[pluginFullName] = true
+			log.Printf("Deleted plugin: %s", pluginFullName)
+		}
+	}
+
 	// プラグインをソート
 	sortedPlugins := []string{}
 	for pluginFullName := range remotePlugin.SpecificPluginSetting {
@@ -191,6 +224,9 @@ func updatePlugin(currentPlugin, remotePlugin *cloudsploit.CloudsploitSetting) e
 
 	// プラグインを更新
 	for _, pluginFullName := range sortedPlugins {
+		if _, ok := deletedPlugins[pluginFullName]; ok {
+			continue // 削除されたプラグインはスキップ
+		}
 		if _, ok := currentPlugin.SpecificPluginSetting[pluginFullName]; ok {
 			// 既存のプラグインはそのまま
 			current := currentPlugin.SpecificPluginSetting[pluginFullName]

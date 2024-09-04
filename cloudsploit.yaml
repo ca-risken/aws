@@ -53,246 +53,6 @@ specificPluginSetting:
         Configure ACM managed certificates to use DNS validation.
         - https://aws.amazon.com/blogs/security/easier-certificate-validation-using-dns-with-aws-certificate-manager/
         - https://cloudsploit.com/remediations/aws/acm/acm-certificate-validation
-  AI & ML/anomalyDetectorEncrypted:
-    score: 3
-    recommend:
-      risk: |-
-        LookoutMetrics Anomaly Detector Encrypted
-        - Ensure that Amazon LookoutMetrics Anomaly Detector is encrypted using desired KMS encryption level
-        - Amazon Lookout for Metrics encrypts your data at rest with your choice of an encryption key. If you do not specify an encryption key, your data is encrypted with AWS owned key by default. So use customer-managed keys instead in order to gain more granular control over encryption/decryption process.
-      recommendation: |-
-        Encrypt Amazon LookoutMetrics Anomaly Detector with customer-manager keys (CMKs)
-        - https://docs.aws.amazon.com/lookoutmetrics/latest/dev/security-dataprotection.html#security-privacy-atrest
-  AI & ML/bedrockInUse:
-    score: 3
-    recommend:
-      risk: |-
-        AWS Bedrock In Use
-        - Ensures that AWS Bedrock service is in use within your AWS account.
-        - AWS Bedrock provides access to high-performing foundation models from leading AI startups and Amazon through a unified API, enabling easy experimentation, customization, and deployment of generative AI applications with robust security and privacy features.
-      recommendation: |-
-        Use Bedrock service to utilize top foundation models with strong security and customization.
-        - https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html
-  AI & ML/customModelEncryptionEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        Custom Model Encryption Enabled
-        - Ensure that an Amazon Bedrock custom models are encrypted with desired encryption level.
-        - When you encrypt AWS Bedrock custom model using your own AWS Customer Managed Keys (CMKs) for enhanced protection, you have full control over who can use the encryption keys to access your custom model.
-      recommendation: |-
-        Encrypt Bedrock custom model with desired encryption level.
-        - https://docs.aws.amazon.com/bedrock/latest/userguide/encryption-custom-job.html
-  AI & ML/customModelHasTags:
-    score: 3
-    recommend:
-      risk: |-
-        Custom Model Has Tags
-        - Ensures that Bedrock Custom model has tags associated.
-        - Tags help you to group resources together that are related to or associated with each other. It is a best practice to tag cloud resources to better organize and gain visibility into their usage.
-      recommendation: |-
-        Modify Bedrock Custom model and add tags.
-        - https://docs.aws.amazon.com/bedrock/latest/userguide/tagging.html
-  AI & ML/customModelInVpc:
-    score: 3
-    recommend:
-      risk: |-
-        Custom Model In VPC
-        - Ensure that an Amazon Bedrock custom model is configured with a VPC.
-        - When the custom model is configured within a VPC, it establishes a secure environment that prevents unauthorized internet access to your training data, enhancing the overall security and confidentiality of your model.
-      recommendation: |-
-        Create the custom model with VPC configuration
-        - https://docs.aws.amazon.com/bedrock/latest/userguide/usingVPC.html
-  AI & ML/dataStoreEncrypted:
-    score: 3
-    recommend:
-      risk: |-
-        HealthLake Data Store Encrypted
-        - Ensure that AWS HealthLake Data Store is using desired encryption level.
-        - Amazon HealthLake is a Fast Healthcare Interoperability Resources (FHIR)-enabled patient Data Store that uses AWS-managed KMS keys for encryption. Encrypt these data stores using customer-managed keys (CMKs) in order to gain more granular control over encryption/decryption process.
-      recommendation: |-
-        Create HealthLake Data Store with customer-manager keys (CMKs).
-        - https://docs.aws.amazon.com/healthlake/latest/devguide/data-protection.html
-  AI & ML/dataStoreHasTags:
-    score: 3
-    recommend:
-      risk: |-
-        HealthLake Data Store Has Tags
-        - Ensure that HealthLake Data Store has tags associated.
-        - Tags help you to group resources together that are related to or associated with each other. It is a best practice to tag cloud resources to better organize and gain visibility into their usage.
-      recommendation: |-
-        Modify HealthLake data store and add tags.
-        - https://docs.aws.amazon.com/healthlake/latest/devguide/add-a-tag.html
-  AI & ML/datasetExportEncrypted:
-    score: 3
-    recommend:
-      risk: |-
-        Forecast Dataset Export Encrypted
-        - Ensure that AWS Forecast exports have encryption enabled before they are being saved on S3.
-        - In AWS Forecast, you can save forecast reports on S3 in CSV format. Make sure to encrypt these export before writing them to the bucket in order to follow your organizations's security and compliance requirements.
-      recommendation: |-
-        Create Forecast exports with encryption enabled
-        - https://docs.aws.amazon.com/forecast/latest/dg/howitworks-forecast.html
-  AI & ML/devOpsGuruNotificationEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        DevOps Guru Notifications Enabled
-        - Ensures SNS topic is set up for Amazon DevOps Guru.
-        - Amazon DevOps Guru uses an SNS topic to notify you about important DevOps Guru events.
-      recommendation: |-
-        Add a notification channel to DevOps Guru
-        - https://docs.aws.amazon.com/devops-guru/latest/userguide/setting-up.html
-  AI & ML/equipmentdatasetEncrypted:
-    score: 3
-    recommend:
-      risk: |-
-        LookoutEquipment Dataset Encrypted
-        - Ensure that Amazon Lookout for Equipment datasets are encrypted using desired KMS encryption level
-        - Amazon Lookout for Equipment encrypts your data at rest with AWS owned KMS key by default. It is recommended to use customer-managed keys instead you will gain more granular control over encryption/decryption process.
-      recommendation: |-
-        Encrypt Amazon LookoutEquipment Dataset with customer-manager keys (CMKs)
-        - https://docs.aws.amazon.com/lookout-for-equipment/latest/ug/encryption-at-rest.html
-  AI & ML/flywheelInVpc:
-    score: 3
-    recommend:
-      risk: |-
-        Amazon Comprehend Flywheel In VPC
-        - Ensure that an Amazon Comprehend Flywheel is configured with a VPC.
-        - Configuring Amazon Comprehend flywheel within a VPC, establishes a secure environment that prevents unauthorized access to your data stored in job containers, minimizing the risk of internet exposure, data breaches and ensuring compliance with security standards.
-      recommendation: |-
-        Update Comprehend Flywheel and configure it within VPC.
-        - https://docs.aws.amazon.com/comprehend/latest/dg/usingVPC.html
-  AI & ML/forecastDatasetEncrypted:
-    score: 3
-    recommend:
-      risk: |-
-        Forecast Dataset Encrypted
-        - Ensure that AWS Forecast datasets are using desired KMS key for data encryption.
-        - Datasets contain the data used to train a predictor. You create one or more Amazon Forecast datasets and import your training data into them. Make sure to enable encryption for these datasets using customer-managed keys (CMKs) in order to gain more granular control over encryption/decryption process.
-      recommendation: |-
-        Create Forecast datasets using customer-manager KMS keys (CMKs).
-        - https://docs.aws.amazon.com/forecast/latest/dg/API_CreateDataset.html
-  AI & ML/fraudDetectorDataEncrypted:
-    score: 3
-    recommend:
-      risk: |-
-        Fraud Detector Data Encrypted
-        - Ensure that Amazon Fraud Detector has encryption enabled for data at rest with desired KMS encryption level.
-        - Amazon Fraud Detector encrypts your data at rest with AWS-managed KMS key. Use customer-manager KMS keys (CMKs) instead in order to follow your organizations's security and compliance requirements.
-      recommendation: |-
-        Enable encryption for data at rest using PutKMSEncryptionKey API
-        - https://docs.aws.amazon.com/frauddetector/latest/ug/encryption-at-rest.html
-  AI & ML/kendraIndexEncrypted:
-    score: 3
-    recommend:
-      risk: |-
-        Kendra Index Encrypted
-        - Ensure that the Kendra index is encrypted using desired encryption level.
-        - Amazon Kendra encrypts your data at rest with AWS-manager keys by default. Use customer-managed keys instead in order to gain more granular control over encryption/decryption process.
-      recommendation: |-
-        Create Kendra Index with customer-manager keys (CMKs).
-        - https://docs.aws.amazon.com/kendra/latest/dg/encryption-at-rest.html
-  AI & ML/lexAudioLogsEncrypted:
-    score: 3
-    recommend:
-      risk: |-
-        Audio Logs Encrypted
-        - Ensure that Amazon Lex audio logs are encrypted using desired KMS encryption level
-        - For audio logs you use default encryption on your S3 bucket or specify an AWS KMS key to encrypt your audio objects. Even if your S3 bucket uses default encryption you can still specify a different AWS KMS key to encrypt your audio objects for enhanced security.
-      recommendation: |-
-        Encrypt Lex audio logs with customer-manager keys (CMKs) present in your account
-        - https://docs.aws.amazon.com/lex/latest/dg/conversation-logs-encrypting.html
-  AI & ML/modelDataEncrypted:
-    score: 3
-    recommend:
-      risk: |-
-        Model Data Encrypted
-        - Ensure that Lookout for Vision model data is encrypted using desired KMS encryption level
-        - By default, trained models and manifest files are encrypted in Amazon S3 using server-side encryption with KMS keys stored in AWS Key Management Service (SSE-KMS). You can also use customer-managed keys instead in order to gain more granular control over encryption/decryption process.
-      recommendation: |-
-        Encrypt LookoutVision model with customer-manager keys (CMKs) present in your account
-        - https://docs.aws.amazon.com/lookout-for-vision/latest/developer-guide/security-data-encryption.html
-  AI & ML/modelInvocationLoggingEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        Bedrock Model Invocation Logging Enabled
-        - Ensure that Amazon Bedrock model invocation logging is enabled.
-        - With invocation logging enabled, you can collect the full request data, response data, and metadata associated with all calls performed in account. This detailed logging provides valuable insights into model usage patterns, helps in troubleshooting, and enhances security by allowing for thorough analysis of model interactions. It also facilitates compliance with auditing requirements, offering a comprehensive record of model invocations.
-      recommendation: |-
-        Enable invocation logging for Amazon Bedrock models.
-        - https://docs.aws.amazon.com/bedrock/latest/userguide/settings.html#model-invocation-logging
-  AI & ML/notebookDataEncrypted:
-    score: 3
-    recommend:
-      risk: |-
-        Notebook Data Encrypted
-        - Ensure Notebook data is encrypted
-        - An optional encryption key can be supplied during Notebook Instance creation.
-      recommendation: |-
-        An existing KMS key should be supplied during Notebook Instance creation.
-        - https://docs.aws.amazon.com/sagemaker/latest/dg/API_CreateNotebookInstance.html#API_CreateNotebookInstance_RequestSyntax
-  AI & ML/notebookDirectInternetAccess:
-    score: 3
-    recommend:
-      risk: |-
-        Notebook Direct Internet Access
-        - Ensure Notebook Instance is not publicly available.
-        - SageMaker notebooks should not be exposed to the Internet. Public availability can be configured via the DirectInternetAccess attribute.
-      recommendation: |-
-        Disable DirectInternetAccess for each SageMaker notebook.
-        - https://docs.aws.amazon.com/sagemaker/latest/dg/appendix-additional-considerations.html#appendix-notebook-and-internet-access
-  AI & ML/notebookInstanceInVpc:
-    score: 3
-    recommend:
-      risk: |-
-        Notebook instance in VPC
-        - Ensure that Amazon SageMaker Notebook instances are launched within a VPC.
-        - Launching instances can bring multiple advantages such as better networking infrastructure, much more flexible control over access security. Also it makes it possible to access VPC-only resources such as EFS file systems.
-      recommendation: |-
-        Migrate Notebook instances to exist within a VPC
-        - https://docs.aws.amazon.com/sagemaker/latest/dg/API_CreateNotebookInstance.html#API_CreateNotebookInstance_RequestSyntax
-  AI & ML/outputResultEncryption:
-    score: 3
-    recommend:
-      risk: |-
-        Amazon Comprehend Output Result Encryption
-        - Ensures the Comprehend service is using encryption for all result output.
-        - Comprehend supports using KMS keys to result output, which should be enabled.
-      recommendation: |-
-        Enable output result encryption for the Comprehend job
-        - https://docs.aws.amazon.com/comprehend/latest/dg/kms-in-comprehend.html
-  AI & ML/privateCustomModel:
-    score: 3
-    recommend:
-      risk: |-
-        Private Custom Model
-        - Ensure that an Amazon Bedrock custom model is configured within a private VPC.
-        - When the custom model is configured within a private VPC or with a private VPC endpoint, it enhances security by restricting access to authorized networks only, preventing exposure to the public internet.
-      recommendation: |-
-        Configure the custom model with VPC and private VPC endpoint.
-        - https://docs.aws.amazon.com/bedrock/latest/userguide/vpc-interface-endpoints.html
-  AI & ML/translateJobOutputEncrypted:
-    score: 3
-    recommend:
-      risk: |-
-        Translate Job Output Encrypted
-        - Ensure that your Amazon Translate jobs have CMK encryption enabled for output data residing on S3.
-        - Amazon Translate encrypts your output data with AWS-manager keys by default. Encrypt your files using customer-managed keys in order to gain more granular control over encryption/decryption process.
-      recommendation: |-
-        Create Translate jobs with customer-manager keys (CMKs).
-        - https://docs.aws.amazon.com/translate/latest/dg/encryption-at-rest.html
-  AI & ML/volumeEncryption:
-    score: 3
-    recommend:
-      risk: |-
-        Amazon Comprehend Volume Encryption
-        - Ensures the Comprehend service is using encryption for all volumes storing data at rest.
-        - Comprehend supports using KMS keys to encrypt data at rest, which should be enabled.
-      recommendation: |-
-        Enable volume encryption for the Comprehend job
-        - https://docs.aws.amazon.com/comprehend/latest/dg/kms-in-comprehend.html
   API Gateway/apiStageLevelCacheEncryption:
     score: 3
     recommend:
@@ -303,16 +63,6 @@ specificPluginSetting:
       recommendation: |-
         Modify API Gateway API stages to enable encryption on cache data
         - https://docs.aws.amazon.com/apigateway/latest/developerguide/data-protection-encryption.html
-  API Gateway/apigatewayAuthorization:
-    score: 3
-    recommend:
-      risk: |-
-        API Gateway Authorization
-        - Ensures that Amazon API Gateway APIs are using authorizer
-        - API Gateway API should be using authorizer to enforce security measures and control access to API resources.
-      recommendation: |-
-        Modify API Gateway configuration and ensure that appropriate authorizers are set up for each API.
-        - https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html
   API Gateway/apigatewayCertificateRotation:
     score: 3
     recommend:
@@ -373,16 +123,6 @@ specificPluginSetting:
       recommendation: |-
         Set API Gateway API endpoint configuration to private
         - https://aws.amazon.com/blogs/compute/introducing-amazon-api-gateway-private-endpoints
-  API Gateway/apigatewayRequestValidation:
-    score: 3
-    recommend:
-      risk: |-
-        API Gateway Request Validation
-        - Ensures that Amazon API Gateway method has request validation enabled.
-        - Enabling request validation for API Gateway allows to perform basic validation of an API request before proceeding with the integration request and publishes the validation results in CloudWatch Logs. When request validation fails, API Gateway immediately fails the request reducing unnecessary calls to the backend.
-      recommendation: |-
-        Modify API Gateway configuration and ensure that appropriate request validators are set for each API.
-        - https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-method-request-validation.html
   API Gateway/apigatewayResponseCaching:
     score: 3
     recommend:
@@ -403,26 +143,6 @@ specificPluginSetting:
       recommendation: |-
         Enable tracing on API Gateway API stages
         - https://docs.aws.amazon.com/xray/latest/devguide/xray-services-apigateway.html
-  API Gateway/apigatewayV2AccessLogging:
-    score: 3
-    recommend:
-      risk: |-
-        API Gateway V2 Access Logging
-        - Ensures that Amazon API Gateway V2 API stages have access logging enabled.
-        - API Gateway V2 access logs provide detailed information about APIs and how the caller accessed the API. These logs are useful for security and access audits which helps to analyze traffic patterns and troubleshoot issues.
-      recommendation: |-
-        Modify API Gateway V2 configuration and ensure that access logging is configured for each stage.
-        - https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-logging.html
-  API Gateway/apigatewayV2Authorization:
-    score: 3
-    recommend:
-      risk: |-
-        API Gateway V2 Authorization
-        - Ensures that Amazon API Gateway V2 APIs are using authorizer.
-        - API Gateway V2 APIs should be configured to use authorizer to enforce security measures and restrict access to API to only authorized users or processes.
-      recommendation: |-
-        Modify API Gateway V2 configuration and ensure that appropriate authorizers are set up for each API.
-        - https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-lambda-authorizer.html
   API Gateway/apigatewayWafEnabled:
     score: 3
     recommend:
@@ -453,6 +173,16 @@ specificPluginSetting:
       recommendation: |-
         Add CloudWatch role ARN to API settings and enabled detailed metrics for each stage
         - https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-metrics.html
+  AWS Glue/glueCloudwatchLogsEncrypted:
+    score: 3
+    recommend:
+      risk: |-
+        AWS Glue CloudWatch Encrypted Logs
+        - Ensures that encryption at-rest is enabled when writing AWS Glue logs to Amazon CloudWatch.
+        - AWS Glue should have encryption at-rest enabled for AWS Glue logs to ensure security of AWS Glue logs.
+      recommendation: |-
+        Modify Glue Security Configurations to enable CloudWatch logs encryption at-rest
+        - https://docs.aws.amazon.com/glue/latest/dg/console-security-configurations.html
   App Mesh/appmeshTLSRequired:
     score: 3
     recommend:
@@ -470,16 +200,6 @@ specificPluginSetting:
       recommendation: |-
         To enable access logging, modify virtual gateway configuration settings and configure the file path to write access logs to.
         - https://docs.aws.amazon.com/app-mesh/latest/userguide/envoy-logs.html
-  App Mesh/appmeshVGHealthChecks:
-    score: 3
-    recommend:
-      risk: |-
-        App Mesh VG Health Check Policies
-        - Ensure that Amazon App Mesh virtual gateways use health check policies to monitor the availability of virtual nodes.
-        - Health check policies in App Mesh are essential to maintain application availability and reliability by monitoring the health of associated virtual nodes.
-      recommendation: |-
-        Configure health check policies for the virtual gateway listeners in your App Mesh, specifying values for healthy threshold, health check interval, health check protocol, timeout period, and unhealthy threshold.
-        - https://docs.aws.amazon.com/app-mesh/latest/userguide/virtual_gateway_health_checks.html
   App Mesh/restrictExternalTraffic:
     score: 3
     recommend:
@@ -495,7 +215,7 @@ specificPluginSetting:
     recommend:
       risk: |-
         Service Encrypted
-        - Ensure that AWS App Runner service is encrypted using desired encryption level.
+        - Ensure that AWS App Runner service is encrypted using using desired encryption level.
         - To protect your application's data at rest, App Runner encrypts all stored copies of your application source image or source bundle using AWS-managed key by default.Use customer-managed keys (CMKs) instead in order to gain more granular control over encryption/decryption process.
       recommendation: |-
         Create App Runner Service with customer-manager keys (CMKs)
@@ -781,17 +501,7 @@ specificPluginSetting:
       recommendation: |-
         Modify Backup Vault and add tags.
         - https://docs.aws.amazon.com/aws-backup/latest/devguide/creating-a-vault.html
-  Backup/backupVaultPolicies:
-    score: 3
-    recommend:
-      risk: |-
-        Backup Vault Policies
-        - Ensures Backup Vault policies are properly scoped with specific permissions.
-        - Policies attached to Backup Vault should be scoped to least-privileged access and avoid the use of wildcards.
-      recommendation: |-
-        Ensure that all Backup Vault policies are scoped to specific services and API calls.
-        - https://docs.aws.amazon.com/aws-backup/latest/devguide/creating-a-vault-access-policy.html
-  Backup/compliantLifecycleConfigured:
+  Backup/compliantLifecyleConfigured:
     score: 3
     recommend:
       risk: |-
@@ -811,16 +521,6 @@ specificPluginSetting:
       recommendation: |-
         Modify IAM role attached with AWS CloudFormation stack to provide the minimal amount of access required to perform its tasks
         - https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html
-  CloudFormation/cloudformationDeletionPolicy:
-    score: 3
-    recommend:
-      risk: |-
-        CloudFormation Deletion Policy In Use
-        - Ensures that deletion policy is used for Amazon CloudFormation stacks.
-        - DeletionPolicy attribute allows to preserve and backup a resource when its stack is deleted. By default, AWS CloudFormation deletes the resource and all its content if a resource has no DeletionPolicy attribute in a template.
-      recommendation: |-
-        Add DeletionPolicy attribute in the AWS Cloudformation stack template.
-        - https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-deletionpolicy.html
   CloudFormation/cloudformationInUse:
     score: 3
     recommend:
@@ -978,8 +678,8 @@ specificPluginSetting:
       risk: |-
         CloudFront WAF Enabled
         - Ensures CloudFront distributions have WAF enabled.
-        - Enabling WAF allows control over requests to the CloudFront Distribution, allowing or denying traffic based off rules in the Web ACL
-      recommendation: "1. Enter the WAF service. 2. Enter Web ACLs and filter by global. 3. If no Web ACL is found, Create a new global Web ACL and in Resource type to associate with web ACL, select the CloudFront Distribution. \n- https://docs.aws.amazon.com/waf/latest/developerguide/web-acl-associating-cloudfront-distribution.html"
+        - Enabling WAF allows control over requests to the Cloudfront Distribution, allowing or denying traffic based off rules in the Web ACL
+      recommendation: "1. Enter the WAF service. 2. Enter Web ACLs and filter by global. 3. If no Web ACL is found, Create a new global Web ACL and in Resource type to associate with web ACL, select the Cloudfront Distribution. \n- https://docs.aws.amazon.com/waf/latest/developerguide/web-acl-associating-cloudfront-distribution.html"
   CloudFront/compressObjectsAutomatically:
     tags:
       - cost
@@ -1224,26 +924,6 @@ specificPluginSetting:
       recommendation: |-
         Encrypt CodeArtifact domains with desired encryption level
         - https://docs.aws.amazon.com/codeartifact/latest/ug/domain-create.html
-  CodeBuild/buildProjectEnvPriviligedMode:
-    score: 3
-    recommend:
-      risk: |-
-        Build Project Environment Privileged Mode
-        - Ensure that your AWS CodeBuild build project environment has privileged mode disabled.
-        - Enabling privileged mode for CodeBuild project environments allows the build container to have elevated permissions on the host machine, which can potentially lead to security vulnerabilities and unauthorized access.
-      recommendation: |-
-        Modify CodeBuild build project and disable environment privileged mode.
-        - https://docs.aws.amazon.com/codebuild/latest/userguide/change-project-console.html
-  CodeBuild/codebuildProjectLoggingEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        CodeBuild Project Logging Enabled
-        - Ensure that your AWS CodeBuild build project has S3 or Cloudwatch logs enabled.
-        - Monitoring AWS CodeBuild projects helps maintaining the reliability, availability, and performance of the resource. It helps to easily debug multi-point failure and potential incidents.
-      recommendation: |-
-        Ensure that CodeBuild project has logging enabled.
-        - https://docs.aws.amazon.com/codebuild/latest/userguide/monitoring-builds.html
   CodeBuild/codebuildValidSourceProviders:
     score: 3
     recommend:
@@ -1274,16 +954,6 @@ specificPluginSetting:
       recommendation: |-
         Ensure customer-manager keys (CMKs) are being used for CodePipeline pipeline artifacts.
         - https://docs.aws.amazon.com/codepipeline/latest/userguide/S3-artifact-encryption.html
-  CodeStar/codestarHasTags:
-    score: 3
-    recommend:
-      risk: |-
-        CodeStar Has Tags
-        - Ensures that CodeStar projects has tags associated.
-        - Tags help you to group resources together that are related to or associated with each other. It is a best practice to tag cloud resources to better organize and gain visibility into their usage.
-      recommendation: |-
-        Modify CodeStar Project and add tags.
-        - https://docs.aws.amazon.com/codestar/latest/userguide/working-with-project-tags.html
   CodeStar/codestarValidRepoProviders:
     score: 3
     recommend:
@@ -1314,6 +984,26 @@ specificPluginSetting:
       recommendation: |-
         1. Enter the Cognito service. 2. Enter user pools and enable MFA from sign in experience.
         - https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-mfa.html
+  Comprehend/outputResultEncryption:
+    score: 3
+    recommend:
+      risk: |-
+        Amazon Comprehend Output Result Encryption
+        - Ensures the Comprehend service is using encryption for all result output.
+        - Comprehend supports using KMS keys to result output, which should be enabled.
+      recommendation: |-
+        Enable output result encryption for the Comprehend job
+        - https://docs.aws.amazon.com/comprehend/latest/dg/kms-in-comprehend.html
+  Comprehend/volumeEncryption:
+    score: 3
+    recommend:
+      risk: |-
+        Amazon Comprehend Volume Encryption
+        - Ensures the Comprehend service is using encryption for all volumes storing data at rest.
+        - Comprehend supports using KMS keys to encrypt data at rest, which should be enabled.
+      recommendation: |-
+        Enable volume encryption for the Comprehend job
+        - https://docs.aws.amazon.com/comprehend/latest/dg/kms-in-comprehend.html
   Compute Optimizer/asgOptimized:
     score: 3
     recommend:
@@ -1442,7 +1132,7 @@ specificPluginSetting:
     recommend:
       risk: |-
         Connect Instance Call Recording Encrypted
-        - Ensure that Amazon Connect instances have encryption enabled for call recordings being saved on S3.
+        - Ensure that Amazon Connect instances have encryption enabled for call recordgins being saved on S3.
         - You can configure Amazon Connect instance to save recordings for incoming call to be saved on S3. When you save such data on S3, enable encryption for the data and use a KMS key with desired encrypted level to meet regulatory compliance requirements within your organization.
       recommendation: |-
         Modify Connect instance data storage configuration and enable encryption for call recordings
@@ -1538,26 +1228,16 @@ specificPluginSetting:
       recommendation: |-
         Ensure that DMS replication instances have only private IP address and not public IP address
         - https://docs.aws.amazon.com/dms/latest/userguide/CHAP_ReplicationInstance.PublicPrivate.html
-  DocumentDB/docDbHasTags:
+  DevOpsGuru/devOpsGuruNotificationEnabled:
     score: 3
     recommend:
       risk: |-
-        DocumentDB Has Tags
-        - Ensure that AWS DocumentDB clusters have tags associated.
-        - Tags help you to group resources together that are related to or associated with each other. It is a best practice to tag cloud resources to better organize and gain visibility into their usage.
+        DevOps Guru Notifications Enabled
+        - Ensures SNS topic is set up for Amazon DevOps Guru.
+        - Amazon DevOps Guru uses an SNS topic to notify you about important DevOps Guru events.
       recommendation: |-
-        Modify DocumentDB cluster and add tags.
-        - https://docs.aws.amazon.com/documentdb/latest/developerguide/tagging.html
-  DocumentDB/docdbCertificateRotated:
-    score: 3
-    recommend:
-      risk: |-
-        DocumentDB Cluster Instance Certificate Rotation
-        - Ensure that DocumentDB cluster instance certificates are rotated.
-        - AWS DocumentDB cluster certificate rotation ensures that cluster's TLS certificates are automatically rotated to maintain security and compliance standards. This feature helps in seamlessly updating certificates without downtime, ensuring continuous protection for data in transit within the DocumentDB cluster.
-      recommendation: |-
-        Modify DocumentDB cluster instance and rotate the old server certificate.
-        - https://docs.aws.amazon.com/documentdb/latest/developerguide/ca_cert_rotation.html
+        Add a notification channel to DevOps Guru
+        - https://docs.aws.amazon.com/devops-guru/latest/userguide/setting-up.html
   DocumentDB/docdbClusterBackupRetention:
     score: 3
     recommend:
@@ -1578,26 +1258,6 @@ specificPluginSetting:
       recommendation: |-
         Modify DocumentDB cluster at-rest encryption configuration to use desired encryption key
         - https://docs.aws.amazon.com/documentdb/latest/developerguide/encryption-at-rest.html
-  DocumentDB/docdbClusterProfilerEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        DocumentDB Cluster Profiler Enabled
-        - Ensure that Amazon DocumentDB clusters have profiler feature enabled.
-        - Enabling the Profiler for your Amazon DocumentDB clusters helps to monitor and log database operations. This makes it easier to identify slowest operations on cluster and fix performance issues by analyzing detailed logs in Amazon CloudWatch.
-      recommendation: |-
-        Modify DocumentDB cluster and enable profiler feature.
-        - https://docs.aws.amazon.com/documentdb/latest/developerguide/profiling.html
-  DocumentDB/docdbDeletionProtectionEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        DocumentDB Cluster Deletion Protection
-        - Ensure that Amazon DocumentDB clusters have deletion protection feature enabled.
-        - Enabling deletion protection feature for Amazon DocumentDB clusters acts as a safety net, preventing accidental database deletions or deletion by an unauthorized user. It ensures that the data stays secure and accessible at all times.
-      recommendation: |-
-        Modify DocumentDb cluster and enable deletion protection.
-        - https://docs.aws.amazon.com/documentdb/latest/developerguide/db-cluster-delete.html
   DynamoDB/daxClusterEncryption:
     score: 3
     recommend:
@@ -1618,16 +1278,6 @@ specificPluginSetting:
       recommendation: |-
         Enable Continuous Backups and Point-In-Time Recovery (PITR) features.
         - https://aws.amazon.com/blogs/aws/new-amazon-dynamodb-continuous-backups-and-point-in-time-recovery-pitr/
-  DynamoDB/dynamoDeletionProtection:
-    score: 3
-    recommend:
-      risk: |-
-        DynamoDB Deletion Protection Enabled
-        - Ensures that DynamoDB tables have deletion protection feature enabled.
-        - Enabling deletion protection feature ensures the prevention of accidental deletion of DynamoDB tables during regular maintenance operations, thereby safeguarding your data.
-      recommendation: |-
-        Modify DynamoDB table and enable deletion protection.
-        - https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithTables.Basics.html#WorkingWithTables.Basics.DeletionProtection
   DynamoDB/dynamoKmsEncryption:
     score: 3
     recommend:
@@ -1658,16 +1308,6 @@ specificPluginSetting:
       recommendation: |-
         Modify DynamoDB table and add tags.
         - https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tagging.html
-  DynamoDB/dynamoUnusedTable:
-    score: 3
-    recommend:
-      risk: |-
-        DynamoDB Empty Table
-        - Ensures that Amazon DynamoDB empty tables are removed to optimise costs.
-        - A DynamoDB table is considered unused if its item count is zero. As a best practice, delete unused tables for operational efficiency and better resource management. This will also prevent resource wastage and unnecessary costs. This plugin might produce false positives or false negatives as AWS updates table count every 6 hours.
-      recommendation: |-
-        Remove unused tables if you no longer need them.
-        - https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithTables.Basics.html
   EC2/allowedCustomPorts:
     score: 3
     recommend:
@@ -1819,16 +1459,6 @@ specificPluginSetting:
       recommendation: |-
         Delete the EBS snapshots past their defined expiration date
         - https://docs.amazonaws.cn/en_us/AWSEC2/latest/UserGuide/ebs-deleting-snapshot.html
-  EC2/ebsRecentSnapshots:
-    score: 3
-    recommend:
-      risk: |-
-        EBS Volumes Recent Snapshots
-        - Ensures that EBS volume has had a snapshot within the last 7 days
-        - EBS volumes without recent snapshots may be at risk of data loss or recovery issues.
-      recommendation: |-
-        Create a new snapshot for EBS volume weekly.
-        - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html
   EC2/ebsSnapshotHasTags:
     score: 3
     recommend:
@@ -2529,16 +2159,6 @@ specificPluginSetting:
       recommendation: |-
         Structure security groups to provide a single category of access and do not duplicate rules across groups used by the same instances.
         - http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html
-  EC2/overutilizedEC2Instance:
-    score: 3
-    recommend:
-      risk: |-
-        EC2 CPU Alarm Threshold Exceeded
-        - Ensure EC2 instances do not exceed the alarm threshold for CPU utilization.
-        - Excessive CPU utilization can indicate performance issues or the need for capacity optimization.
-      recommendation: |-
-        Investigate the cause of high CPU utilization and consider optimizing or scaling resources.
-        - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html#ec2-cloudwatch-metrics
   EC2/publicAmi:
     score: 8
     recommend:
@@ -2804,16 +2424,6 @@ specificPluginSetting:
       recommendation: |-
         Modify EC2 instances to attach IAM roles with required IAM policies
         - https://aws.amazon.com/blogs/security/new-attach-an-aws-iam-role-to-an-existing-amazon-ec2-instance-by-using-the-aws-cli/
-  ECR/ecrImageVulnerability:
-    score: 3
-    recommend:
-      risk: |-
-        Amazon ECR Scan on Push
-        - Ensures Amazon ECR container images are automatically scanned for security vulnerabilities after being pushed to a repository.
-        - Scan on Push for Amazon ECR is an automated vulnerability assessment feature that helps improve the security of ECR container images by scanning them for OS vulnerabilities.
-      recommendation: |-
-        Enable "Scan on Push" for your Amazon ECR repositories.
-        - https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-scanning.html#scanning-on-push
   ECR/ecrRepositoryEncrypted:
     score: 3
     recommend:
@@ -3086,16 +2696,6 @@ specificPluginSetting:
       recommendation: |-
         Delete old ELBs that no longer have backend resources.
         - http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-backend-instances.html
-  ELB/elbUnhealthyInstances:
-    score: 3
-    recommend:
-      risk: |-
-        ELB Unhealthy Instances
-        - Ensures that AWS ELBs have healthy instances attached
-        - ELBs should have healthy instances attached to ensure proper load balancing and availability. The status of the instances that are healthy should be InService.
-      recommendation: |-
-        Investigate and resolve the health issues of the instances attached to the ELB.
-        - https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-healthchecks.html#check-instance-health
   ELB/insecureCiphers:
     tags:
       - hipaa
@@ -3227,26 +2827,6 @@ specificPluginSetting:
       recommendation: |-
         Attach SSL certificate with the listener to AWS Elastic Load Balancer
         - https://aws.amazon.com/blogs/aws/elastic-load-balancer-support-for-ssl-termination/
-  ELBv2/elbv2TLSVersionCipherEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        ELBv2 TLS Version and Cipher Header Disabled
-        - Ensures that AWS ELBv2 load balancers does not have TLS version and cipher headers enabled.
-        - TLS Version and Cipher Header provides information about the specific TLS version and cipher suite used during the establishment of the secure connection. Enabling the header might leak the sensitive information about the encryption protocols and algorithms being used
-      recommendation: |-
-        Update ELBv2 load balancer traffic configuration to disable TLS version and cipher headers
-        - https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html
-  ELBv2/elbv2UnhealthyInstance:
-    score: 3
-    recommend:
-      risk: |-
-        ELBv2 Unhealthy Instances
-        - Ensures that ELBv2 have healthy instances attached
-        - ELBs should have healthy instances to ensure proper load balancing and availability. Unhealthy instances can result in degraded performance or service disruptions.
-      recommendation: |-
-        Investigate and resolve the health issues with the instances attached to the ELB.
-        - https://docs.aws.amazon.com/elasticloadbalancing/latest/application/target-group-health-checks.html
   ELBv2/elbv2WafEnabled:
     score: 3
     recommend:
@@ -3255,26 +2835,6 @@ specificPluginSetting:
         - Ensure that all Application Load Balancers have WAF enabled.
         - Enabling WAF allows control over requests to the load balancer, allowing or denying traffic based off rules in the Web ACL
       recommendation: "1. Enter the WAF service. 2. Enter Web ACLs and filter by the region the Application Load Balancer is in. 3. If no Web ACL is found, Create a new Web ACL in the region the ALB resides and in Resource type to associate with web ACL, select the Load Balancer. \n- https://aws.amazon.com/blogs/aws/aws-web-application-firewall-waf-for-application-load-balancers/"
-  ELBv2/elbv2crosszoneLoadBalancing:
-    score: 3
-    recommend:
-      risk: |-
-        ELBv2 Cross-Zone Load Balancing
-        - Ensures that AWS ELBv2 load balancers have cross-zone load balancing enabled.
-        - AWS ELBv2 should have cross-zone load balancing enabled to distribute the traffic evenly across the registered instances in all enabled Availability Zones.
-      recommendation: |-
-        Update AWS ELBv2 load balancers to enable cross zone load balancing.
-        - https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-disable-crosszone-lb.html
-  EMR/emrClusterHasTags:
-    score: 3
-    recommend:
-      risk: |-
-        EMR Cluster Has Tags
-        - Ensure that EMR clusters have tags associated.
-        - Tags help you to group resources together that are related to or associated with each other. It is a best practice to tag cloud resources to better organize and gain visibility into their usage.
-      recommendation: |-
-        Modify EMR cluster and add tags.
-        - https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-plan-tags-add-new.html
   EMR/emrClusterInVPC:
     score: 3
     recommend:
@@ -3335,6 +2895,158 @@ specificPluginSetting:
       recommendation: |-
         Ensure that the number of running EMR cluster instances matches the expected count. If instances are launched above the threshold, investigate to ensure they are legitimate.
         - https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-manage-view-clusters.html
+  ES/esAccessFromIps:
+    score: 3
+    recommend:
+      risk: |-
+        ElasticSearch Access From IP Addresses
+        - Ensure only whitelisted IP addresses can access Amazon Elasticsearch domains.
+        - ElasticSearch domains should only be accessible only from whitelisted IP addresses to avoid unauthorized access.
+      recommendation: |-
+        Modify Elasticseach domain access policy to allow only known/whitelisted IP addresses.
+        - https://aws.amazon.com/blogs/security/how-to-control-access-to-your-amazon-elasticsearch-service-domain/
+  ES/esClusterStatus:
+    score: 6
+    recommend:
+      risk: |
+        ElasticSearch Cluster Status
+        - Ensure that ElasticSearch clusters are healthy, i.e status is green.
+        - Unhealthy Amazon ES clusters with the status set to "Red" is crucial for availability of ElasticSearch applications.
+      recommendation: |
+        Configure alarms to send notification if cluster status remains red for more than a minute.
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/cloudwatch-alarms.html
+  ES/esCrossAccountAccess:
+    score: 3
+    recommend:
+      risk: |-
+        ElasticSearch Domain Cross Account access
+        - Ensures that only trusted accounts have access to ElasticSearch domains.
+        - Allowing unrestricted access of ES clusters will cause data leaks and data loss. This can be prevented by restricting access only to the trusted entities by implementing the appropriate access policies.
+      recommendation: |-
+        Restrict the access to ES clusters to allow only trusted accounts.
+        - http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-gsg-configure-access.html
+  ES/esDedicatedMasterEnabled:
+    score: 3
+    recommend:
+      risk: |-
+        ElasticSearch Dedicated Master Enabled
+        - Ensure that Amazon Elasticsearch domains are using dedicated master nodes.
+        - Using Elasticsearch dedicated master nodes to separate management tasks from index and search requests will improve the clusters ability to manage easily different types of workload and make them more resilient in production.
+      recommendation: |-
+        Update the domain to use dedicated master nodes.
+        - http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html
+  ES/esDesiredInstanceTypes:
+    tags:
+      - cost
+    recommend:
+      risk: |
+        ElasticSearch Desired Instance Type
+        - Ensure that all your Amazon Elasticsearch cluster instances are of given instance types.
+        - Limiting the type of Amazon Elasticsearch cluster instances that can be provisioned will help address compliance requirements and prevent unexpected charges on the AWS bill.
+      recommendation: |
+        Reconfigure the domain to have the desired instance types.
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html
+  ES/esDomainEncryptionEnabled:
+    score: 3
+    recommend:
+      risk: |-
+        ElasticSearch Encryption Enabled
+        - Ensure that AWS ElasticSearch domains have encryption enabled.
+        - ElasticSearch domains should be encrypted to ensure that data is secured.
+      recommendation: |-
+        Ensure encryption-at-rest is enabled for all ElasticSearch domains.
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html
+  ES/esEncryptedDomain:
+    score: 3
+    recommend:
+      risk: |-
+        ElasticSearch Encrypted Domain
+        - Ensures ElasticSearch domains are encrypted with KMS
+        - ElasticSearch domains should be encrypted to ensure data at rest is secured.
+      recommendation: |-
+        Ensure encryption-at-rest is enabled for all ElasticSearch domains.
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html
+  ES/esExposedDomain:
+    score: 3
+    recommend:
+      risk: |-
+        ElasticSearch Exposed Domain
+        - Ensures ElasticSearch domains are not publicly exposed to all AWS accounts
+        - ElasticSearch domains should not be publicly exposed to all AWS accounts.
+      recommendation: |-
+        Update elasticsearch domain to set access control.
+        - https://aws.amazon.com/blogs/database/set-access-control-for-amazon-elasticsearch-service/
+  ES/esHttpsOnly:
+    score: 3
+    recommend:
+      risk: |-
+        ElasticSearch HTTPS Only
+        - Ensures ElasticSearch domains are configured to enforce HTTPS connections
+        - ElasticSearch domains should be configured to enforce HTTPS connections for all clients to ensure encryption of data in transit.
+      recommendation: |-
+        Ensure HTTPS connections are enforced for all ElasticSearch domains.
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html
+  ES/esLoggingEnabled:
+    score: 3
+    recommend:
+      risk: |-
+        ElasticSearch Logging Enabled
+        - Ensures ElasticSearch domains are configured to log data to CloudWatch
+        - ElasticSearch domains should be configured with logging enabled with logs sent to CloudWatch for analysis and long-term storage.
+      recommendation: |-
+        Ensure logging is enabled and a CloudWatch log group is specified for each ElasticSearch domain.
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-slow-logs
+  ES/esNodeToNodeEncryption:
+    score: 3
+    recommend:
+      risk: |-
+        ElasticSearch Node To Node Encryption
+        - Ensures ElasticSearch domain traffic is encrypted in transit between nodes
+        - ElasticSearch domains should use node-to-node encryption to ensure data in transit remains encrypted using TLS 1.2.
+      recommendation: |-
+        Ensure node-to-node encryption is enabled for all ElasticSearch domains.
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/ntn.html
+  ES/esPublicEndpoint:
+    score: 3
+    recommend:
+      risk: |-
+        ElasticSearch Public Service Domain
+        - Ensures ElasticSearch domains are created with private VPC endpoint options
+        - ElasticSearch domains can either be created with a public endpoint or with a VPC configuration that enables internal VPC communication. Domains should be created without a public endpoint to prevent potential public access to the domain.
+      recommendation: |-
+        Configure the ElasticSearch domain to use a VPC endpoint for secure VPC communication.
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-vpc.html
+  ES/esRequireIAMAuth:
+    score: 3
+    recommend:
+      risk: |-
+        ElasticSearch IAM Authentication
+        - Ensures ElasticSearch domains require IAM Authentication
+        - ElasticSearch domains can allow access without IAM authentication by having a policy that does not specify the principal or has a wildcard principal
+      recommendation: |-
+        Configure the ElasticSearch domain to have an access policy without a global principal or no principal
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-ac.html
+  ES/esTlsVersion:
+    score: 3
+    recommend:
+      risk: |-
+        ElasticSearch TLS Version
+        - Ensure ElasticSearch domain is using the latest security policy to only allow TLS v1.2
+        - ElasticSearch domains should be configured to enforce TLS version 1.2 for all clients to ensure encryption of data in transit with updated features.
+      recommendation: |-
+        Update elasticsearch domain to set TLSSecurityPolicy to contain TLS version 1.2.
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/infrastructure-security.html
+  ES/esUpgradeAvailable:
+    tags:
+      - operation
+    recommend:
+      risk: |-
+        ElasticSearch Upgrade Available
+        - Ensures ElasticSearch domains are running the latest service software
+        - ElasticSearch domains should be configured to run the latest service software which often contains security updates.
+      recommendation: |-
+        Ensure each ElasticSearch domain is running the latest service software and update out-of-date domains.
+        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-version-migration.html
   ElastiCache/elasticCacheClusterHasTags:
     score: 3
     recommend:
@@ -3373,7 +3085,7 @@ specificPluginSetting:
         - Ensure that all ElastiCache clusters provisioned within your AWS account are using the latest generation of instances
         - Using the latest generation of Amazon ElastiCache instances instances will benefit clusters for higher hardware performance, better support for latest Memcached and Redis in-memory engines versions and lower costs.
       recommendation: |-
-        Upgrade ElastiCache instance generation to the latest available generation.
+        Upgrade ElastiCache instance generaion to the latest available generation.
         - https://aws.amazon.com/elasticache/previous-generation/
   ElastiCache/elasticacheNodesCount:
     tags:
@@ -3598,11 +3310,11 @@ specificPluginSetting:
     score: 3
     recommend:
       risk: |-
-        Firehose Delivery Stream Destination CMK Encrypted
-        - Ensures Firehose delivery stream data records are encrypted at destination bucket using AWS KMS key of desired encryption level.
-        - Encrypting Kinesis Firehose delivery stream data records at the destination S3 bucket is crucial for compliance and data security. This ensures that data is protected at rest, meeting regulatory requirements and providing an additional layer of security, essential for organizations with strict data protection mandates.
+        Firehose Delivery Streams CMK Encrypted
+        - Ensures Firehose delivery stream are encrypted using AWS KMS key of desired encryption level.
+        - Data sent through Firehose delivery streams can be encrypted using KMS server-side encryption. Existing delivery streams can be modified to add encryption with minimal overhead. Use customer-managed keys instead in order to gain more granular control over encryption/decryption process.
       recommendation: |-
-        Enable encryption using desired level for all Firehose Delivery Streams destination S3 bucket.
+        Enable encryption using desired level for all Firehose Delivery Streams.
         - https://docs.aws.amazon.com/firehose/latest/dev/encryption.html
   Firehose/firehoseEncrypted:
     tags:
@@ -3616,6 +3328,36 @@ specificPluginSetting:
       recommendation: |-
         Enable encryption using KMS for all Firehose Delivery Streams.
         - https://docs.aws.amazon.com/firehose/latest/dev/encryption.html
+  Forecast/datasetExportEncrypted:
+    score: 3
+    recommend:
+      risk: |-
+        Forecast Dataset Export Encrypted
+        - Ensure that AWS Forecast exports have encryption enabled before they are being saved on S3.
+        - In AWS Forecast, you can save forecast reports on S3 in CSV format. Make sure to encrypt these export before writing them to the bucket in order to follow your organizations's security and compliance requirements.
+      recommendation: |-
+        Create Forecast exports with encryption enabled
+        - https://docs.aws.amazon.com/forecast/latest/dg/howitworks-forecast.html
+  Forecast/forecastDatasetEncrypted:
+    score: 3
+    recommend:
+      risk: |-
+        Forecast Dataset Encrypted
+        - Ensure that AWS Forecast datasets are using desired KMS key for data encryption.
+        - Datasets contain the data used to train a predictor. You create one or more Amazon Forecast datasets and import your training data into them. Make sure to enable encryption for these datasets using customer-managed keys (CMKs) in order to gain more granular control over encryption/decryption process.
+      recommendation: |-
+        Create Forecast datasets using customer-manager KMS keys (CMKs).
+        - https://docs.aws.amazon.com/forecast/latest/dg/API_CreateDataset.html
+  Fraud Detector/fraudDetectorDataEncrypted:
+    score: 3
+    recommend:
+      risk: |-
+        Fraud Detector Data Encrypted
+        - Ensure that Amazon Fraud Detector has encryption enabled for data at rest with desired KMS encryption level.
+        - Amazon Fraud Detector encrypts your data at rest with AWS-managed KMS key. Use customer-manager KMS keys (CMKs) instead in order to follow your organizations's security and compliance requirements.
+      recommendation: |-
+        Enable encryption for data at rest using PutKMSEncryptionKey API
+        - https://docs.aws.amazon.com/frauddetector/latest/ug/encryption-at-rest.html
   Glacier/vaultPublicAccess:
     score: 6
     recommend:
@@ -3666,16 +3408,6 @@ specificPluginSetting:
       recommendation: |-
         Modify Glue data catalog settings and enable metadata encryption
         - https://docs.aws.amazon.com/glue/latest/dg/encrypt-glue-data-catalog.html
-  Glue/glueCloudwatchLogsEncrypted:
-    score: 3
-    recommend:
-      risk: |-
-        AWS Glue CloudWatch Encrypted Logs
-        - Ensures that encryption at-rest is enabled when writing AWS Glue logs to Amazon CloudWatch.
-        - AWS Glue should have encryption at-rest enabled for AWS Glue logs to ensure security of AWS Glue logs.
-      recommendation: |-
-        Modify Glue Security Configurations to enable CloudWatch logs encryption at-rest
-        - https://docs.aws.amazon.com/glue/latest/dg/console-security-configurations.html
   Glue/glueS3EncryptionEnabled:
     score: 3
     recommend:
@@ -3716,16 +3448,6 @@ specificPluginSetting:
       recommendation: |-
         Configure the member account to send GuardDuty findings to a known master account.
         - https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_accounts.html#guardduty_master
-  GuardDuty/lambdaProtectionEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        GuardDuty Lambda Protection Enabled
-        - Ensures GuardDuty protection is enabled for Lambda functions.
-        - Enabling GuardDuty Lambda Protection helps detect potential security threats offering enhanced security by monitoring network activity logs and generating findings for suspicious activities and security issues.
-      recommendation: |-
-        Enable GuardDuty Lambda protection for all AWS accounts.
-        - https://docs.aws.amazon.com/guardduty/latest/ug/lambda-protection.html
   GuardDuty/noActiveFindings:
     score: 3
     recommend:
@@ -3736,26 +3458,16 @@ specificPluginSetting:
       recommendation: |-
         Resolve the GuardDuty findings and archive them
         - https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_findings.html
-  GuardDuty/rdsProtectionEnabled:
+  HealthLake/dataStoreEncrypted:
     score: 3
     recommend:
       risk: |-
-        GuardDuty RDS Protection Enabled
-        - Ensures GuardDuty protection is enabled for RDS instances.
-        - Enabling GuardDuty RDS Protection helps analyze RDS login activity to identify access threats, offering enhanced security. It enables proactive threat detection, automated alerting, and flexible configuration for AWS accounts.
+        HealthLake Data Store Encrypted
+        - Ensure that AWS HealthLake Data Store is using desired encryption level.
+        - Amazon HealthLake is a Fast Healthcare Interoperability Resources (FHIR)-enabled patient Data Store that uses AWS-managed KMS keys for encryption. Encrypt these data stores using customer-managed keys (CMKs) in order to gain more granular control over encryption/decryption process.
       recommendation: |-
-        Enable GuardDuty RDS protection for all AWS accounts.
-        - https://docs.aws.amazon.com/guardduty/latest/ug/rds-protection.html
-  GuardDuty/s3ProtectionEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        S3 GuardDuty Enabled
-        - Ensures GuardDuty is enabled for S3 buckets
-        - Enabling GuardDuty S3 protection helps to detect and prevent unauthorized access to your S3 buckets.
-      recommendation: |-
-        Enable GuardDuty S3 protection for all AWS accounts.
-        - https://docs.aws.amazon.com/guardduty/latest/ug/s3-protection.html
+        Create HealthLake Data Store with customer-manager keys (CMKs).
+        - https://docs.aws.amazon.com/healthlake/latest/devguide/data-protection.html
   IAM/accessAnalyzerActiveFindings:
     score: 3
     recommend:
@@ -4062,16 +3774,6 @@ specificPluginSetting:
       recommendation: |-
         Enable password expiration for the account
         - http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html
-  IAM/passwordPolicyExists:
-    score: 3
-    recommend:
-      risk: |-
-        Password Policy Exists
-        - Ensures that password policy is set for IAM users.
-        - You can set a custom password policy on your AWS account to specify login password complexity requirements and mandatory rotation periods for your IAM users' passwords.
-      recommendation: |-
-        Create a password policy under account settings in IAM
-        - https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html
   IAM/passwordRequiresLowercase:
     tags:
       - pci
@@ -4422,6 +4124,16 @@ specificPluginSetting:
       recommendation: |-
         Disable the key deletion before the scheduled deletion time.
         - http://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys.html
+  Kendra/kendraIndexEncrypted:
+    score: 3
+    recommend:
+      risk: |-
+        Kendra Index Encrypted
+        - Ensure that the Kendra index is encrypted using desired encryption level.
+        - Amazon Kendra encrypts your data at rest with AWS-manager keys by default. Use customer-managed keys instead in order to gain more granular control over encryption/decryption process.
+      recommendation: |-
+        Create Kendra Index with customer-manager keys (CMKs).
+        - https://docs.aws.amazon.com/kendra/latest/dg/encryption-at-rest.html
   Kinesis Video Streams/videostreamDataEncrypted:
     score: 3
     recommend:
@@ -4474,36 +4186,6 @@ specificPluginSetting:
       recommendation: |
         Modify IAM role attached with Lambda function to provide the minimal amount of access required to perform its tasks
         - link
-  Lambda/lambdaCodeSigningEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        Lambda Code Signing Enabled
-        - Ensure that AWS Lambda functions are configured to use the code signing feature.
-        - Code signing for AWS Lambda helps to ensure that only trusted code runs in Lambda functions. Enabling code signing feature ensures that lambda checks every code deployment and verifies that the code package is signed by a trusted source.
-      recommendation: |-
-        Modify Lambda function configurations and enable code signing.
-        - https://docs.aws.amazon.com/lambda/latest/dg/configuration-codesigning.html
-  Lambda/lambdaDeadLetterQueue:
-    score: 3
-    recommend:
-      risk: |-
-        Lambda Dead Letter Queue
-        - Ensure that AWS Lambda functions are configured to use a Dead Letter Queue.
-        - Configuring Dead Letter Queues (DLQs) with lambda functions helps to store discarded events and isolate messages that can't be processed correctly. It helps to configure an alarm for any messages moved to a dead-letter queue. They are essential in preserving failed events,debugging and determining why their processing didn't succeed.
-      recommendation: |-
-        Modify Lambda function configurations and enable dead letter queue.
-        - https://docs.aws.amazon.com/lambda/latest/dg/invocation-async.html#invocation-dlq
-  Lambda/lambdaEnhancedMonitoring:
-    score: 3
-    recommend:
-      risk: |-
-        Lambda Enhanced Monitoring Enabled
-        - Ensure that AWS Lambda functions have enhanced monitoring enabled.
-        - Enabling enhanced monitoring on lambda functions adds lambda insights extension as a layer to your functions, which helps to collect, aggregate, and summarizes system-level metrics including CPU, memory, disk, and network usage. It helps you to monitor, troubleshoot, and optimize your functions.
-      recommendation: |-
-        Modify Lambda function configurations and enable enhanced monitoring.
-        - https://docs.aws.amazon.com/lambda/latest/dg/monitoring-insights.html#monitoring-insights-enabling-console
   Lambda/lambdaHasTags:
     score: 3
     recommend:
@@ -4574,11 +4256,21 @@ specificPluginSetting:
       recommendation: |-
         Update the Lambda function with a VPC configuration.
         - https://docs.aws.amazon.com/lambda/latest/dg/vpc.html
+  Lex/lexAudioLogsEncrypted:
+    score: 3
+    recommend:
+      risk: |-
+        Audio Logs Encrypted
+        - Ensure that Amazon Lex audio logs are encrypted using desired KMS encryption level
+        - For audio logs you use default encryption on your S3 bucket or specify an AWS KMS key to encrypt your audio objects. Even if your S3 bucket uses default encryption you can still specify a different AWS KMS key to encrypt your audio objects for enhanced security.
+      recommendation: |-
+        Encrypt Lex audio logs with customer-manager keys (CMKs) present in your account
+        - https://docs.aws.amazon.com/lex/latest/dg/conversation-logs-encrypting.html
   Location/geoCollectionDataEncrypted:
     score: 3
     recommend:
       risk: |-
-        Geofence Collection Data Encrypted
+        Geoference Collection Data Encrypted
         - Ensure that Amazon Location geoference collection data is encrypted using desired KMS encryption level.
         - Amazon Location Service provides encryption by default to protect sensitive customer data at rest using AWS owned encryption keys. It is recommended to use customer-managed keys instead in order to gain more granular control over encryption/decryption process.
       recommendation: |-
@@ -4594,6 +4286,36 @@ specificPluginSetting:
       recommendation: |-
         Encrypt Amazon Location tracker with customer-manager keys (CMKs)
         - https://docs.aws.amazon.com/location/latest/developerguide/encryption-at-rest.html
+  Lookout/modelDataEncrypted:
+    score: 3
+    recommend:
+      risk: |-
+        Model Data Encrypted
+        - Ensure that Lookout for Vision model data is encrypted using desired KMS encryption level
+        - By default, trained models and manifest files are encrypted in Amazon S3 using server-side encryption with KMS keys stored in AWS Key Management Service (SSE-KMS). You can also use customer-managed keys instead in order to gain more granular control over encryption/decryption process.
+      recommendation: |-
+        Encrypt LookoutVision model with customer-manager keys (CMKs) present in your account
+        - https://docs.aws.amazon.com/lookout-for-vision/latest/developer-guide/security-data-encryption.html
+  LookoutEquipment/equipmentdatasetEncrypted:
+    score: 3
+    recommend:
+      risk: |-
+        LookoutEquipment Dataset Encrypted
+        - Ensure that Amazon Lookout for Equipment datasets are encrypted using desired KMS encryption level
+        - Amazon Lookout for Equipment encrypts your data at rest with AWS owned KMS key by default. It is recommended to use customer-managed keys instead you will gain more granular control over encryption/decryption process.
+      recommendation: |-
+        Encrypt Amazon LookoutEquipment Dataset with customer-manager keys (CMKs)
+        - https://docs.aws.amazon.com/lookout-for-equipment/latest/ug/encryption-at-rest.html
+  LookoutMetrics/anomalyDetectorEncrypted:
+    score: 3
+    recommend:
+      risk: |-
+        LookoutMetrics Anomaly Detector Encrypted
+        - Ensure that Amazon LookoutMetrics Anomaly Detector is encrypted using desired KMS encryption level
+        - Amazon Lookout for Metrics encrypts your data at rest with your choice of an encryption key. If you do not specify an encryption key, your data is encrypted with AWS owned key by default. So use customer-managed keys instead in order to gain more granular control over encryption/decryption process.
+      recommendation: |-
+        Encrypt Amazon LookoutMetrics Anomaly Detector with customer-manager keys (CMKs)
+        - https://docs.aws.amazon.com/lookoutmetrics/latest/dev/security-dataprotection.html#security-privacy-atrest
   MQ/mqAutoMinorVersionUpgrade:
     tags:
       - operation
@@ -4610,21 +4332,11 @@ specificPluginSetting:
     recommend:
       risk: |-
         MQ Broker Encrypted
-        - Ensure that Amazon MQ brokers have data encrypted at-rest feature enabled.
+        - Ensure that Amazon MQ brokers have data ecrypted at-rest feature enabled.
         - Amazon MQ encryption at rest provides enhanced security by encrypting your data using encryption keys stored in the AWS Key Management Service (KMS).
       recommendation: |-
         Enabled data at-rest encryption feature for MQ brokers
         - https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/data-protection.html#data-protection-encryption-at-rest
-  MQ/mqBrokerPublicAccess:
-    score: 3
-    recommend:
-      risk: |-
-        MQ Broker Public Accessibility
-        - Ensure that Amazon MQ brokers are not publicly accessible.
-        - Public Amazon MQ brokers can be accessed directly, outside of a Virtual Private Cloud (VPC), therefore every machine on the internet can reach your brokers through their public endpoints and this can increase the opportunity for malicious activity.
-      recommendation: |-
-        Review and update the security group settings to restrict public access to Amazon MQ brokers.
-        - https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/using-amazon-mq-securely.html
   MQ/mqDeploymentMode:
     score: 3
     recommend:
@@ -4643,16 +4355,6 @@ specificPluginSetting:
       recommendation: |
         Create MQ broker with desired instance types
         - https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/amazon-mq-broker-architecture.html
-  MQ/mqLatestEngineVersion:
-    score: 3
-    recommend:
-      risk: |-
-        MQ Latest Engine Version
-        - Ensure that Amazon MQ brokers are using the latest version of Apache ActiveMQ broker engine.
-        - Using the latest version of Apache ActiveMQ engine helps follow AWS best practices and benefits from the latest features, performance improvements, and security updates.
-      recommendation: |-
-        Update Amazon MQ brokers to the latest version of Apache ActiveMQ broker engine.
-        - https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/activemq-version-management.html
   MQ/mqLogExports:
     score: 3
     recommend:
@@ -4747,7 +4449,7 @@ specificPluginSetting:
     recommend:
       risk: |-
         Managed Blockchain Network Member Data Encrypted
-        - Ensure that members created in Amazon Managed Blockchain are encrypted using desired encryption level.
+        - Ensure that members created in Amazon Managed Blockchain are encrtypted using desired encryption level.
         - Amazon Managed Blockchain encrypts the network member data at-rest by default with AWS-managed keys. Use your own key (CMK) to encrypt this data to meet regulatory compliance requirements within your organization
       recommendation: |-
         Ensure members in Managed Blockchain are using desired encryption level for encryption
@@ -4762,16 +4464,6 @@ specificPluginSetting:
       recommendation: |-
         Modify MemoryDB cluster encryption configuration to use desired encryption key
         - https://docs.aws.amazon.com/memorydb/latest/devguide/at-rest-encryption.html
-  Neptune/neptuneDBIamAuth:
-    score: 3
-    recommend:
-      risk: |-
-        Neptune Database IAM Authentication Enabled
-        - Ensure that AWS Neptune database instance has IAM database authentication feature enabled.
-        - Enabling IAM authentication for AWS Neptune adds an extra layer of security by allowing access control through IAM credentials. It ensures that network traffic for clusters is encrypted using SSL and allows centralized management. All authentication requests are automatically signed with a secure access key instead of using a password.
-      recommendation: |-
-        Modify Neptune database instance and enable IAM database authentication.
-        - https://docs.aws.amazon.com/neptune/latest/userguide/iam-auth.html
   Neptune/neptuneDBInstanceEncrypted:
     score: 3
     recommend:
@@ -4782,246 +4474,6 @@ specificPluginSetting:
       recommendation: |-
         Encrypt Neptune database with desired encryption level
         - https://docs.aws.amazon.com/neptune/latest/userguide/encrypt.html
-  Neptune/neptuneDBMinorVersionUpgrade:
-    score: 3
-    recommend:
-      risk: |-
-        Neptune Database Minor Version Upgrade
-        - Ensures Auto Minor version upgrade is enabled on Neptune database instances.
-        - AWS Neptune database service releases engine version upgrades regularly to introduce software features, bug fixes, security patches and performance improvements. Enabling auto minor version upgrade feature ensures that minor engine upgrades are applied automatically to the instance during the maintenance window.
-      recommendation: |-
-        Modify Neptune database instance and enable automatic minor version upgrades feature.
-        - https://docs.aws.amazon.com/neptune/latest/userguide/cluster-maintenance.html
-  Neptune/neptuneDBMultiAz:
-    score: 3
-    recommend:
-      risk: |-
-        Neptune Database Multiple AZ
-        - Ensure that AWS Neptune database instances are created to be cross-AZ for high availability.
-        - Enabling Multi-AZ feature for Neptune instances boosts database reliability by automatically replicating data across multiple availability zones. This ensures continuous availability and minimal downtime for graph database deployments.
-      recommendation: |-
-        Create new Neptune database instance and enable multi-AZ feature.
-        - https://docs.aws.amazon.com/neptune/latest/userguide/feature-overview-db-clusters.html
-  Neptune/neptuneDbDeletionProtection:
-    score: 3
-    recommend:
-      risk: |-
-        Neptune Database Deletion Protection Enabled
-        - Ensure that AWS Neptune database instances have deletion protection feature enabled.
-        - Enabling deletion protection feature for Amazon Neptune adds an extra layer of security, preventing accidental database deletions or deletion by an unauthorized user. A Neptune DB cluster can't be deleted while deletion protection is enabled which ensures continuous availability of data.
-      recommendation: |-
-        Modify Neptune database instance and enable deletion protection.
-        - https://docs.aws.amazon.com/neptune/latest/userguide/manage-console-instances-delete.html
-  Neptune/neptuneInstanceBackupRetention:
-    score: 3
-    recommend:
-      risk: |-
-        Neptune Database Instance Backup Retention
-        - Ensure that Neptune database instances have set a minimum backup retention period.
-        - Neptune provides feature to retain incremental backups, which allows to quickly restore to any point within the backup retention period. Ensure that you have sufficient backup retention period configured in order to restore your data in the event of failure.
-      recommendation: |-
-        Modify Neptune database instance to configure sufficient backup retention period.
-        - https://docs.aws.amazon.com/neptune/latest/userguide/backup-restore-overview.html
-  OpenSearch/opensearchAccessFromIps:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Access From IP Addresses
-        - Ensure only whitelisted IP addresses can access Amazon OpenSearch domains.
-        - OpenSearch domains should only be accessible only from whitelisted IP addresses to avoid unauthorized access.
-      recommendation: |-
-        Modify OpenSearch domain access policy to allow only known/whitelisted IP addresses.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#ac-types-ip
-  OpenSearch/opensearchClusterStatus:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Cluster Status
-        - Ensure that OpenSearch clusters are healthy, i.e status is green.
-        - Unhealthy Amazon OpenSearch clusters with the status set to "Red" is crucial for availability of OpenSearch applications.
-      recommendation: |-
-        Configure alarms to send notification if cluster status remains red for more than a minute.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/cloudwatch-alarms.html
-  OpenSearch/opensearchCollectionCmkEncrypted:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Collection CMK Encryption
-        - Ensures that OpenSearch Serverless collections are encrypted with KMS Customer Master Keys (CMKs).
-        - OpenSearch Serverless should use KMS Customer Master Keys (CMKs) instead of AWS managed keys for encryption in order to have full control over data encryption and decryption.
-      recommendation: |-
-        Update the encryption policy and customer managed key for encryption.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless-encryption.html
-  OpenSearch/opensearchCollectionPublicAccess:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Collection Public Access
-        - Ensures that OpenSearch Serverless collections are not publicly accessible.
-        - OpenSearch Serverless collections should be not be publicly accessible to prevent unauthorized actions.
-      recommendation: |-
-        Update the network policy and remove the public access to the collection.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless-network.html
-  OpenSearch/opensearchCrossAccountAccess:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Domain Cross Account access
-        - Ensures that only trusted accounts have access to OpenSearch domains.
-        - Allowing unrestricted access of OpenSearch clusters will cause data leaks and data loss. This can be prevented by restricting access only to the trusted entities by implementing the appropriate access policies.
-      recommendation: |-
-        Restrict the access to OpenSearch clusters to allow only trusted accounts.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/cross-cluster-search.html
-  OpenSearch/opensearchDedicatedMasterEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Dedicated Master Enabled
-        - Ensure that Amazon OpenSearch domains are using dedicated master nodes.
-        - Using OpenSearch dedicated master nodes to separate management tasks from index and search requests will improve the clusters ability to manage easily different types of workload and make them more resilient in production.
-      recommendation: |-
-        Update the domain to use dedicated master nodes.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-dedicatedmasternodes.html
-  OpenSearch/opensearchDesiredInstanceTypes:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Desired Instance Type
-        - Ensure that all your Amazon OpenSearch cluster instances are of given instance types.
-        - Limiting the type of Amazon OpenSearch cluster instances that can be provisioned will help address compliance requirements and prevent unexpected charges on the AWS bill.
-      recommendation: |-
-        Reconfigure the domain to have the desired instance types.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/supported-instance-types.html
-  OpenSearch/opensearchDomainEncryptionEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Encryption Enabled
-        - Ensure that AWS OpenSearch domains have encryption enabled.
-        - OpenSearch domains should be encrypted to ensure that data is secured.
-      recommendation: |-
-        Ensure encryption-at-rest is enabled for all OpenSearch domains.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/encryption-at-rest.html
-  OpenSearch/opensearchEnableAuditLogs:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Audit Logs Enabled
-        - Ensures that audit logs feature is enabled for OpenSearch domains.
-        - Enabling audit logs feature allows to keep track of all user activity on Amazon OpenSearch domains (clusters), including failed login attempts, including authentication success and failures, index changes, and incoming search queries, enhancing security and compliance monitoring.
-      recommendation: |-
-        Modify Opensearch domain and enable audit logs.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/audit-logs.html
-  OpenSearch/opensearchEncryptedDomain:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Encrypted Domain
-        - Ensures OpenSearch domains are encrypted with KMS
-        - OpenSearch domains should be encrypted to ensure data at rest is secured.
-      recommendation: |-
-        Ensure encryption-at-rest is enabled for all OpenSearch domains.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/encryption-at-rest.html
-  OpenSearch/opensearchExposedDomain:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Exposed Domain
-        - Ensures OpenSearch domains are not publicly exposed to all AWS accounts
-        - OpenSearch domains should not be publicly exposed to all AWS accounts.
-      recommendation: |-
-        Update OpenSearch domain to set access control.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/fgac.html
-  OpenSearch/opensearchHttpsOnly:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch HTTPS Only
-        - Ensures OpenSearch domains are configured to enforce HTTPS connections
-        - OpenSearch domains should be configured to enforce HTTPS connections for all clients to ensure encryption of data in transit.
-      recommendation: |-
-        Ensure HTTPS connections are enforced for all OpenSearch domains.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/createupdatedomains.html
-  OpenSearch/opensearchLoggingEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Logging Enabled
-        - Ensures OpenSearch domains are configured to log data to CloudWatch
-        - OpenSearch domains should be configured with logging enabled with logs sent to CloudWatch for analysis and long-term storage.
-      recommendation: |-
-        Ensure logging is enabled and a CloudWatch log group is specified for each OpenSearch domain.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/createdomain-configure-slow-logs.html
-  OpenSearch/opensearchNodeToNodeEncryption:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Node To Node Encryption
-        - Ensures OpenSearch domain traffic is encrypted in transit between nodes
-        - OpenSearch domains should use node-to-node encryption to ensure data in transit remains encrypted using TLS 1.2.
-      recommendation: |-
-        Ensure node-to-node encryption is enabled for all OpenSearch domains.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ntn.html
-  OpenSearch/opensearchPublicEndpoint:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Public Service Domain
-        - Ensures OpenSearch domains are created with private VPC endpoint options
-        - OpenSearch domains can either be created with a public endpoint or with a VPC configuration that enables internal VPC communication. Domains should be created without a public endpoint to prevent potential public access to the domain.
-      recommendation: |-
-        Configure the OpenSearch domain to use a VPC endpoint for secure VPC communication.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/os-vpc.html
-  OpenSearch/opensearchRequireIAMAuth:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch IAM Authentication
-        - Ensures OpenSearch domains require IAM Authentication
-        - OpenSearch domains can allow access without IAM authentication by having a policy that does not specify the principal or has a wildcard principal
-      recommendation: |-
-        Configure the OpenSearch domain to have an access policy without a global principal or no principal
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html
-  OpenSearch/opensearchTlsVersion:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch TLS Version
-        - Ensure OpenSearch domain is using the latest security policy to only allow TLS v1.2
-        - OpenSearch domains should be configured to enforce TLS version 1.2 for all clients to ensure encryption of data in transit with updated features.
-      recommendation: |-
-        Update OpenSearch domain to set TLSSecurityPolicy to contain TLS version 1.2.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/what-is.html
-  OpenSearch/opensearchUpgradeAvailable:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Upgrade Available
-        - Ensures OpenSearch domains are running the latest service software
-        - OpenSearch domains should be configured to run the latest service software which often contains security updates.
-      recommendation: |-
-        Ensure each OpenSearch domain is running the latest service software and update out-of-date domains.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/version-migration.html
-  OpenSearch/opensearchVersion:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Version
-        - Ensures OpenSearch domains are using the latest engine version.
-        - OpenSearch domains should be upgraded to the latest version for optimal performance and security.
-      recommendation: |-
-        Update OpenSearch domain to set to latest engine version.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/what-is.html
-  OpenSearch/opensearchZoneAwarenessEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        OpenSearch Zone Awareness Enabled
-        - Ensure that OpenSearch domains have zone awareness enabled.
-        - To improve the fault-tolerance for your OpenSearch domain, ensure you enable zone awareness. It distributes the OpenSearch nodes across multiple availability zones in the same AWS region and assures the cluster is highly available.
-      recommendation: |-
-        Modify OpenSearch domain configuration and enable domain zone awareness.
-        - https://aws.amazon.com/blogs/security/how-to-control-access-to-your-amazon-elasticsearch-service-domain/
   Organizations/enableAllFeatures:
     tags:
       - operation
@@ -5073,36 +4525,6 @@ specificPluginSetting:
       recommendation: |-
         Modify the PostgreSQL and MySQL type RDS instances to enable IAM database authentication.
         - https://docs.aws.amazon.com/neptune/latest/userguide/iam-auth.html
-  RDS/idleRDSInstance:
-    score: 3
-    recommend:
-      risk: |-
-        RDS Idle Instance Status
-        - Ensure there are no RDS instances with CPU utilization below all of the defined thresholds within last 7 days.
-        - Idle Amazon RDS instance is a prime candidate for reducing monthly AWS expenses and preventing unnecessary usage charges from accumulating.
-      recommendation: |-
-        Identify and remove idle RDS instance
-        - https://docs.aws.amazon.com/prescriptive-guidance/latest/amazon-rds-monitoring-alerting/db-instance-cloudwatch-metrics.html
-  RDS/mysqlVulnerabilityCheck:
-    score: 3
-    recommend:
-      risk: |-
-        RDS MySQL Vulnerability Check
-        -  Ensures RDS MySQL instances are not vulnerable to specific CVEs.
-        - Vulnerabilities in RDS MySQL instances can pose significant risks to the security and integrity of your database environment. By identifying and addressing these vulnerabilities, you can protect your data from unauthorized access, data tampering, or privilege escalation.
-      recommendation: |-
-        Update the MySQL engine version to a more recent, patched version to mitigate the vulnerabilities.
-        - https://aws.amazon.com/security/security-bulletins/mysql-5-5-and-5-6-security-advisory/
-  RDS/overutilizedRDSInstance:
-    score: 3
-    recommend:
-      risk: |-
-        RDS CPU Alarm Threshold Exceeded
-        - Ensure RDS instances do not exceed the alarm threshold for CPU utilization.
-        - High CPU usage may suggest that the databases on these servers lack sufficient hardware resources to operate at their best. Enhancing the performance of overburdened RDS instances by upgrading them can directly enhance the well-being and performance of the databases.
-      recommendation: |-
-        Upgrade (upsize) the overused RDS database instances.
-        - https://docs.aws.amazon.com/prescriptive-guidance/latest/amazon-rds-monitoring-alerting/db-instance-cloudwatch-metrics.html
   RDS/rdsAutomatedBackups:
     tags:
       - reliability
@@ -5125,26 +4547,6 @@ specificPluginSetting:
       recommendation: |-
         RDS does not currently allow modifications to encryption after the instance has been launched, so a new instance will need to be created with KMS CMK encryption enabled.
         - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html
-  RDS/rdsDefaultPort:
-    score: 3
-    recommend:
-      risk: |-
-        RDS Default Port
-        - Ensure RDS database instances are not using the default ports.
-        - Using default ports for running RDS instances can be a security risk. To protect publicly accessible RDS databases from brute force and dictionary attacks and add an additional layer of security, shift RDS instance ports to non-default ones.
-      recommendation: |-
-        Change the default port number of the RDS instance to non-default port.
-        - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_CommonTasks.Connect.html
-  RDS/rdsDefaultUsername:
-    score: 3
-    recommend:
-      risk: |-
-        RDS Instance Default Master Username
-        - Ensures RDS instance does not have a default master username
-        - By default, RDS uses the default master username which has the maximum permissions for your instance. RDS instances should be configured to use unique username to ensure security.
-      recommendation: |-
-        Create a new RDS instance with the desired username, and migrate the database to the new instance.
-        - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CreateDBInstance.html
   RDS/rdsDeletionProtectionEnabled:
     score: 3
     recommend:
@@ -5168,16 +4570,6 @@ specificPluginSetting:
       recommendation: |-
         RDS does not currently allow modifications to encryption after the instance has been launched, so a new instance will need to be created with encryption enabled.
         - http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html
-  RDS/rdsInstanceGeneration:
-    score: 3
-    recommend:
-      risk: |-
-        RDS Instance Generation
-        - Ensures that AWS RDS instance is not using older generation of EC2
-        - Amazon RDS instances running on older generation EC2 instances may not have access to the latest hardware capabilities and performance improvements. It is recommended to upgrade the RDS instance to its latest generation for optimal performance and security.
-      recommendation: |-
-        Upgrade the instance to its latest generation.
-        - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html
   RDS/rdsInstanceHasTags:
     score: 3
     recommend:
@@ -5221,16 +4613,6 @@ specificPluginSetting:
       recommendation: |-
         Modify the RDS instance to enable scaling across multiple availability zones.
         - http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.html
-  RDS/rdsPublicSubnet:
-    score: 3
-    recommend:
-      risk: |-
-        RDS Public Subnet
-        - Ensures RDS database instances are not deployed in public subnet.
-        - RDS instances should not be deployed in public subnets to prevent direct exposure to the internet and reduce the risk of unauthorized access.
-      recommendation: |-
-        Replace the subnet groups of rds instance with the private subnets.
-        - https://docs.aws.amazon.com/config/latest/developerguide/rds-instance-public-access-check.html
   RDS/rdsPubliclyAccessible:
     score: 6
     tags:
@@ -5438,16 +4820,6 @@ specificPluginSetting:
       recommendation: |-
         Modify Amazon Redshift cluster to set snapshot retention period
         - https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-snapshots.html
-  Redshift/underutilizedRedshiftCluster:
-    score: 3
-    recommend:
-      risk: |-
-        Underutilized Redshift Cluster Check
-        - Ensure Redshift clusters are not underutilized
-        - Underutilized clusters are good candidates to reduce your monthly AWS costs and avoid accumulating unnecessary usage charges.
-      recommendation: |-
-        Resize the underused Redshift cluster to optimize costs and resource utilization.
-        - https://docs.aws.amazon.com/redshift/latest/mgmt/metrics-listing.html#redshift-metrics
   Redshift/userActivityLoggingEnabled:
     score: 3
     recommend:
@@ -5513,16 +4885,6 @@ specificPluginSetting:
       recommendation: |-
         Enable Privacy Protection for Domain
         - https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/domain-privacy-protection.html
-  Route53/route53InUse:
-    score: 3
-    recommend:
-      risk: |-
-        Route 53 In Use
-        - Ensure that AWS Route 53 Domain Name System (DNS) service is used within your AWS account.
-        - AWS Route 53 simplifies DNS management, ensuring reliable and efficient routing for end users to your website through globally-dispersed DNS servers, enhancing accessibility and performance. It facilitates domain registration, DNS routing, and health checking, allowing seamless management of your web infrastructure.
-      recommendation: |-
-        Register your domain with AWS Route 53 for seamless DNS management.
-        - https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/Welcome.html
   Route53/senderPolicyFwInUse:
     score: 3
     recommend:
@@ -5743,26 +5105,6 @@ specificPluginSetting:
       recommendation: |-
         Set the S3 bucket access policy for all CloudTrail buckets to only allow known users to access its files.
         - http://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html
-  S3/objectLevelReadEventLogging:
-    score: 3
-    recommend:
-      risk: |-
-        S3 Object Read Logging
-        - Ensure that Object-level logging for read events is enabled for S3 bucket.
-        - Enabling Object-level S3 event logging significantly enhances security, especially for sensitive data.
-      recommendation: |-
-        Enable object level logging for read events for each S3 bucket.
-        - https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-cloudtrail-logging-for-s3.html#enable-cloudtrail-events
-  S3/objectLevelWriteEventLogging:
-    score: 3
-    recommend:
-      risk: |-
-        S3 Object Write Logging
-        - Ensure that Object-level logging for write events is enabled for S3 bucket.
-        - Enabling Object-level S3 event logging significantly enhances security, especially for sensitive data.
-      recommendation: |-
-        Enable object level logging for Write events for each S3 bucket.
-        - https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-cloudtrail-logging-for-s3.html#enable-cloudtrail-events.
   S3/s3BucketHasTags:
     score: 3
     recommend:
@@ -5788,7 +5130,7 @@ specificPluginSetting:
     recommend:
       risk: |-
         S3 Versioned Buckets Lifecycle Configuration
-        - Ensure that S3 buckets having versioning enabled also have lifecycle policy configured for non-current objects.
+        - Ensure that S3 buckets having versioning enabled also have liecycle policy configured for non-current objects.
         - When object versioning is enabled on a bucket, every modification/update to an object results in a new version of the object that will be stored indefinitely. Enable a lifecycle policy, so that non-current object versions are removed or transitioned in a predictable manner.
       recommendation: |-
         Configure lifecycle rules for buckets which have versioning enabled
@@ -5825,16 +5167,6 @@ specificPluginSetting:
       recommendation: |-
         Update the SNS policy to prevent access from external accounts.
         - https://docs.aws.amazon.com/sns/latest/dg/sns-using-identity-based-policies.html
-  SNS/snsSubscriptionHTTPSonly:
-    score: 3
-    recommend:
-      risk: |-
-        SNS Subscription HTTPS Only
-        - Ensures that Amazon SNS subscriptions are configured to use HTTPS protocol
-        - Amazon Simple Notification Service (Amazon SNS) is a managed service that provides message delivery from publishers to subscribers. It is important to verify that SNS subscriptions are configured to use the HTTPS protocol.
-      recommendation: |-
-        Create a new SNS subscription using HTTPS protocol.
-        - https://docs.aws.amazon.com/sns/latest/dg/sns-http-https-endpoint-as-subscriber.html
   SNS/snsTopicHasTags:
     score: 3
     recommend:
@@ -5845,20 +5177,10 @@ specificPluginSetting:
       recommendation: |-
         Modify SNS topic and add tags.
         - https://docs.aws.amazon.com/sns/latest/dg/sns-tags.html
-  SNS/snsTopicNoHttpPolicy:
-    score: 3
-    recommend:
-      risk: |-
-        SNS Topic HTTP Protocol Restriction
-        - Ensures SNS topics do not allow HTTP protocol.
-        - SNS topics should be configured to restrict access to the HTTP protocol to prevent unauthorized send or subscribe operations.
-      recommendation: |-
-        Adjust the topic policy to only allow authorized AWS users in known accounts to send or subscribe via the HTTP protocol.
-        - http://docs.aws.amazon.com/sns/latest/dg/AccessPolicyLanguage.html
   SNS/snsValidSubscribers:
     score: 3
     recommend:
-      risk: "SNS Valid Subscribers\n- Ensure that Amazon SNS subscriptions are valid and there are no unwanted subscribers.\n- Amazon Simple Notification Service (Amazon SNS) is a managed service that provides message delivery from publishers to subscribers. So check for appropriate subscribers in order to improve access security to your SNS topics. "
+      risk: "SNS Valid Subscribers\n- Ensure that Amazon SNS subscriptions are valid and there are no unwanted subscribers.\n- Amazon Simple Notification Service (Amazon SNS) is a managed service that provides message delivery from publishers to subscribers. So check for appropriate subsribers in order to improve access security to your SNS topics. "
       recommendation: |-
         Check for unwanted SNS subscriptions periodically
         - https://docs.aws.amazon.com/sns/latest/dg/sns-create-subscribe-endpoint-to-topic.html
@@ -5948,16 +5270,6 @@ specificPluginSetting:
       recommendation: |-
         Enable encryption using KMS Customer Master Keys (CMKs) for all SQS queues.
         - http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-server-side-encryption.html
-  SQS/sqsHasTags:
-    score: 3
-    recommend:
-      risk: |-
-        SQS Has Tags
-        - Ensures that Amazon SQS queue has tags associated.
-        - Tags help you to group resources together that are related to or associated with each other. It is a best practice to tag cloud resources to better organize and gain visibility into their usage.
-      recommendation: |-
-        Update SQS queue and add tags.
-        - https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-queue-tags.html
   SQS/sqsPublicAccess:
     score: 6
     recommend:
@@ -5991,6 +5303,37 @@ specificPluginSetting:
       recommendation: |-
         Recreate unencrypted SSM Parameters with Type set to SecureString.
         - https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-about.html#sysman-paramstore-securestring
+  SageMaker/notebookDataEncrypted:
+    tags:
+      - hipaa
+    recommend:
+      risk: |-
+        Notebook Data Encrypted
+        - Ensure Notebook data is encrypted
+        - An optional encryption key can be supplied during Notebook Instance creation.
+      recommendation: |-
+        An existing KMS key should be supplied during Notebook Instance creation.
+        - https://docs.aws.amazon.com/sagemaker/latest/dg/API_CreateNotebookInstance.html#API_CreateNotebookInstance_RequestSyntax
+  SageMaker/notebookDirectInternetAccess:
+    score: 6
+    recommend:
+      risk: |-
+        Notebook Direct Internet Access
+        - Ensure Notebook Instance is not publicly available.
+        - SageMaker notebooks should not be exposed to the Internet. Public availability can be configured via the DirectInternetAccess attribute.
+      recommendation: |-
+        Disable DirectInternetAccess for each SageMaker notebook.
+        - https://docs.aws.amazon.com/sagemaker/latest/dg/appendix-additional-considerations.html#appendix-notebook-and-internet-access
+  SageMaker/notebookInstanceInVpc:
+    score: 3
+    recommend:
+      risk: |-
+        Notebook instance in VPC
+        - Ensure that Amazon SageMaker Notebook instances are launched within a VPC.
+        - Launching instances can bring multiple advantages such as better networking infrastructure, much more flexible control over access security. Also it makes it possible to access VPC-only resources such as EFS file systems.
+      recommendation: |-
+        Migrate Notebook instances to exist within a VPC
+        - https://docs.aws.amazon.com/sagemaker/latest/dg/API_CreateNotebookInstance.html#API_CreateNotebookInstance_RequestSyntax
   Secrets Manager/secretHasTags:
     score: 3
     recommend:
@@ -6031,26 +5374,6 @@ specificPluginSetting:
       recommendation: |-
         Use Secrets Manager service to store sensitive information in your AWS account.
         - https://docs.aws.amazon.com/secretsmanager/latest/userguide/asm_access.html
-  Security Hub/securityHubActiveFindings:
-    score: 3
-    recommend:
-      risk: |-
-        Security Hub No Active Findings
-        - Ensure that Security Hub active findings do not exist in your AWS account.
-        - AWS Security Hub provides you with a comprehensive view of your security state within AWS. It continuously monitors your environment using automated security checks based on AWS best practices and industry standards, and aggregates findings from various AWS services. Active findings should be remediated and archived to maintain a secure environment.
-      recommendation: |-
-        Resolve the Security Hub findings and archive them.
-        - https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-findings.html
-  SecurityHub/securityHubEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        Security Hub Enabled
-        - Ensure that AWS Security Hub is enabled.
-        - AWS Security Hub provides a comprehensive view of your security posture across your AWS accounts. It aggregates, organises, and prioritises security findings from various AWS services.
-      recommendation: |-
-        Enable AWS Security Hub for enhanced security monitoring and compliance.
-        - https://aws.amazon.com/security-hub/
   Shield/shieldAdvancedEnabled:
     score: 3
     recommend:
@@ -6112,16 +5435,16 @@ specificPluginSetting:
       recommendation: |-
         Configure the SFTP server endpoints to use endpoints powered by PrivateLink.
         - https://docs.aws.amazon.com/transfer/latest/userguide/update-endpoint-type-vpc.html
-  WAF/aclRulesDefaultAction:
+  Translate/translateJobOutputEncrypted:
     score: 3
     recommend:
       risk: |-
-        Web ACL Rules Default Action
-        - Ensure that default Web ACL action is set to "Block" for ACL rules with allow action.
-        - Web ACL default action determines whether the incoming request is allowed or blocked when none of the rules are matched. As a security best practice, make sure it is set to ‘Block’ when you have configured web ACL rules with allow actions. This will limit the number of users accessing your web app and will reduce the scope of malicious attacks.
+        Translate Job Output Encrypted
+        - Ensure that your Amazon Translate jobs have CMK encryption enabled for output data residing on S3.
+        - Amazon Translate encrypts your output data with AWS-manager keys by default. Encrypt your files using customer-managed keys in order to gain more granular control over encryption/decryption process.
       recommendation: |-
-        Modify Web ACL and set default action to block requests.
-        - https://docs.aws.amazon.com/waf/latest/APIReference/API_DefaultAction.html
+        Create Translate jobs with customer-manager keys (CMKs).
+        - https://docs.aws.amazon.com/translate/latest/dg/encryption-at-rest.html
   WAF/wafInUse:
     score: 3
     recommend:
@@ -6132,16 +5455,6 @@ specificPluginSetting:
       recommendation: |-
         Create one or more WAF ACLs with proper actions and rules
         - https://docs.aws.amazon.com/waf/latest/developerguide/what-is-aws-waf.html
-  WAF/wafv2CloudwatchMetricsEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        AWS WAFV2 Cloudwatch Metrics Enabled
-        - Ensure that AWS CloudWatch metrics is enabled for WAFV2 Web ACL rules.
-        - As a security best practice, make sure to enable CloudWatch metrics for all the configured Web ACL rules. These metrics are useful in understanding the access patterns for your web application like allowed, blocked or passed requests based on the rules evaluation.
-      recommendation: |-
-        Modify WAFv2 and enable cloud watch metrics.
-        - https://docs.aws.amazon.com/waf/latest/developerguide/monitoring-cloudwatch.html
   WAF/wafv2InUse:
     score: 3
     recommend:
@@ -6152,16 +5465,6 @@ specificPluginSetting:
       recommendation: |-
         Create one or more WAF ACLs with proper actions and rules
         - https://docs.aws.amazon.com/waf/latest/developerguide/what-is-aws-waf.html
-  WAF/wafv2WebAclLoggingEnabled:
-    score: 3
-    recommend:
-      risk: |-
-        Web ACL Logging Enabled
-        - Ensure that AWS WAFV2 Web Access Control Lists (ACLs) have logging enabled.
-        - Enabling logging for Web ACL allows detailed logging of web requests that match defined rules within the WAF Web ACL. This enables comprehensive monitoring, analysis, and troubleshooting of security threats and traffic patterns within your web application.
-      recommendation: |-
-        Modify WAFV2 Web ACL and enable logging.
-        - https://docs.aws.amazon.com/waf/latest/developerguide/logging-management.html
   WorkSpaces/unusedWorkspaces:
     score: 3
     recommend:
@@ -6172,16 +5475,6 @@ specificPluginSetting:
       recommendation: |-
         Identify and remove unused Workspaces instance
         - https://aws.amazon.com/workspaces/pricing/
-  WorkSpaces/workSpacesHealthyInstances:
-    score: 3
-    recommend:
-      risk: |-
-        WorkSpaces Healthy Instances
-        - Ensures that the AWS WorkSpace have healthy instances.
-        - Amazon WorkSpace should have healthy and running instances to ensure proper connection. The WorkSpace is marked as Unhealthy if response isn’t received from the WorkSpace in a timely manner. When the WorkSpaces instance’s status is unhealthy, it fails to respond to the HealthCheck requests.
-      recommendation: |-
-        Troubleshoot and resolve the unhealthy workspace issues.
-        - https://docs.aws.amazon.com/workspaces/latest/adminguide/cloudwatch-dashboard.html
   WorkSpaces/workspacesDesiredBundleType:
     score: 3
     recommend:

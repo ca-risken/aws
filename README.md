@@ -107,6 +107,12 @@ You can generate the latest CloudSploit YAML file using the following command.
 $ make generate-yaml
 ```
 
+If you want to generate the YAML file with a specific commit hash, you can use the following command.
+
+```bash
+$ COMMIT_HASH=xxxxxxx go run tool/generate-cloudsploit-yaml/main.go
+```
+
 
 ## Community
 
