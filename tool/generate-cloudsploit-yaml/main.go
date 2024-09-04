@@ -231,8 +231,9 @@ func updatePlugin(currentPlugin, remotePlugin *cloudsploit.CloudsploitSetting) e
 			// 既存のプラグインはそのまま
 			current := currentPlugin.SpecificPluginSetting[pluginFullName]
 			newSetting.SpecificPluginSetting[pluginFullName] = cloudsploit.PluginSetting{
-				Score: current.Score,
-				Tags:  current.Tags,
+				Score:                   current.Score,
+				Tags:                    current.Tags,
+				SkipResourceNamePattern: current.SkipResourceNamePattern,
 				Recommend: &cloudsploit.PluginRecommend{
 					Risk:           current.Recommend.Risk,
 					Recommendation: current.Recommend.Recommendation,
@@ -242,8 +243,9 @@ func updatePlugin(currentPlugin, remotePlugin *cloudsploit.CloudsploitSetting) e
 			// 新しいプラグインの場合は追加
 			new := remotePlugin.SpecificPluginSetting[pluginFullName]
 			newSetting.SpecificPluginSetting[pluginFullName] = cloudsploit.PluginSetting{
-				Score: new.Score,
-				Tags:  new.Tags,
+				Score:                   new.Score,
+				Tags:                    new.Tags,
+				SkipResourceNamePattern: new.SkipResourceNamePattern,
 				Recommend: &cloudsploit.PluginRecommend{
 					Risk:           new.Recommend.Risk,
 					Recommendation: new.Recommend.Recommendation,
