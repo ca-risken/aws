@@ -58,6 +58,7 @@ func (s *SqsHandler) run(ctx context.Context, accountID string) ([]*cloudSploitR
 	cmd := exec.Command(fmt.Sprintf("%v/index.js", s.cloudsploitConf.CloudsploitDir),
 		"--config", s.cloudsploitConf.ConfigPath,
 		"--console", "none",
+		// "--plugin", "acmCertificateExpiry", // debug
 		"--json", filePath,
 	)
 	var stderr bytes.Buffer
@@ -272,7 +273,11 @@ func (s *SqsHandler) removeIgnorePlugin(ctx context.Context, findings []*cloudSp
 			continue
 		}
 		if s.cloudsploitSetting.IsSkipResourceNamePattern(plugin, f.Resource, f.AliasResourceName) {
-			s.logger.Infof(ctx, "Ignore resource: %s", f.Resource)
+			s.logger.Infof(ctx, "Ignore resource: plugin=%s, resource=%s", plugin, f.Resource)
+			continue
+		}
+		if s.cloudsploitSetting.IsIgnoreMessagePattern(plugin, []string{f.Message, f.Description}) {
+			s.logger.Infof(ctx, "Ignore message: plugin=%s, resource=%s, msg=%s, desc=%s", plugin, f.Resource, f.Message, f.Description)
 			continue
 		}
 		removedResult = append(removedResult, f)

@@ -4855,6 +4855,8 @@ specificPluginSetting:
         - http://docs.aws.amazon.com/Route53/latest/APIReference/api-enable-domain-auto-renew.html
   Route53/domainExpiry:
     score: 8
+    ignoreMessagePattern:
+      - 'Domain: .+ expires in (?:2[5-9]|[3-9]\d|\d{3,}) days'
     tags:
       - reliability
     recommend:

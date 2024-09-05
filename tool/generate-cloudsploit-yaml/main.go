@@ -234,6 +234,7 @@ func updatePlugin(currentPlugin, remotePlugin *cloudsploit.CloudsploitSetting) e
 				Score:                   current.Score,
 				Tags:                    current.Tags,
 				SkipResourceNamePattern: current.SkipResourceNamePattern,
+				IgnoreMessagePattern:    current.IgnoreMessagePattern,
 				Recommend: &cloudsploit.PluginRecommend{
 					Risk:           current.Recommend.Risk,
 					Recommendation: current.Recommend.Recommendation,
@@ -246,6 +247,7 @@ func updatePlugin(currentPlugin, remotePlugin *cloudsploit.CloudsploitSetting) e
 				Score:                   new.Score,
 				Tags:                    new.Tags,
 				SkipResourceNamePattern: new.SkipResourceNamePattern,
+				IgnoreMessagePattern:    new.IgnoreMessagePattern,
 				Recommend: &cloudsploit.PluginRecommend{
 					Risk:           new.Recommend.Risk,
 					Recommendation: new.Recommend.Recommendation,

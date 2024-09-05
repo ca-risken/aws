@@ -17,6 +17,8 @@ specificPluginSetting:
     score: 7.5
     skipResourceNamePattern:
       - "_test"
+    ignoreMessagePattern:
+      - 'Domain: .+ expires in (?:2[5-9]|[3-9]\d|\d{3,}) days'
     tags:
       - tag1
       - tag2
@@ -43,6 +45,7 @@ func TestParseDefaultCloudsploitSetting(t *testing.T) {
 					"plugin3": {
 						Score:                   ptr(float32(7.5)),
 						SkipResourceNamePattern: []string{"_test"},
+						IgnoreMessagePattern:    []string{`Domain: .+ expires in (?:2[5-9]|[3-9]\d|\d{3,}) days`},
 						Tags:                    []string{"tag1", "tag2"},
 						Recommend: &PluginRecommend{
 							Risk:           ptr("High risk"),
@@ -233,7 +236,112 @@ func TestIsSkipResourceNamePattern(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestIsIgnoreMessagePattern(t *testing.T) {
+	type args struct {
+		setting  *CloudsploitSetting
+		plugin   string
+		messages []string
+	}
+	tests := []struct {
+		name  string
+		input args
+		want  bool
+	}{
+		{
+			name: "Ignore message pattern matches(25 days)",
+			input: args{
+				setting: &CloudsploitSetting{
+					SpecificPluginSetting: map[string]PluginSetting{
+						"plugin1": {
+							IgnoreMessagePattern: []string{`Domain: .+ expires in (?:2[5-9]|[3-9]\d|\d{3,}) days`},
+						},
+					},
+				},
+				plugin:   "plugin1",
+				messages: []string{"Domain: example.com expires in 25 days"},
+			},
+			want: true,
+		},
+		{
+			name: "Ignore message pattern matches(30 days)",
+			input: args{
+				setting: &CloudsploitSetting{
+					SpecificPluginSetting: map[string]PluginSetting{
+						"plugin1": {
+							IgnoreMessagePattern: []string{`Domain: .+ expires in (?:2[5-9]|[3-9]\d|\d{3,}) days`},
+						},
+					},
+				},
+				plugin:   "plugin1",
+				messages: []string{"Domain: example.com expires in 30 days"},
+			},
+			want: true,
+		},
+		{
+			name: "Ignore message pattern matches(100 days)",
+			input: args{
+				setting: &CloudsploitSetting{
+					SpecificPluginSetting: map[string]PluginSetting{
+						"plugin1": {
+							IgnoreMessagePattern: []string{`Domain: .+ expires in (?:2[5-9]|[3-9]\d|\d{3,}) days`},
+						},
+					},
+				},
+				plugin:   "plugin1",
+				messages: []string{"Domain: example.com expires in 100 days"},
+			},
+			want: true,
+		},
+		{
+			name: "Ignore message pattern does not match",
+			input: args{
+				setting: &CloudsploitSetting{
+					SpecificPluginSetting: map[string]PluginSetting{
+						"plugin1": {
+							IgnoreMessagePattern: []string{`Domain: .+ expires in (?:2[5-9]|[3-9]\d|\d{3,}) days`},
+						},
+					},
+				},
+				plugin:   "plugin1",
+				messages: []string{"Domain: example.com expires in 24 days"},
+			},
+			want: false,
+		},
+		{
+			name: "No ignore message pattern",
+			input: args{
+				setting: &CloudsploitSetting{
+					SpecificPluginSetting: map[string]PluginSetting{
+						"plugin1": {},
+					},
+				},
+				plugin:   "plugin1",
+				messages: []string{"Domain: example.com expires in 300 days"},
+			},
+			want: false,
+		},
+		{
+			name: "Plugin not found",
+			input: args{
+				setting: &CloudsploitSetting{
+					SpecificPluginSetting: map[string]PluginSetting{},
+				},
+				plugin:   "plugin1",
+				messages: []string{"Domain: example.com expires in 300 days"},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.input.setting.IsIgnoreMessagePattern(tt.input.plugin, tt.input.messages); got != tt.want {
+				t.Errorf("IsIgnoreMessagePattern() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
 
 // Helper function: return pointer of a value
