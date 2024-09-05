@@ -3,6 +3,7 @@ package cloudsploit
 import (
 	"embed"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -22,12 +23,13 @@ const (
 type CloudsploitSetting struct {
 	DefaultScore          float32                  `yaml:"defaultScore" validate:"required"`
 	IgnorePlugin          []string                 `yaml:"ignorePlugin"`
-	SpecificPluginSetting map[string]PluginSetting `yaml:"specificPluginSetting,omitempty"`
+	SpecificPluginSetting map[string]PluginSetting `yaml:"specificPluginSetting,omitempty" validate:"dive"`
 }
 
 type PluginSetting struct {
 	Score                   *float32         `yaml:"score,omitempty"`
 	SkipResourceNamePattern []string         `yaml:"skipResourceNamePattern,omitempty"`
+	IgnoreMessagePattern    []string         `yaml:"ignoreMessagePattern,omitempty" validate:"dive,regexp"`
 	Tags                    []string         `yaml:"tags,omitempty"`
 	Recommend               *PluginRecommend `yaml:"recommend,omitempty"`
 }
@@ -65,7 +67,14 @@ func readCloudsploitSetting(path string) ([]byte, error) {
 	return data, nil
 }
 
-var validate = validator.New()
+func validateRegexp(fl validator.FieldLevel) bool {
+	pattern, ok := fl.Field().Interface().(string)
+	if !ok {
+		return false
+	}
+	_, err := regexp.Compile(pattern)
+	return err == nil
+}
 
 func parseCloudsploitSettingYaml(data []byte) (*CloudsploitSetting, error) {
 	var setting CloudsploitSetting
@@ -74,6 +83,10 @@ func parseCloudsploitSettingYaml(data []byte) (*CloudsploitSetting, error) {
 	}
 
 	// validate
+	validate := validator.New()
+	if err := validate.RegisterValidation("regexp", validateRegexp); err != nil {
+		return nil, err
+	}
 	if err := validate.Struct(setting); err != nil {
 		return nil, err
 	}
@@ -94,6 +107,24 @@ func (c *CloudsploitSetting) IsSkipResourceNamePattern(plugin, resourceName, ali
 		}
 		if aliasResourceName != "" && strings.Contains(aliasResourceName, pattern) {
 			return true
+		}
+	}
+	return false
+}
+
+func (c *CloudsploitSetting) IsIgnoreMessagePattern(plugin string, messages []string) bool {
+	if c.SpecificPluginSetting[plugin].IgnoreMessagePattern == nil {
+		return false
+	}
+	for _, pattern := range c.SpecificPluginSetting[plugin].IgnoreMessagePattern {
+		for _, message := range messages {
+			matched, err := regexp.MatchString(pattern, message)
+			if err != nil {
+				return false
+			}
+			if matched {
+				return true // match == ignore finding
+			}
 		}
 	}
 	return false

@@ -272,7 +272,11 @@ func (s *SqsHandler) removeIgnorePlugin(ctx context.Context, findings []*cloudSp
 			continue
 		}
 		if s.cloudsploitSetting.IsSkipResourceNamePattern(plugin, f.Resource, f.AliasResourceName) {
-			s.logger.Infof(ctx, "Ignore resource: %s", f.Resource)
+			s.logger.Infof(ctx, "Ignore resource: plugin=%s, resource=%s", plugin, f.Resource)
+			continue
+		}
+		if s.cloudsploitSetting.IsIgnoreMessagePattern(plugin, []string{f.Message, f.Description}) {
+			s.logger.Infof(ctx, "Ignore message: plugin=%s, resource=%s, msg=%s, desc=%s", plugin, f.Resource, f.Message, f.Description)
 			continue
 		}
 		removedResult = append(removedResult, f)

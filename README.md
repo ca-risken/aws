@@ -83,6 +83,10 @@ specificPluginSetting:
       - "arn:aws:s3:::bucket-name"
       - "ignoreResourceName"
 
+    # ignoreMessagePattern:
+    # Specify message patterns to ignore messages that match these patterns.
+    ignoreMessagePattern: "Domain: .+ expires in (?:2[5-9]|[3-9]\d|\d{3,}) days"
+
     # tags:
     # You can set tags for resources.
     # Tags can be used for search filters, etc.
