@@ -58,7 +58,6 @@ func (s *SqsHandler) run(ctx context.Context, accountID string) ([]*cloudSploitR
 	cmd := exec.Command(fmt.Sprintf("%v/index.js", s.cloudsploitConf.CloudsploitDir),
 		"--config", s.cloudsploitConf.ConfigPath,
 		"--console", "none",
-		// "--plugin", "acmCertificateExpiry", // debug
 		"--json", filePath,
 	)
 	var stderr bytes.Buffer
