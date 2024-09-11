@@ -5,15 +5,16 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ca-risken/common/pkg/cloudsploit"
 	"github.com/ca-risken/common/pkg/logging"
 )
 
 func TestRemoveIgnorePlugin(t *testing.T) {
 	testHandler := &SqsHandler{
 		logger: logging.NewLogger(),
-		cloudsploitSetting: &CloudsploitSetting{
+		cloudsploitSetting: &cloudsploit.CloudsploitSetting{
 			IgnorePlugin: []string{"category/ignorePlugin"},
-			SpecificPluginSetting: map[string]PluginSetting{
+			SpecificPluginSetting: map[string]cloudsploit.PluginSetting{
 				"category/plugin1": {
 					SkipResourceNamePattern: []string{"ignore", "test"},
 				},

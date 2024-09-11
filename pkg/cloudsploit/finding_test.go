@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ca-risken/common/pkg/cloudsploit"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -18,7 +19,7 @@ const (
 var testHandler *SqsHandler
 
 func init() {
-	setting, err := LoadCloudsploitSetting("")
+	setting, err := loadCloudsploitSetting("")
 	if err != nil {
 		panic(err)
 	}
@@ -227,17 +228,17 @@ func TestGetRecommend(t *testing.T) {
 		name     string
 		category string
 		plugin   string
-		want     *PluginRecommend
+		want     *cloudsploit.PluginRecommend
 	}{
 		{
 			name:     "OK",
 			category: "ACM",
 			plugin:   "acmCertificateExpiry",
-			want: &PluginRecommend{
-				Risk: ptr(`ACM Certificate Expiry
+			want: &cloudsploit.PluginRecommend{
+				Risk: cloudsploit.Ptr(`ACM Certificate Expiry
 - Detect upcoming expiration of ACM certificates
 - Certificates that have expired will trigger warnings in all major browsers. AWS will attempt to automatically renew the certificate but may be unable to do so if email or DNS validation cannot be confirmed.`),
-				Recommendation: ptr(`Ensure AWS is able to renew the certificate via email or DNS validation of the domain.
+				Recommendation: cloudsploit.Ptr(`Ensure AWS is able to renew the certificate via email or DNS validation of the domain.
 - https://docs.aws.amazon.com/acm/latest/userguide/managed-renewal.html`),
 			},
 		}, {

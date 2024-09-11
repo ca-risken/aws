@@ -1,8 +1,9 @@
 module github.com/ca-risken/aws
 
-go 1.21
+go 1.21.3
 
-toolchain go1.21.3
+// TODO: fix remote package
+replace github.com/ca-risken/common/pkg/cloudsploit => ../common/pkg/cloudsploit
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.19.1
@@ -22,6 +23,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.20.8
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.9
 	github.com/aws/smithy-go v1.13.5
+	github.com/ca-risken/common/pkg/cloudsploit v0.0.0
 	github.com/ca-risken/common/pkg/logging v0.0.0-20220601065422-5b97bd6efc9b
 	github.com/ca-risken/common/pkg/portscan v0.0.0-20230501023912-29382763676f
 	github.com/ca-risken/common/pkg/profiler v0.0.0-20221119073224-9db027bda6f8
@@ -33,7 +35,6 @@ require (
 	github.com/dop251/goja v0.0.0-20240828124009-016eb7256539
 	github.com/gassara-kys/envconfig v1.4.4
 	github.com/go-git/go-git/v5 v5.12.0
-	github.com/go-playground/validator/v10 v10.14.0
 	github.com/google/go-cmp v0.6.0
 	github.com/vikyd/zero v0.0.0-20190921142904-0f738d0bc858
 	golang.org/x/sync v0.3.0
@@ -70,13 +71,14 @@ require (
 	github.com/dlclark/regexp2 v1.11.4 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.5.0 // indirect
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible // indirect
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/go-playground/validator/v10 v10.22.1 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
@@ -85,7 +87,7 @@ require (
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
-	github.com/leodido/go-urn v1.2.4 // indirect
+	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/outcaste-io/ristretto v0.2.1 // indirect
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect

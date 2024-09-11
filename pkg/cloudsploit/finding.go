@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ca-risken/aws/pkg/common"
+	"github.com/ca-risken/common/pkg/cloudsploit"
 	"github.com/ca-risken/core/proto/finding"
 	"github.com/ca-risken/datasource-api/pkg/message"
 	"github.com/ca-risken/datasource-api/proto/aws"
@@ -231,7 +232,7 @@ func (s *SqsHandler) getCloudSploitMaxScore(ctx context.Context, msg *message.AW
 	return resp.DataSource[0].MaxScore, nil
 }
 
-func (s *SqsHandler) getRecommend(category, plugin string) *PluginRecommend {
+func (s *SqsHandler) getRecommend(category, plugin string) *cloudsploit.PluginRecommend {
 	pluginSetting, ok := s.cloudsploitSetting.SpecificPluginSetting[fmt.Sprintf("%s/%s", category, plugin)]
 	if ok && pluginSetting.Recommend != nil {
 		return pluginSetting.Recommend
