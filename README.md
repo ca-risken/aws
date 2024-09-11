@@ -54,7 +54,8 @@ Deploy the pre-built containers to the Kubernetes environment on your local mach
 
 ### Customize CloudSploit
 
-TODO: リンクを貼る
+You can customize CloudSploit by accessing the link below.
+https://github.com/ca-risken/common/blob/master/pkg/cloudsploit/README.md
 
 ## Community
 
