@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/ca-risken/aws/pkg/common"
+	"github.com/ca-risken/common/pkg/cloudsploit"
 	"github.com/ca-risken/common/pkg/logging"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	"github.com/ca-risken/core/proto/alert"
@@ -23,7 +24,7 @@ type SqsHandler struct {
 	alertClient        alert.AlertServiceClient
 	awsClient          awsClient.AWSServiceClient
 	cloudsploitConf    *CloudsploitConfig
-	cloudsploitSetting *CloudsploitSetting
+	cloudsploitSetting *cloudsploit.CloudsploitSetting
 	logger             logging.Logger
 }
 
@@ -35,7 +36,7 @@ func NewSqsHandler(
 	settingYamlPath string,
 	l logging.Logger,
 ) (*SqsHandler, error) {
-	setting, err := LoadCloudsploitSetting(settingYamlPath)
+	setting, err := loadCloudsploitSetting(settingYamlPath)
 	if err != nil {
 		l.Errorf(context.Background(), "Failed to load cloudsploit setting. error: %v", err)
 		return nil, err
