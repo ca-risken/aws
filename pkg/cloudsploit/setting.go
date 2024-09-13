@@ -9,15 +9,21 @@ import (
 //go:generate cp ../../cloudsploit.yaml ./yaml/
 
 //go:embed yaml/cloudsploit.yaml
-var _ embed.FS
+var embeddedYaml embed.FS
 
 const (
 	CLOUDSPLOIT_FILE = "yaml/cloudsploit.yaml"
 )
 
 func loadCloudsploitSetting(path string) (*cloudsploit.CloudsploitSetting, error) {
-	if path == "" {
-		path = CLOUDSPLOIT_FILE
+	if path != "" {
+		return cloudsploit.LoadCloudsploitSetting(path)
 	}
-	return cloudsploit.LoadCloudsploitSetting(path)
+
+	// default setting
+	yamlFile, err := embeddedYaml.ReadFile(CLOUDSPLOIT_FILE)
+	if err != nil {
+		return nil, err
+	}
+	return cloudsploit.ParseCloudsploitSettingYaml(yamlFile)
 }

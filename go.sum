@@ -83,8 +83,8 @@ github.com/aws/aws-sdk-go-v2/service/sts v1.18.9/go.mod h1:yyW88BEPXA2fGFyI2KCcZ
 github.com/aws/smithy-go v1.13.4/go.mod h1:Tg+OJXh4MB2R/uN61Ko2f6hTZwB/ZYGOtib8J3gBHzA=
 github.com/aws/smithy-go v1.13.5 h1:hgz0X/DX0dGqTYpGALqXJoRKRj5oQ7150i5FdTePzO8=
 github.com/aws/smithy-go v1.13.5/go.mod h1:Tg+OJXh4MB2R/uN61Ko2f6hTZwB/ZYGOtib8J3gBHzA=
-github.com/ca-risken/common/pkg/cloudsploit v0.0.0-20240911113052-a6388850ff74 h1:1URwxvp4G/TGZZibBP/4cN77FAbBe80sPh+Ct2QUGK0=
-github.com/ca-risken/common/pkg/cloudsploit v0.0.0-20240911113052-a6388850ff74/go.mod h1:LBIIGEUmTZVlbrgWYa8JqRk2sJEoWWsI8shRvAIHIPs=
+github.com/ca-risken/common/pkg/cloudsploit v0.0.0-20240913022110-d46627f38918 h1:HHx2NY0eoy5ZdkVrm1lQhmnSVUzm/hje5ThlcJNydFM=
+github.com/ca-risken/common/pkg/cloudsploit v0.0.0-20240913022110-d46627f38918/go.mod h1:LBIIGEUmTZVlbrgWYa8JqRk2sJEoWWsI8shRvAIHIPs=
 github.com/ca-risken/common/pkg/logging v0.0.0-20220601065422-5b97bd6efc9b h1:qNttEBJBsXg68Kzj0+9rw7c52L9rhgaChZOyUO/A4VQ=
 github.com/ca-risken/common/pkg/logging v0.0.0-20220601065422-5b97bd6efc9b/go.mod h1:iqLbvDuf708TWjF8RO5qw6Nx1e3R0/UEHZ8tE/VEPjA=
 github.com/ca-risken/common/pkg/portscan v0.0.0-20230501023912-29382763676f h1:pljBR4QIGLjyXx1G5FpZp+cY/IXaaRc8txWIvTtiDpE=

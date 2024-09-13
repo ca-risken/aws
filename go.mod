@@ -20,7 +20,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.20.8
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.9
 	github.com/aws/smithy-go v1.13.5
-	github.com/ca-risken/common/pkg/cloudsploit v0.0.0-20240911113052-a6388850ff74
+	github.com/ca-risken/common/pkg/cloudsploit v0.0.0-20240913022110-d46627f38918
 	github.com/ca-risken/common/pkg/logging v0.0.0-20220601065422-5b97bd6efc9b
 	github.com/ca-risken/common/pkg/portscan v0.0.0-20230501023912-29382763676f
 	github.com/ca-risken/common/pkg/profiler v0.0.0-20221119073224-9db027bda6f8
