@@ -153,36 +153,52 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
+type SecurityGroupMetaData struct {
+	SecurityGroupAttachedResources []string
+	AliasResourceName              string
+}
+
 func (s *SqsHandler) addMetaData(ctx context.Context, accountID string, findings []*cloudSploitResult) ([]*cloudSploitResult, error) {
 	availableRegions, err := s.cloudsploitConf.listAvailableRegion(ctx)
 	if err != nil {
 		return nil, err
 	}
 	updatedFindings := []*cloudSploitResult{}
+	cacheSgMetaData := map[string]*SecurityGroupMetaData{} // prevent duplicate request
 	for _, f := range findings {
 		f.AccountID = accountID
-		updatedF, err := s.addSecurityGroupMetaData(ctx, *f, availableRegions)
+		sgMeta, err := s.addSecurityGroupMetaData(ctx, *f, availableRegions, cacheSgMetaData)
 		if err != nil {
 			return nil, err
 		}
-		updatedFindings = append(updatedFindings, updatedF)
+		if sgMeta != nil {
+			cacheSgMetaData[f.Resource] = sgMeta
+			f.SecurityGroupAttachedResources = sgMeta.SecurityGroupAttachedResources
+			f.AliasResourceName = sgMeta.AliasResourceName
+		}
+		updatedFindings = append(updatedFindings, f)
 	}
 	return updatedFindings, nil
 }
 
-func (s *SqsHandler) addSecurityGroupMetaData(ctx context.Context, f cloudSploitResult, availableRegions map[string]bool) (*cloudSploitResult, error) {
+func (s *SqsHandler) addSecurityGroupMetaData(ctx context.Context, f cloudSploitResult, availableRegions map[string]bool, cacheSgMetaData map[string]*SecurityGroupMetaData) (*SecurityGroupMetaData, error) {
+	sgMeta := SecurityGroupMetaData{}
+
+	if sgMeta, ok := cacheSgMetaData[f.Resource]; ok {
+		return sgMeta, nil
+	}
 	if f.Status != resultFAIL {
-		return &f, nil
+		return nil, nil
 	}
 	if !isSecurityGroupResource(&f) {
-		return &f, nil
+		return nil, nil
 	}
 	if ok := availableRegions[f.Region]; !ok {
-		return &f, nil
+		return nil, nil
 	}
 	sgPlugin, ok := s.cloudsploitSetting.SpecificPluginSetting[fmt.Sprintf("%s/%s", f.Category, f.Plugin)]
 	if !ok || sgPlugin.Score == nil || *sgPlugin.Score <= LOW_SCORE {
-		return &f, nil
+		return nil, nil
 	}
 
 	client, err := newEC2Session(ctx, s.cloudsploitConf.assumeRole, s.cloudsploitConf.externalID, f.Region)
@@ -204,13 +220,10 @@ func (s *SqsHandler) addSecurityGroupMetaData(ctx context.Context, f cloudSploit
 		return nil, fmt.Errorf("failed to invoke DescribeNetworkInterfaces. region: %s, err: %v", f.Region, err)
 	}
 	for _, n := range eni.NetworkInterfaces {
-		f.SecurityGroupAttachedResources = append(
-			f.SecurityGroupAttachedResources,
+		sgMeta.SecurityGroupAttachedResources = append(
+			sgMeta.SecurityGroupAttachedResources,
 			fmt.Sprintf("%s (%s)", aws.ToString(n.NetworkInterfaceId), aws.ToString(n.Description)),
 		)
-	}
-	if len(f.SecurityGroupAttachedResources) == 0 {
-		return &f, nil
 	}
 
 	// Get Security Group Name
@@ -221,9 +234,9 @@ func (s *SqsHandler) addSecurityGroupMetaData(ctx context.Context, f cloudSploit
 		return nil, fmt.Errorf("failed to invoke DescribeSecurityGroups. region: %s, groupID: %s, err: %v", f.Region, groupID, err)
 	}
 	if len(sg.SecurityGroups) > 0 {
-		f.AliasResourceName = aws.ToString(sg.SecurityGroups[0].GroupName)
+		sgMeta.AliasResourceName = aws.ToString(sg.SecurityGroups[0].GroupName)
 	}
-	return &f, nil
+	return &sgMeta, nil
 }
 
 func isSecurityGroupResource(r *cloudSploitResult) bool {
