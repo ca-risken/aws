@@ -3,12 +3,16 @@ version: 0.2
 env:
   variables:
     IMAGE_PREFIX: "risken-aws"
-    GO_VERSION: "1.21.3"
+    # GO_VERSION: "1.21.3"
   parameter-store:
     DOCKER_USER: "/build/DOCKER_USER"
     DOCKER_TOKEN: "/build/DOCKER_TOKEN"
 
 phases:
+  install:
+    runtime-versions:
+      # https://docs.aws.amazon.com/codebuild/latest/userguide/runtime-versions.html
+      golang: 1.22
   pre_build:
     commands:
       - echo Setting environment variables
@@ -16,7 +20,7 @@ phases:
       - TAG=$(git rev-parse --short HEAD)_${OS}_${ARCH}
       - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
       - REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
-      - GO_VERSION=${GO_VERSION} sh codebuild/multi-arch/install-go.sh
+      # - GO_VERSION=${GO_VERSION} sh codebuild/multi-arch/install-go.sh
       - go version
 
       - echo Logging in to Amazon ECR...
