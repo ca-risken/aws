@@ -1,5 +1,8 @@
 #!/bin/sh
-INSTALL_GO_VERSION=1.21.3
+# If GO_VERSION is not set, use DEFAULT_GO_VERSION
+DEFAULT_GO_VERSION=1.21.3
+INSTALL_GO_VERSION=${GO_VERSION:-$DEFAULT_GO_VERSION}
+
 if [[ "${ARCH}" = "" ]]; then
   echo "environment value ARCH is not set"
   exit 1
