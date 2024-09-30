@@ -78,16 +78,10 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 		return mimosasqs.WrapNonRetryable(err)
 	}
 
-	err = s.cloudsploitConf.generate(ctx, msg.AssumeRoleArn, msg.ExternalID, msg.AWSID, msg.AccountID)
-	if err != nil {
-		s.updateStatusToError(ctx, &status, err)
-		return mimosasqs.WrapNonRetryable(err)
-	}
-
 	// Run cloudsploit
 	tspan, _ := tracer.StartSpanFromContext(ctx, "runCloudSploit")
 	s.logger.Infof(ctx, "start cloudsploit scan, RequestID=%s", requestID)
-	cloudsploitResult, err := s.run(ctx, msg.AccountID)
+	cloudsploitResult, err := s.run(ctx, msg)
 	tspan.Finish(tracer.WithError(err))
 	if err != nil {
 		s.logger.Errorf(ctx, "Failed to exec cloudsploit, error: %v", err)
