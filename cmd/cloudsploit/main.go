@@ -65,6 +65,9 @@ func main() {
 	if err != nil {
 		appLogger.Fatal(ctx, err.Error())
 	}
+	if conf.Debug == "true" {
+		appLogger.Level(logging.DebugLevel)
+	}
 
 	pTypes, err := profiler.ConvertProfileTypeFrom(conf.ProfileTypes)
 	if err != nil {

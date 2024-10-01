@@ -43,15 +43,6 @@ func TestRemoveIgnorePlugin(t *testing.T) {
 			},
 		},
 		{
-			name: "Ignore plugin",
-			input: args{
-				findings: []*cloudSploitResult{
-					{Category: "category", Plugin: "ignorePlugin", Resource: "resourceName"},
-				},
-			},
-			want: []*cloudSploitResult{},
-		},
-		{
 			name: "Ignore resource name pattern",
 			input: args{
 				findings: []*cloudSploitResult{

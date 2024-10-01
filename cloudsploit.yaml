@@ -6,6 +6,13 @@ ignorePlugin:
   - RDS/rdsSnapshotPubliclyAccessible
   - SNS/topicPolicies
   - SQS/sqsPublicAccess
+  - GuardDuty/guarddutyMaster
+  - GuardDuty/guarddutyEnabled
+  - ElastiCache/reservedNodePaymentPending
+  - ElastiCache/elasticCacheClusterHasTags
+  - EC2/securityGroupsHasTags
+  - EC2/multipleSubnets
+  - CodeStar/codestarValidRepoProviders
 specificPluginSetting:
   ACM/acmCertificateExpiry:
     score: 6
