@@ -20,11 +20,12 @@ import (
 )
 
 type CloudsploitConfig struct {
-	ResultDir      string
-	ConfigDir      string
-	CloudsploitDir string
-	ConfigPath     string
-	MaxMemSizeMB   int
+	ResultDir       string
+	ConfigDir       string
+	CloudsploitDir  string
+	ConfigPath      string
+	MaxMemSizeMB    int
+	ParallelScanNum int
 
 	assumeRole string
 	externalID string
@@ -37,20 +38,18 @@ func NewCloudsploitConfig(
 	cloudsploitDir string,
 	region string,
 	maxMem int,
+	parallelScanNum int,
 	l logging.Logger,
 ) *CloudsploitConfig {
 	return &CloudsploitConfig{
-		ResultDir:      resultDir,
-		ConfigDir:      configDir,
-		CloudsploitDir: cloudsploitDir,
-		MaxMemSizeMB:   maxMem,
-		logger:         l,
+		ResultDir:       resultDir,
+		ConfigDir:       configDir,
+		CloudsploitDir:  cloudsploitDir,
+		MaxMemSizeMB:    maxMem,
+		ParallelScanNum: parallelScanNum,
+		logger:          l,
 	}
 }
-
-const (
-	PARALLEL_SCAN_NUM = 30
-)
 
 func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*cloudSploitResult, error) {
 	ctx, cancel := context.WithCancel(ctx)
@@ -69,7 +68,9 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 	var wg sync.WaitGroup
 	resultChan := make(chan []*cloudSploitResult)
 	errChan := make(chan error, 1)
-	semaphore := make(chan struct{}, PARALLEL_SCAN_NUM) // parallel scan
+	s.logger.Debugf(ctx, "exec parallel scan: accountID=%s, plugins=%d, parallelScanNum=%d, maxMemSizeMB=%d",
+		msg.AccountID, len(s.cloudsploitSetting.SpecificPluginSetting), s.cloudsploitConf.ParallelScanNum, s.cloudsploitConf.MaxMemSizeMB)
+	semaphore := make(chan struct{}, s.cloudsploitConf.ParallelScanNum) // parallel scan
 	for plugin := range s.cloudsploitSetting.SpecificPluginSetting {
 		if s.cloudsploitSetting.IsIgnorePlugin(plugin) {
 			continue

@@ -1,4 +1,4 @@
-FROM golang:1.21.3 as builder
+FROM golang:1.21.3 AS builder
 WORKDIR /go/src/github.com/ca-risken/aws/
 COPY go.mod .
 COPY go.sum .
@@ -6,7 +6,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -buildvcs=false -o /go/bin/cloudsploit cmd/cloudsploit/main.go
 
-FROM node:lts-alpine3.12 as cloudsploit
+FROM node:lts-alpine3.12 AS cloudsploit
 # 2023/03/20時点で最新
 ARG CLOUDSPLOIT_COMMIT_HASH=3d5f72d46e495ffcb8d9ebf44e60b6551fddbf4e
 RUN apk add --no-cache ca-certificates tzdata git \
@@ -19,7 +19,7 @@ COPY dockers/cloudsploit/yarn.lock /opt/cloudsploit/
 RUN yarn install --frozen-lockfile \
   && chmod +x index.js
 
-FROM public.ecr.aws/risken/base/risken-base:v0.0.1 as risken-base
+FROM public.ecr.aws/risken/base/risken-base:v0.0.1 AS risken-base
 
 FROM node:lts-alpine3.12
 COPY --from=builder /go/bin/cloudsploit /usr/local/cloudsploit/bin/
