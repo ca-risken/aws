@@ -56,6 +56,7 @@ type AppConfig struct {
 	CloudsploitDir         string `required:"true" split_words:"true" default:"/opt/cloudsploit"`
 	MaxMemSizeMB           int    `split_words:"true" default:"0"`
 	CloudSploitSettingPath string `envconfig:"CLOUDSPLOIT_SETTING_PATH" default:""`
+	ParallelScanNum        int    `envconfig:"PARALLEL_SCAN_NUM" default:"30"`
 }
 
 func main() {
@@ -116,6 +117,7 @@ func main() {
 		conf.CloudsploitDir,
 		conf.AWSRegion,
 		conf.MaxMemSizeMB,
+		conf.ParallelScanNum,
 		appLogger,
 	)
 	handler, err := cloudsploit.NewSqsHandler(fc, ac, awsc, cloudsploitConf, conf.CloudSploitSettingPath, appLogger)

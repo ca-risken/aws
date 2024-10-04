@@ -1,4 +1,4 @@
-FROM golang:1.21.3 as builder
+FROM golang:1.21.3 AS builder
 WORKDIR /go/src/github.com/ca-risken/aws/
 COPY go.mod .
 COPY go.sum .
