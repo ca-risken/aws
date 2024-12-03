@@ -52,7 +52,7 @@ func NewCloudsploitConfig(
 }
 
 const (
-	SCAN_TIMEOUT = 2 * time.Hour
+	SCAN_TIMEOUT = 1 * time.Hour
 )
 
 func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*cloudSploitResult, error) {
@@ -95,8 +95,9 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 			select {
 			case semaphore <- struct{}{}: // get semaphore
 			case <-scanCtx.Done():
-				s.logger.Warnf(ctx, "context canceled while waiting for semaphore: accountID=%s, category=%s, plugin=%s",
-					accountID, category, pluginName)
+				if ctx.Err() == context.Canceled {
+					errChan <- context.Canceled
+				}
 				return
 			}
 			defer func() { <-semaphore }()
@@ -128,7 +129,11 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 	}()
 
 	if len(errChan) > 0 {
-		return nil, fmt.Errorf("scan error: %w", <-errChan) // return first error
+		if err := <-errChan; err == context.Canceled {
+			s.logger.Warnf(ctx, "scan canceled: accountID=%s", msg.AccountID)
+		} else {
+			return nil, fmt.Errorf("scan error: %w", err) // return first error
+		}
 	}
 	for res := range resultChan {
 		results = append(results, res...)
