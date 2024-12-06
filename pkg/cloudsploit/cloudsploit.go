@@ -52,7 +52,7 @@ func NewCloudsploitConfig(
 }
 
 const (
-	SCAN_TIMEOUT = 1 * time.Hour
+	SCAN_TIMEOUT = 30 * time.Minute
 )
 
 func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*cloudSploitResult, error) {
