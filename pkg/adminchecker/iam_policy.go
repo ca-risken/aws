@@ -18,9 +18,10 @@ type policyDocumentRawWithSingleStatement struct {
 }
 
 type statementEntryRaw struct {
-	Effect   string
-	Action   interface{}
-	Resource interface{}
+	Effect    string
+	Action    interface{}
+	Resource  interface{}
+	Condition interface{}
 }
 
 type policyDocument struct {
@@ -29,10 +30,10 @@ type policyDocument struct {
 }
 
 type statementEntry struct {
-	Effect   string   `json:"Effect,omitempty"`
-	Action   []string `json:"Action,omitempty"`
-	Resource []string `json:"Resource,omitempty"`
-	// Conditions map[string]interface{}
+	Effect    string   `json:"Effect,omitempty"`
+	Action    []string `json:"Action,omitempty"`
+	Resource  []string `json:"Resource,omitempty"`
+	Condition any      `json:"Condition,omitempty"`
 }
 
 func convertPolicyDocument(doc *string) (*policyDocument, error) {
@@ -65,6 +66,9 @@ func convertPolicyDocument(doc *string) (*policyDocument, error) {
 		// convert resource interface
 		if err := setStringSlice(&stmt.Resource, stmtRaw.Resource); err != nil {
 			return nil, err
+		}
+		if stmtRaw.Condition != nil {
+			stmt.Condition = stmtRaw.Condition
 		}
 		pd.Statement = append(pd.Statement, stmt)
 	}
