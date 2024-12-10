@@ -19,6 +19,10 @@ import (
 	"github.com/ca-risken/datasource-api/pkg/message"
 )
 
+const (
+	DEFAULT_SCAN_TIMEOUT_MINUTES = 20
+)
+
 type CloudsploitConfig struct {
 	ResultDir       string
 	ConfigDir       string
@@ -26,10 +30,10 @@ type CloudsploitConfig struct {
 	ConfigPath      string
 	MaxMemSizeMB    int
 	ParallelScanNum int
-
-	assumeRole string
-	externalID string
-	logger     logging.Logger
+	ScanTimeout     time.Duration
+	assumeRole      string
+	externalID      string
+	logger          logging.Logger
 }
 
 func NewCloudsploitConfig(
@@ -39,21 +43,23 @@ func NewCloudsploitConfig(
 	region string,
 	maxMem int,
 	parallelScanNum int,
+	scanTimeoutMinutes int,
 	l logging.Logger,
 ) *CloudsploitConfig {
+	if scanTimeoutMinutes == 0 {
+		scanTimeoutMinutes = DEFAULT_SCAN_TIMEOUT_MINUTES
+	}
+	scanTimeout := time.Duration(scanTimeoutMinutes) * time.Minute
 	return &CloudsploitConfig{
 		ResultDir:       resultDir,
 		ConfigDir:       configDir,
 		CloudsploitDir:  cloudsploitDir,
 		MaxMemSizeMB:    maxMem,
 		ParallelScanNum: parallelScanNum,
+		ScanTimeout:     scanTimeout,
 		logger:          l,
 	}
 }
-
-const (
-	SCAN_TIMEOUT = 30 * time.Minute
-)
 
 func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*cloudSploitResult, error) {
 	ctx, cancel := context.WithCancel(ctx)
@@ -89,7 +95,7 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 		wg.Add(1)
 		go func(accountID, category, pluginName string, now int64) {
 			defer wg.Done()
-			scanCtx, scanCancel := context.WithTimeout(ctx, SCAN_TIMEOUT)
+			scanCtx, scanCancel := context.WithTimeout(ctx, s.cloudsploitConf.ScanTimeout)
 			defer scanCancel()
 
 			select {
