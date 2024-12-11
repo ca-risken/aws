@@ -302,7 +302,7 @@ func (s *SqsHandler) putRecommend(ctx context.Context, projectID uint32, finding
 }
 
 func scoreAdminUser(user *iamUser) float32 {
-	if len(user.ActiveAccessKeyID) == 0 && user.ConsoleLoginProfile.PasswordCreatedAt == nil {
+	if len(user.ActiveAccessKey) == 0 && user.ConsoleLoginProfile.PasswordCreatedAt == nil {
 		return 0.1 // no active access key and no password
 	}
 	isAdmin := false
@@ -313,7 +313,7 @@ func scoreAdminUser(user *iamUser) float32 {
 		return 0.3
 	}
 	enabledMFA := user.EnabledPhysicalMFA || user.EnabledVirtualMFA
-	if len(user.ActiveAccessKeyID) == 0 && user.ConsoleLoginProfile.PasswordCreatedAt != nil && enabledMFA {
+	if len(user.ActiveAccessKey) == 0 && user.ConsoleLoginProfile.PasswordCreatedAt != nil && enabledMFA {
 		return 0.5 // can login console but enabled MFA
 	}
 	if user.EnabledPermissionBoundary {

@@ -1,9 +1,9 @@
 package adminchecker
 
 import (
-	"net/url"
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestConvertPolicyDocument(t *testing.T) {
@@ -53,6 +53,11 @@ func TestConvertPolicyDocument(t *testing.T) {
 						Effect:   "Allow",
 						Action:   []string{"s3:ListBucket"},
 						Resource: []string{"arn:aws:s3:::bucket-name"},
+						Condition: map[string]any{
+							"StringLike": map[string]any{
+								"s3:prefix": []any{"cognito/application-name/${cognito-identity.amazonaws.com:sub}"},
+							},
+						},
 					},
 					{
 						Effect: "Allow",
@@ -124,9 +129,8 @@ func TestConvertPolicyDocument(t *testing.T) {
 						"Sid": "ErrorPolicy",
 						"Effect": "Allow",
 						"Action": 123,
-						"Resource": 456,
-						}
-					},
+						"Resource": 456
+					}
 				]
 			}`,
 			wantErr: true,
@@ -134,14 +138,12 @@ func TestConvertPolicyDocument(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			in := url.QueryEscape(c.input)
-			got, err := convertPolicyDocument(&in)
-			// t.Logf("got=%+v, err=%+v", got, err)
+			got, err := convertPolicyDocument(&c.input)
 			if (c.wantErr && err == nil) || (!c.wantErr && err != nil) {
-				t.Fatalf("Unexpected error occured, err=%+v", err)
+				t.Fatalf("Unexpected error, wantErr=%t, err=%+v", c.wantErr, err)
 			}
-			if !reflect.DeepEqual(c.want, got) {
-				t.Fatalf("Unexpected resource name: want=%v, got=%v", c.want, got)
+			if diff := cmp.Diff(c.want, got); diff != "" {
+				t.Errorf("ConvertPolicyDocument() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

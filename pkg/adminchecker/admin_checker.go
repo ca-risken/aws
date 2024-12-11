@@ -67,7 +67,7 @@ func (a *adminCheckerClient) newAWSSession(ctx context.Context, region, assumeRo
 type iamUser struct {
 	UserArn                   string                `json:"user_arn"`
 	UserName                  string                `json:"user_name"`
-	ActiveAccessKeyID         []string              `json:"active_access_key_id"`
+	ActiveAccessKey           []*accessKey          `json:"active_access_key"`
 	EnabledPhysicalMFA        bool                  `json:"enabled_physical_mfa"`
 	EnabledVirtualMFA         bool                  `json:"enabled_virtual_mfa"`
 	EnabledPermissionBoundary bool                  `json:"enabled_permission_boundary"`
@@ -140,7 +140,7 @@ func (a *adminCheckerClient) listUserFinding(ctx context.Context, msg *message.A
 		iamUsers = append(iamUsers, iamUser{
 			UserArn:                   aws.ToString(user.Arn),
 			UserName:                  aws.ToString(user.UserName),
-			ActiveAccessKeyID:         *accessKeys,
+			ActiveAccessKey:           accessKeys,
 			EnabledPhysicalMFA:        enabledPhysicalMFA,
 			EnabledVirtualMFA:         enabledVirtualMFA,
 			EnabledPermissionBoundary: boundary != "",
@@ -230,20 +230,41 @@ BREAK:
 	return &resp, nil
 }
 
-func (a *adminCheckerClient) listActiveAccessKeyID(ctx context.Context, userName *string) (*[]string, error) {
-	var accessKeyIDs []string
+type accessKey struct {
+	AccessKeyID  string     `json:"access_key_id"`
+	CreateDate   *time.Time `json:"create_date"`
+	LastUsedDate *time.Time `json:"last_used_date,omitempty"`
+}
+
+func (a *adminCheckerClient) listActiveAccessKeyID(ctx context.Context, userName *string) ([]*accessKey, error) {
+	var accessKeys []*accessKey
 	result, err := a.Svc.ListAccessKeys(ctx, &iam.ListAccessKeysInput{
 		UserName: userName,
 	})
 	if err != nil {
-		return &accessKeyIDs, err
+		return nil, err
 	}
 	for _, key := range result.AccessKeyMetadata {
 		if key.Status == types.StatusTypeActive {
-			accessKeyIDs = append(accessKeyIDs, *key.AccessKeyId)
+			accessKey := &accessKey{
+				AccessKeyID: *key.AccessKeyId,
+				CreateDate:  key.CreateDate,
+			}
+
+			// LastUsedDate
+			lastUsed, err := a.Svc.GetAccessKeyLastUsed(ctx, &iam.GetAccessKeyLastUsedInput{
+				AccessKeyId: key.AccessKeyId,
+			})
+			if err != nil {
+				return nil, err
+			}
+			if lastUsed != nil && lastUsed.AccessKeyLastUsed != nil {
+				accessKey.LastUsedDate = lastUsed.AccessKeyLastUsed.LastUsedDate
+			}
+			accessKeys = append(accessKeys, accessKey)
 		}
 	}
-	return &accessKeyIDs, err
+	return accessKeys, err
 }
 
 func (a *adminCheckerClient) enabledPhysicalMFA(ctx context.Context, userName *string) (bool, error) {
