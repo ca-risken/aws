@@ -67,7 +67,7 @@ func (a *adminCheckerClient) newAWSSession(ctx context.Context, region, assumeRo
 type iamUser struct {
 	UserArn                   string                `json:"user_arn"`
 	UserName                  string                `json:"user_name"`
-	ActiveAccessKeyID         []*accessKey          `json:"active_access_key"`
+	ActiveAccessKey           []*accessKey          `json:"active_access_key"`
 	EnabledPhysicalMFA        bool                  `json:"enabled_physical_mfa"`
 	EnabledVirtualMFA         bool                  `json:"enabled_virtual_mfa"`
 	EnabledPermissionBoundary bool                  `json:"enabled_permission_boundary"`
@@ -140,7 +140,7 @@ func (a *adminCheckerClient) listUserFinding(ctx context.Context, msg *message.A
 		iamUsers = append(iamUsers, iamUser{
 			UserArn:                   aws.ToString(user.Arn),
 			UserName:                  aws.ToString(user.UserName),
-			ActiveAccessKeyID:         accessKeys,
+			ActiveAccessKey:           accessKeys,
 			EnabledPhysicalMFA:        enabledPhysicalMFA,
 			EnabledVirtualMFA:         enabledVirtualMFA,
 			EnabledPermissionBoundary: boundary != "",
