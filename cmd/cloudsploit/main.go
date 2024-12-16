@@ -58,6 +58,7 @@ type AppConfig struct {
 	CloudSploitSettingPath string `envconfig:"CLOUDSPLOIT_SETTING_PATH" default:""`
 	ParallelScanNum        int    `envconfig:"PARALLEL_SCAN_NUM" default:"30"`
 	ScanTimeoutMinutes     int    `envconfig:"SCAN_TIMEOUT_MINUTES" default:"20"`
+	ScanTimeoutAllMinutes  int    `envconfig:"SCAN_TIMEOUT_ALL_PLUGINS_MINUTES" default:"90"`
 }
 
 func main() {
@@ -120,6 +121,7 @@ func main() {
 		conf.MaxMemSizeMB,
 		conf.ParallelScanNum,
 		conf.ScanTimeoutMinutes,
+		conf.ScanTimeoutAllMinutes,
 		appLogger,
 	)
 	handler, err := cloudsploit.NewSqsHandler(fc, ac, awsc, cloudsploitConf, conf.CloudSploitSettingPath, appLogger)
