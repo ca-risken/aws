@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	DEFAULT_SCAN_TIMEOUT_MINUTES = 20
+	DEFAULT_SCAN_TIMEOUT_MINUTES             = 20
+	DEFAULT_SCAN_TIMEOUT_ALL_PLUGINS_MINUTES = 90
 )
 
 type CloudsploitConfig struct {
@@ -31,6 +32,7 @@ type CloudsploitConfig struct {
 	MaxMemSizeMB    int
 	ParallelScanNum int
 	ScanTimeout     time.Duration
+	ScanTimeoutAll  time.Duration
 	assumeRole      string
 	externalID      string
 	logger          logging.Logger
@@ -44,12 +46,17 @@ func NewCloudsploitConfig(
 	maxMem int,
 	parallelScanNum int,
 	scanTimeoutMinutes int,
+	scanTimeoutAllMinutes int,
 	l logging.Logger,
 ) *CloudsploitConfig {
 	if scanTimeoutMinutes == 0 {
 		scanTimeoutMinutes = DEFAULT_SCAN_TIMEOUT_MINUTES
 	}
+	if scanTimeoutAllMinutes == 0 {
+		scanTimeoutAllMinutes = DEFAULT_SCAN_TIMEOUT_ALL_PLUGINS_MINUTES
+	}
 	scanTimeout := time.Duration(scanTimeoutMinutes) * time.Minute
+	scanTimeoutAll := time.Duration(scanTimeoutAllMinutes) * time.Minute
 	return &CloudsploitConfig{
 		ResultDir:       resultDir,
 		ConfigDir:       configDir,
@@ -57,13 +64,14 @@ func NewCloudsploitConfig(
 		MaxMemSizeMB:    maxMem,
 		ParallelScanNum: parallelScanNum,
 		ScanTimeout:     scanTimeout,
+		ScanTimeoutAll:  scanTimeoutAll,
 		logger:          l,
 	}
 }
 
 func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*cloudSploitResult, error) {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	allScanCtx, allCancel := context.WithTimeout(ctx, s.cloudsploitConf.ScanTimeoutAll)
+	defer allCancel()
 	now := time.Now().UnixNano()
 	if s.cloudsploitConf.MaxMemSizeMB > 0 {
 		os.Setenv("NODE_OPTIONS", fmt.Sprintf("--max-old-space-size=%d", s.cloudsploitConf.MaxMemSizeMB))
@@ -95,63 +103,83 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 		wg.Add(1)
 		go func(accountID, category, pluginName string, now int64) {
 			defer wg.Done()
-			scanCtx, scanCancel := context.WithTimeout(ctx, s.cloudsploitConf.ScanTimeout)
+			scanCtx, scanCancel := context.WithTimeout(allScanCtx, s.cloudsploitConf.ScanTimeout)
 			defer scanCancel()
 
 			select {
-			case semaphore <- struct{}{}: // get semaphore
-			case <-scanCtx.Done():
-				if ctx.Err() == context.Canceled {
-					errChan <- context.Canceled
+			case <-allScanCtx.Done():
+				if allScanCtx.Err() == context.DeadlineExceeded {
+					s.logger.Warnf(ctx, "scan timeout: accountID=%s, category=%s, plugin=%s, timeout=%d(min)",
+						msg.AccountID, category, pluginName, int(s.cloudsploitConf.ScanTimeoutAll.Minutes()))
+					return
 				}
+				errChan <- allScanCtx.Err()
 				return
+			case semaphore <- struct{}{}: // get semaphore
+				defer func() { <-semaphore }()
 			}
-			defer func() { <-semaphore }()
 
 			s.logger.Debugf(ctx, "start scan: accountID=%s, category=%s, plugin=%s", accountID, category, pluginName)
 			startUnix := time.Now().Unix()
 			pluginResults, err := s.scan(scanCtx, accountID, category, pluginName, now)
-			if scanCtx.Err() == context.DeadlineExceeded {
-				s.logger.Warnf(ctx, "scan timeout: accountID=%s, category=%s, plugin=%s",
-					accountID, category, pluginName)
-				return
-			}
 			if err != nil {
-				errChan <- fmt.Errorf("accountID=%s, category=%s, plugin=%s, error=%w", accountID, category, pluginName, err)
-				cancel()
-				return
+				if scanCtx.Err() == context.DeadlineExceeded {
+					s.logger.Warnf(ctx, "scan timeout: accountID=%s, category=%s, plugin=%s, timeout=%d(min)",
+						msg.AccountID, category, pluginName, int(s.cloudsploitConf.ScanTimeout.Minutes()))
+					return
+				} else {
+					errChan <- fmt.Errorf("accountID=%s, category=%s, plugin=%s, error=%w", accountID, category, pluginName, err)
+					return
+				}
 			}
 			endUnix := time.Now().Unix()
 			s.logger.Debugf(ctx, "end scan: accountID=%s, category=%s, plugin=%s, time=%d(sec)", accountID, category, pluginName, endUnix-startUnix)
-			resultChan <- pluginResults
+
+			select {
+			case resultChan <- pluginResults:
+			case <-allScanCtx.Done():
+				return
+			}
 		}(msg.AccountID, category, pluginName, now)
 	}
+
+	// Watching wait group (non-blocking)
+	done := make(chan struct{})
 	go func() {
 		wg.Wait()
-		close(resultChan)
-		close(errChan)
-		s.logger.Debugf(ctx, "end parallel scan: accountID=%s, plugins=%d, parallelScanNum=%d, maxMemSizeMB=%d",
-			msg.AccountID, len(s.cloudsploitSetting.SpecificPluginSetting), s.cloudsploitConf.ParallelScanNum, s.cloudsploitConf.MaxMemSizeMB)
+		close(done)
 	}()
 
-	if len(errChan) > 0 {
-		if err := <-errChan; err == context.Canceled {
-			s.logger.Warnf(ctx, "scan canceled: accountID=%s", msg.AccountID)
-		} else {
-			return nil, fmt.Errorf("scan error: %w", err) // return first error
+	// Result collection loop (blocking)
+	for {
+		select {
+		case <-done:
+			// Finish all scan
+			close(resultChan)
+			close(errChan)
+			goto COLLECTION_COMPLETE
+		case err := <-errChan:
+			if err != nil && err != context.Canceled && err != context.DeadlineExceeded {
+				return nil, fmt.Errorf("scan error: %w", err)
+			}
+		case res, ok := <-resultChan:
+			if !ok {
+				continue
+			}
+			results = append(results, res...)
 		}
 	}
-	for res := range resultChan {
-		results = append(results, res...)
-	}
 
-	// add meta data
-	results, err = s.addMetaData(ctx, msg.AccountID, results)
-	if err != nil {
-		return nil, err
+COLLECTION_COMPLETE:
+	s.logger.Debugf(ctx, "end parallel scan: accountID=%s, plugins=%d, parallelScanNum=%d, maxMemSizeMB=%d",
+		msg.AccountID, len(s.cloudsploitSetting.SpecificPluginSetting), s.cloudsploitConf.ParallelScanNum, s.cloudsploitConf.MaxMemSizeMB)
+	if len(results) > 0 {
+		results, err = s.addMetaData(ctx, msg.AccountID, results)
+		if err != nil {
+			return nil, err
+		}
+		results = s.removeIgnorePlugin(ctx, results)
 	}
-	// remove ignore plugin
-	results = s.removeIgnorePlugin(ctx, results)
 	return results, nil
 }
 
