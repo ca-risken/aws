@@ -271,8 +271,8 @@ func scoreAccessAnalyzerFinding(status types.FindingStatus, isPublic bool, actio
 	if !isPublic {
 		return 0.3
 	}
-	readable := false
-	writable := false
+	controlledAction := false
+	unsafeAction := false
 	for _, action := range actions {
 		if strings.Contains(action, "Check") ||
 			strings.Contains(action, "Describe") ||
@@ -287,22 +287,23 @@ func scoreAccessAnalyzerFinding(status types.FindingStatus, isPublic bool, actio
 			strings.Contains(action, "Search") ||
 			strings.Contains(action, "Select") ||
 			strings.Contains(action, "Validate") ||
-			strings.Contains(action, "View") {
-			readable = true
+			strings.Contains(action, "View") ||
+			action == "lambda:InvokeFunctionUrl" {
+			controlledAction = true
 			continue
 		}
-		writable = true
-		if readable && writable {
+		unsafeAction = true
+		if controlledAction && unsafeAction {
 			break
 		}
 	}
-	if readable && !writable {
-		return 0.7 // Readable resource
+	if controlledAction && !unsafeAction {
+		return 0.7 // Only controlled actions (read operations and limited executions)
 	}
-	if !readable && writable {
-		return 0.9 // Writable resource
+	if !controlledAction && unsafeAction {
+		return 0.9 // Contains unsafe actions
 	}
-	return 1.0 // Both readable and writable
+	return 1.0 // Contains both controlled and unsafe actions
 }
 
 var unsupportedRegions = []string{
