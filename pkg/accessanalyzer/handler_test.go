@@ -60,6 +60,15 @@ func TestScoreAccessAnalyzerFinding(t *testing.T) {
 			},
 			want: 1.0,
 		},
+		{
+			name:     "Public (lambda function url)",
+			status:   types.FindingStatusActive,
+			isPublic: true,
+			actions: []string{
+				"lambda:InvokeFunctionUrl",
+			},
+			want: 0.7,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

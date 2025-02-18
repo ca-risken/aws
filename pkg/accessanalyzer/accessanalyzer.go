@@ -43,7 +43,7 @@ type accessAnalyzerClient struct {
 
 func newAccessAnalyzerClient(ctx context.Context, region string, msg *message.AWSQueueMessage, ds []*riskenaws.DataSource, retry int, l logging.Logger) (accessAnalyzerAPI, error) {
 	a := accessAnalyzerClient{logger: l}
-	cfg, err := a.newAWSSession(ctx, region, msg.AssumeRoleArn, msg.ExternalID, retry)
+	cfg, err := a.newAWSSession(ctx, msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func newAccessAnalyzerClient(ctx context.Context, region string, msg *message.AW
 		// If AssumeRoleArn is different from AccountID, it is necessary to assume the same account role to access specific services.
 		for _, d := range ds {
 			if strings.Contains(d.AssumeRoleArn, msg.AccountID) {
-				cfg, err = a.newAWSSession(ctx, region, d.AssumeRoleArn, d.ExternalId, retry) // overwrite session
+				cfg, err = a.newAWSSession(ctx, d.AssumeRoleArn, d.ExternalId) // overwrite session
 				if err != nil {
 					return nil, err
 				}
@@ -72,7 +72,7 @@ func newAccessAnalyzerClient(ctx context.Context, region string, msg *message.AW
 
 const REGION_US_EAST_1 = "us-east-1"
 
-func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, region, assumeRole, externalID string, retry int) (*aws.Config, error) {
+func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, assumeRole, externalID string) (*aws.Config, error) {
 	if assumeRole == "" {
 		return nil, errors.New("required AWS AssumeRole")
 	}
@@ -215,7 +215,7 @@ func (a *accessAnalyzerClient) listFindings(ctx context.Context, accountID strin
 	}
 
 	for idx, f := range findings {
-		if f.Condition == nil || len(f.Condition) == 0 {
+		if len(f.Condition) == 0 {
 			// Condition is empty, so we will analyze more deeply.
 			condition, err := a.analyzeCondition(ctx, f)
 			if err != nil {
