@@ -43,10 +43,7 @@
 | Network | Lightsail | portscan | SMTPオープンリレーの検出 | [リンク](https://docs.security-hub.jp/aws/portscan/) |
 | Network | Lightsail | portscan | SSHパスワード認証有効の検出 | [リンク](https://docs.security-hub.jp/aws/portscan/) |
 | Network | Lightsail | portscan | 公開データベースポート（MySQL:3306、PostgreSQL:5432、Redis:6379）の検出 | [リンク](https://docs.security-hub.jp/aws/portscan/) |
-| Network | RDS | portscan | HTTPオープンプロキシの検出 | [リンク](https://docs.security-hub.jp/aws/portscan/) |
-| Network | RDS | portscan | SMTPオープンリレーの検出 | [リンク](https://docs.security-hub.jp/aws/portscan/) |
-| Network | RDS | portscan | SSHパスワード認証有効の検出 | [リンク](https://docs.security-hub.jp/aws/portscan/) |
-| Network | RDS | portscan | 公開データベースポート（MySQL:3306、PostgreSQL:5432、Redis:6379）の検出 | [リンク](https://docs.security-hub.jp/aws/portscan/) |
+| Network | RDS | portscan | 公開データベースポート（MySQL:3306、PostgreSQL:5432）の検出 | [リンク](https://docs.security-hub.jp/aws/portscan/) |
 | Queue | SNS | access-analyzer | パブリックアクセス可能なSNSの検出 | [リンク](https://docs.security-hub.jp/aws/accessanalyzer/) |
 | Queue | SQS | access-analyzer | パブリックアクセス可能なSQSの検出 | [リンク](https://docs.security-hub.jp/aws/accessanalyzer/) |
 | Secret Manager | Secrets Manager | access-analyzer | パブリックアクセス可能なSecrets Managerの検出 | [リンク](https://docs.security-hub.jp/aws/accessanalyzer/) |
