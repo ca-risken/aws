@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/accessanalyzer/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
@@ -38,6 +39,7 @@ type accessAnalyzerClient struct {
 	EC2    *ec2.Client
 	SNS    *sns.Client
 	SQS    *sqs.Client
+	S3     *s3.Client
 	logger logging.Logger
 }
 
@@ -49,6 +51,7 @@ func newAccessAnalyzerClient(ctx context.Context, region string, msg *message.AW
 	}
 	a.Svc = accessanalyzer.New(accessanalyzer.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	a.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	a.S3 = s3.New(s3.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 
 	if strings.Contains(msg.AssumeRoleArn, msg.AccountID) {
 		a.SNS = sns.New(sns.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
@@ -98,6 +101,11 @@ func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, assumeRole, ex
 	return &cfg, nil
 }
 
+type AccessAnalyzerFinding struct {
+	types.FindingSummary
+	DlpScan *DLPScanResult `json:"dlp_scan,omitempty"`
+}
+
 func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
 	putData := []*finding.FindingForUpsert{}
 	analyzerArns, err := a.listAnalyzers(ctx)
@@ -122,11 +130,6 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *messa
 			continue
 		}
 		for _, data := range *findings {
-			buf, err := json.Marshal(data)
-			if err != nil {
-				a.logger.Errorf(ctx, "Failed to json encoding error: err=%+v", err)
-				return nil, &[]string{}, err
-			}
 			isPublic := false
 			if data.IsPublic != nil {
 				isPublic = *data.IsPublic
@@ -135,6 +138,28 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *messa
 			if isPublic {
 				description = "The resource is public from Internet or any AWS account"
 			}
+
+			aaFinding := AccessAnalyzerFinding{
+				FindingSummary: data,
+			}
+			// DLP Scan
+			if isPublic &&
+				strings.Contains(*data.Resource, "arn:aws:s3:::") &&
+				data.ResourceType == types.ResourceTypeAwsS3Bucket {
+				a.logger.Infof(ctx, "Running DLP scan for public S3 bucket: %s", *data.Resource)
+				dlpFindings, err := a.dlpScan(ctx, *data.Resource)
+				if err != nil {
+					a.logger.Warnf(ctx, "DLP scan failed for bucket %s: %v", *data.Resource, err)
+				}
+				aaFinding.DlpScan = dlpFindings
+			}
+			// Findnig data (JSON)
+			buf, err := json.Marshal(aaFinding)
+			if err != nil {
+				a.logger.Errorf(ctx, "Failed to json encoding error: err=%+v", err)
+				return nil, &[]string{}, err
+			}
+
 			putData = append(putData, &finding.FindingForUpsert{
 				Description:      description,
 				DataSource:       msg.DataSource,

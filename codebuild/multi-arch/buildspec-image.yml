@@ -12,7 +12,7 @@ phases:
   install:
     runtime-versions:
       # https://docs.aws.amazon.com/codebuild/latest/userguide/runtime-versions.html
-      golang: 1.22
+      golang: 1.24
   pre_build:
     commands:
       - echo Setting environment variables
