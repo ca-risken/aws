@@ -1,4 +1,4 @@
-FROM golang:1.21.3 AS builder
+FROM golang:1.24 AS builder
 WORKDIR /go/src/github.com/ca-risken/aws/
 COPY go.mod .
 COPY go.sum .
@@ -6,7 +6,12 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -buildvcs=false -o /go/bin/access-analyzer cmd/access-analyzer/main.go
 
-FROM public.ecr.aws/risken/base/risken-base:v0.0.1
+FROM python:3.12-slim
+RUN apt-get update && apt-get install -y git ffmpeg libsm6 libxext6 && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+RUN pip3 install hawk-scanner==0.3.37
+COPY --from=public.ecr.aws/risken/base/risken-base:v0.0.1 /usr/local/bin/env-injector /usr/local/bin/env-injector
+RUN chmod +x /usr/local/bin/env-injector
 COPY --from=builder /go/bin/access-analyzer /usr/local/access-analyzer/bin/
 ENV DEBUG= \
     PROFILE_EXPORTER= \
