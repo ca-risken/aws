@@ -80,7 +80,6 @@ func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string) (*
 	if err != nil {
 		return nil, fmt.Errorf("failed to download and scan files: %w", err)
 	}
-	a.logger.Infof(ctx, "Staged DLP scan completed for bucket %s", bucketName)
 	return scanResults, nil
 }
 
@@ -89,7 +88,7 @@ func (a *accessAnalyzerClient) collectCandidateFiles(ctx context.Context, bucket
 	var candidates []FileCandidate
 	var continuationToken *string
 	totalFiles := 0
-	a.logger.Infof(ctx, "Collecting file metadata for bucket: %s", bucketName)
+	a.logger.Debugf(ctx, "Collecting file metadata for bucket: %s", bucketName)
 	for {
 		input := &s3.ListObjectsV2Input{
 			Bucket:            aws.String(bucketName),
@@ -124,7 +123,6 @@ func (a *accessAnalyzerClient) collectCandidateFiles(ctx context.Context, bucket
 		}
 		continuationToken = result.NextContinuationToken
 	}
-	a.logger.Infof(ctx, "Phase 1 completed: Collected metadata for %d files", len(candidates))
 	return candidates, nil
 }
 
@@ -133,7 +131,7 @@ func (a *accessAnalyzerClient) selectFilesToScan(ctx context.Context, candidates
 	if len(candidates) == 0 {
 		return candidates
 	}
-	a.logger.Infof(ctx, "Selecting files to scan from %d candidates", len(candidates))
+	a.logger.Debugf(ctx, "Selecting files to scan from %d candidates", len(candidates))
 
 	// Select files within limits (no priority, just first come first serve)
 	var selected []FileCandidate
@@ -151,7 +149,7 @@ func (a *accessAnalyzerClient) selectFilesToScan(ctx context.Context, candidates
 		selected = append(selected, candidate)
 		totalSize += candidate.Size
 	}
-	a.logger.Infof(ctx, "Selected %d files for scanning (%.2f MB total)",
+	a.logger.Debugf(ctx, "Selected %d files for scanning (%.2f MB total)",
 		len(selected), float64(totalSize)/(1024*1024))
 	return selected
 }
@@ -159,7 +157,7 @@ func (a *accessAnalyzerClient) selectFilesToScan(ctx context.Context, candidates
 // Download and scan selected files (batch processing with directory scan)
 func (a *accessAnalyzerClient) downloadAndScanFiles(ctx context.Context, selectedFiles []FileCandidate, bucketName string) (*DLPScanResult, error) {
 	if len(selectedFiles) == 0 {
-		a.logger.Infof(ctx, "No files selected for scanning")
+		a.logger.Debugf(ctx, "No files selected for scanning")
 		return nil, nil
 	}
 	tempDir, err := createTempDir()
@@ -240,7 +238,7 @@ func (a *accessAnalyzerClient) downloadFiles(ctx context.Context, selectedFiles 
 		a.logger.Debugf(ctx, "Downloaded: %s -> %s", file.Key, localPath)
 	}
 
-	a.logger.Infof(ctx, "Downloaded %d files to %s", downloadedCount, tempDir)
+	a.logger.Debugf(ctx, "Downloaded %d files to %s", downloadedCount, tempDir)
 	return downloadedCount, nil
 }
 
@@ -301,12 +299,12 @@ func (a *accessAnalyzerClient) scanDirectoryWithResults(ctx context.Context, tem
 	}
 
 	scanDuration := time.Since(startTime)
-	a.logger.Infof(ctx, "Hawk-eye DLP scan completed in %v", scanDuration)
-	return a.processScanResults(ctx, outputFile, bucketName, totalFiles, 0, scanDuration)
+	a.logger.Debugf(ctx, "Hawk-eye DLP scan completed in %v", scanDuration)
+	return a.processScanResults(ctx, outputFile, bucketName, tempDir, totalFiles, scanDuration)
 }
 
 // processScanResults reads hawk-eye results and processes them
-func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFile, bucketName string, totalFiles, _ int, scanDuration time.Duration) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFile, bucketName, tempDir string, totalFiles int, scanDuration time.Duration) (*DLPScanResult, error) {
 	// Check if results file exists
 	if _, err := os.Stat(outputFile); os.IsNotExist(err) {
 		a.logger.Warnf(ctx, "No hawk-eye results file found: %s", outputFile)
@@ -325,7 +323,7 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 	}
 
 	if len(resultsData) == 0 {
-		a.logger.Infof(ctx, "Empty results file, no DLP findings detected")
+		a.logger.Debugf(ctx, "Empty results file, no DLP findings detected")
 		return &DLPScanResult{
 			BucketName:   bucketName,
 			TotalFiles:   totalFiles,
@@ -354,7 +352,17 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 		}, nil
 	}
 
-	findings := hawkEyeOutput.Fs
+	findings := []DLPFinding{}
+	for _, finding := range hawkEyeOutput.Fs {
+		path := strings.ReplaceAll(finding.FilePath, tempDir, "")
+		findings = append(findings, DLPFinding{
+			FilePath:            fmt.Sprintf("s3://%s%s", bucketName, path),
+			PatternName:         finding.PatternName,
+			Matches:             finding.Matches,
+			Severity:            finding.Severity,
+			SeverityDescription: finding.SeverityDescription,
+		})
+	}
 
 	// Create structured scan result
 	scanResult := &DLPScanResult{
@@ -363,6 +371,6 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 		Findings:     findings,
 		ScanDuration: scanDuration.String(),
 	}
-	a.logger.Infof(ctx, "Processed %d DLP findings from hawk-eye scan", len(findings))
+	a.logger.Debugf(ctx, "Processed %d DLP findings from hawk-eye scan", len(findings))
 	return scanResult, nil
 }
