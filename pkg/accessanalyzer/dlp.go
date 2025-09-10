@@ -170,11 +170,10 @@ func (a *accessAnalyzerClient) downloadAndScanFiles(ctx context.Context, selecte
 		}
 	}()
 
-	downloadedCount, err := a.downloadFiles(ctx, selectedFiles, tempDir)
-	if err != nil {
+	if err := a.downloadFiles(ctx, selectedFiles, tempDir); err != nil {
 		return nil, fmt.Errorf("failed to download files: %w", err)
 	}
-	scanResults, err := a.scanDirectoryWithResults(ctx, tempDir, bucketName, len(selectedFiles), downloadedCount)
+	scanResults, err := a.scanDirectoryWithResults(ctx, tempDir, bucketName, len(selectedFiles))
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan directory: %w", err)
 	}
@@ -200,7 +199,7 @@ func cleanupTempDir(tempDir string) error {
 }
 
 // downloadFiles downloads all selected files to the temporary directory
-func (a *accessAnalyzerClient) downloadFiles(ctx context.Context, selectedFiles []FileCandidate, tempDir string) (int, error) {
+func (a *accessAnalyzerClient) downloadFiles(ctx context.Context, selectedFiles []FileCandidate, tempDir string) error {
 	downloadedCount := 0
 	for i, file := range selectedFiles {
 		a.logger.Debugf(ctx, "Downloading file %d/%d: %s", i+1, len(selectedFiles), file.Key)
@@ -210,7 +209,7 @@ func (a *accessAnalyzerClient) downloadFiles(ctx context.Context, selectedFiles 
 		localPath := filepath.Join(tempDir, safePath)
 		localDir := filepath.Dir(localPath)
 		if err := os.MkdirAll(localDir, 0755); err != nil {
-			return 0, fmt.Errorf("failed to create directory %s: %w", localDir, err)
+			return fmt.Errorf("failed to create directory %s: %w", localDir, err)
 		}
 
 		// Download file from S3
@@ -235,9 +234,8 @@ func (a *accessAnalyzerClient) downloadFiles(ctx context.Context, selectedFiles 
 		downloadedCount++
 		a.logger.Debugf(ctx, "Downloaded: %s -> %s", file.Key, localPath)
 	}
-
 	a.logger.Debugf(ctx, "Downloaded %d files to %s", downloadedCount, tempDir)
-	return downloadedCount, nil
+	return nil
 }
 
 // sanitizePath creates a safe file path from S3 key while maintaining directory structure
@@ -283,7 +281,7 @@ func saveToLocalFile(reader io.Reader, localPath string) error {
 }
 
 // scanDirectoryWithResults executes DLP scan and returns structured results
-func (a *accessAnalyzerClient) scanDirectoryWithResults(ctx context.Context, tempDir, bucketName string, totalFiles, _ int) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) scanDirectoryWithResults(ctx context.Context, tempDir, bucketName string, totalFiles int) (*DLPScanResult, error) {
 	startTime := time.Now()
 	a.logger.Infof(ctx, "Starting hawk-eye DLP scan on directory: %s", tempDir)
 	outputFile := filepath.Join(tempDir, "hawkeye-results.json")
