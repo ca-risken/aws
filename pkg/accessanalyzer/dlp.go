@@ -208,8 +208,6 @@ func (a *accessAnalyzerClient) downloadFiles(ctx context.Context, selectedFiles 
 		// Sanitize path while maintaining directory structure
 		safePath := sanitizePath(file.Key)
 		localPath := filepath.Join(tempDir, safePath)
-
-		// Ensure directory exists for this file
 		localDir := filepath.Dir(localPath)
 		if err := os.MkdirAll(localDir, 0755); err != nil {
 			return 0, fmt.Errorf("failed to create directory %s: %w", localDir, err)
@@ -356,7 +354,7 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 	for _, finding := range hawkEyeOutput.Fs {
 		path := strings.ReplaceAll(finding.FilePath, tempDir, "")
 		findings = append(findings, DLPFinding{
-			FilePath:            fmt.Sprintf("s3://%s%s", bucketName, path),
+			FilePath:            filepath.Join("s3://", bucketName, path),
 			PatternName:         finding.PatternName,
 			Matches:             finding.Matches,
 			Severity:            finding.Severity,
