@@ -35,16 +35,17 @@ type accessAnalyzerAPI interface {
 }
 
 type accessAnalyzerClient struct {
-	Svc    *accessanalyzer.Client
-	EC2    *ec2.Client
-	SNS    *sns.Client
-	SQS    *sqs.Client
-	S3     *s3.Client
-	logger logging.Logger
+	Svc                *accessanalyzer.Client
+	EC2                *ec2.Client
+	SNS                *sns.Client
+	SQS                *sqs.Client
+	S3                 *s3.Client
+	dlpFingerprintPath string
+	logger             logging.Logger
 }
 
-func newAccessAnalyzerClient(ctx context.Context, region string, msg *message.AWSQueueMessage, ds []*riskenaws.DataSource, retry int, l logging.Logger) (accessAnalyzerAPI, error) {
-	a := accessAnalyzerClient{logger: l}
+func newAccessAnalyzerClient(ctx context.Context, region string, msg *message.AWSQueueMessage, ds []*riskenaws.DataSource, retry int, dlpFingerprintPath string, l logging.Logger) (accessAnalyzerAPI, error) {
+	a := accessAnalyzerClient{logger: l, dlpFingerprintPath: dlpFingerprintPath}
 	cfg, err := a.newAWSSession(ctx, msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		return nil, err
@@ -147,7 +148,7 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *messa
 				strings.Contains(*data.Resource, "arn:aws:s3:::") &&
 				data.ResourceType == types.ResourceTypeAwsS3Bucket {
 				a.logger.Infof(ctx, "Running DLP scan for public S3 bucket: %s", *data.Resource)
-				dlpFindings, err := a.dlpScan(ctx, *data.Resource)
+				dlpFindings, err := a.dlpScan(ctx, *data.Resource, a.dlpFingerprintPath)
 				if err != nil {
 					a.logger.Warnf(ctx, "DLP scan failed for bucket %s: %v", *data.Resource, err)
 				}

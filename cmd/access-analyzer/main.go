@@ -42,6 +42,9 @@ type AppConfig struct {
 	// aws
 	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
 
+	// dlp
+	DLPFingerprintPath string `envconfig:"DLP_FINGERPRINT_PATH" default:""`
+
 	// sqs
 	Debug string `default:"false"`
 
@@ -103,7 +106,7 @@ func main() {
 	if err != nil {
 		appLogger.Fatalf(ctx, "failed to create aws client, err=%+v", err)
 	}
-	handler := accessanalyzer.NewSqsHandler(fc, ac, awsc, conf.AWSRegion, conf.RetryMaxAttempts, appLogger)
+	handler := accessanalyzer.NewSqsHandler(fc, ac, awsc, conf.AWSRegion, conf.RetryMaxAttempts, conf.DLPFingerprintPath, appLogger)
 	sqsConf := &sqs.SQSConfig{
 		Debug:              conf.Debug,
 		AWSRegion:          conf.AWSRegion,

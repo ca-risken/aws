@@ -59,7 +59,7 @@ func extractBucketNameFromArn(bucketArn string) string {
 	return ""
 }
 
-func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, fingerprintPath string) (*DLPScanResult, error) {
 	bucketName := extractBucketNameFromArn(bucketArn)
 	if bucketName == "" {
 		return nil, fmt.Errorf("failed to extract bucket name from ARN: %s", bucketArn)
@@ -76,10 +76,11 @@ func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string) (*
 	selectedFiles := a.selectFilesToScan(ctx, candidates)
 
 	// Download and scan selected files (batch processing with directory scan)
-	scanResults, err := a.downloadAndScanFiles(ctx, selectedFiles, bucketName)
+	scanResults, err := a.downloadAndScanFiles(ctx, selectedFiles, bucketName, fingerprintPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download and scan files: %w", err)
 	}
+
 	return scanResults, nil
 }
 
@@ -155,7 +156,7 @@ func (a *accessAnalyzerClient) selectFilesToScan(ctx context.Context, candidates
 }
 
 // Download and scan selected files (batch processing with directory scan)
-func (a *accessAnalyzerClient) downloadAndScanFiles(ctx context.Context, selectedFiles []FileCandidate, bucketName string) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) downloadAndScanFiles(ctx context.Context, selectedFiles []FileCandidate, bucketName string, fingerprintPath string) (*DLPScanResult, error) {
 	if len(selectedFiles) == 0 {
 		a.logger.Debugf(ctx, "No files selected for scanning")
 		return nil, nil
@@ -173,7 +174,7 @@ func (a *accessAnalyzerClient) downloadAndScanFiles(ctx context.Context, selecte
 	if err := a.downloadFiles(ctx, selectedFiles, tempDir); err != nil {
 		return nil, fmt.Errorf("failed to download files: %w", err)
 	}
-	scanResults, err := a.scanDirectoryWithResults(ctx, tempDir, bucketName, len(selectedFiles))
+	scanResults, err := a.scanDirectoryWithResults(ctx, tempDir, bucketName, len(selectedFiles), fingerprintPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan directory: %w", err)
 	}
@@ -281,14 +282,16 @@ func saveToLocalFile(reader io.Reader, localPath string) error {
 }
 
 // scanDirectoryWithResults executes DLP scan and returns structured results
-func (a *accessAnalyzerClient) scanDirectoryWithResults(ctx context.Context, tempDir, bucketName string, totalFiles int) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) scanDirectoryWithResults(ctx context.Context, tempDir, bucketName string, totalFiles int, fingerprintPath string) (*DLPScanResult, error) {
 	startTime := time.Now()
 	a.logger.Infof(ctx, "Starting hawk-eye DLP scan on directory: %s", tempDir)
 	outputFile := filepath.Join(tempDir, "hawkeye-results.json")
 	connectionJSON := fmt.Sprintf(`{"sources":{"fs":{"fs1":{"quick_scan":true,"path":"%s"}}}}`, tempDir)
-	cmd := exec.CommandContext(ctx, "hawk_scanner", "fs",
-		"--connection-json", connectionJSON,
-		"--stdout", "--quiet", "--json", outputFile)
+	args := []string{"fs", "--connection-json", connectionJSON, "--stdout", "--quiet", "--json", outputFile}
+	if fingerprintPath != "" {
+		args = append(args, "--fingerprint", fingerprintPath)
+	}
+	cmd := exec.CommandContext(ctx, "hawk_scanner", args...)
 	cmd.Dir = tempDir
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("hawk-eye scan failed: %w", err)
