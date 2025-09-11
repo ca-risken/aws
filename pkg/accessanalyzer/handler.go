@@ -20,12 +20,13 @@ import (
 )
 
 type SqsHandler struct {
-	findingClient    finding.FindingServiceClient
-	alertClient      alert.AlertServiceClient
-	awsClient        awsClient.AWSServiceClient
-	awsRegion        string
-	retryMaxAttempts int
-	logger           logging.Logger
+	findingClient      finding.FindingServiceClient
+	alertClient        alert.AlertServiceClient
+	awsClient          awsClient.AWSServiceClient
+	awsRegion          string
+	retryMaxAttempts   int
+	dlpFingerprintPath string
+	logger             logging.Logger
 }
 
 func NewSqsHandler(
@@ -34,15 +35,17 @@ func NewSqsHandler(
 	awsc awsClient.AWSServiceClient,
 	region string,
 	retry int,
+	dlpFingerprintPath string,
 	l logging.Logger,
 ) *SqsHandler {
 	return &SqsHandler{
-		findingClient:    fc,
-		alertClient:      ac,
-		awsClient:        awsc,
-		awsRegion:        region,
-		retryMaxAttempts: retry,
-		logger:           l,
+		findingClient:      fc,
+		alertClient:        ac,
+		awsClient:          awsc,
+		awsRegion:          region,
+		retryMaxAttempts:   retry,
+		dlpFingerprintPath: dlpFingerprintPath,
+		logger:             l,
 	}
 }
 
@@ -73,7 +76,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqsTypes.Message
 		s.updateStatusToError(ctx, &status, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
-	accessAnalyzer, err := newAccessAnalyzerClient(ctx, s.awsRegion, msg, ds.DataSource, s.retryMaxAttempts, s.logger)
+	accessAnalyzer, err := newAccessAnalyzerClient(ctx, s.awsRegion, msg, ds.DataSource, s.retryMaxAttempts, s.dlpFingerprintPath, s.logger)
 	if err != nil {
 		s.logger.Errorf(ctx, "Failed to create AccessAnalyzer session: err=%+v", err)
 		s.updateStatusToError(ctx, &status, err)
@@ -98,7 +101,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqsTypes.Message
 		}
 		s.logger.Infof(ctx, "Start %s region search...", *region.RegionName)
 		// AccessAnalyzer
-		accessAnalyzer, err = newAccessAnalyzerClient(ctx, *region.RegionName, msg, ds.DataSource, s.retryMaxAttempts, s.logger)
+		accessAnalyzer, err = newAccessAnalyzerClient(ctx, *region.RegionName, msg, ds.DataSource, s.retryMaxAttempts, s.dlpFingerprintPath, s.logger)
 		if err != nil {
 			s.logger.Errorf(ctx, "Failed to create AccessAnalyzer session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			s.updateStatusToError(ctx, &status, err)
