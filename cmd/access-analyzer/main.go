@@ -45,7 +45,7 @@ type AppConfig struct {
 	// dlp
 	DLPFingerprintPath string `envconfig:"DLP_FINGERPRINT_PATH" default:""`
 
-	// sqs
+	// sqs test
 	Debug string `default:"false"`
 
 	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://queue.middleware.svc.cluster.local:9324"`
