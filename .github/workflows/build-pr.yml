@@ -4,7 +4,7 @@ permissions:
   contents: read
   checks: write
   statuses: write
-  
+
 env:
   IMAGE_PREFIX: "risken-aws"
   INSTALL_GO_VERSION: "1.21.3"
@@ -31,7 +31,7 @@ jobs:
       
       - name: Install Go and tools
         run: |
-          cd /root/.goenv/plugins/go-build/../.. && git pull && cd -
+          cd /root/.goenv && git pull && cd -
           goenv install ${{ env.INSTALL_GO_VERSION }}
           goenv global ${{ env.INSTALL_GO_VERSION }}
           go version
