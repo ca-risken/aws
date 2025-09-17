@@ -16,9 +16,11 @@ import (
 )
 
 const (
-	MAX_SCAN_FILES      = 10000
-	MAX_SCAN_SIZE_MB    = 100
-	MAX_SCAN_SIZE_BYTES = MAX_SCAN_SIZE_MB * 1024 * 1024
+	MAX_SCAN_FILES             = 3000
+	MAX_SCAN_SIZE_MB           = 100
+	MAX_SCAN_SIZE_BYTES        = MAX_SCAN_SIZE_MB * 1024 * 1024
+	MAX_SINGLE_FILE_SIZE_MB    = 5
+	MAX_SINGLE_FILE_SIZE_BYTES = MAX_SINGLE_FILE_SIZE_MB * 1024 * 1024
 )
 
 // FileCandidate represents a file candidate for scanning
@@ -146,6 +148,12 @@ func (a *accessAnalyzerClient) selectFilesToScan(ctx context.Context, candidates
 		if totalSize+candidate.Size > MAX_SCAN_SIZE_BYTES {
 			a.logger.Warnf(ctx, "Reached maximum size limit (%d MB)", MAX_SCAN_SIZE_MB)
 			break
+		}
+		// Skip files larger than MAX_SINGLE_FILE_SIZE
+		if candidate.Size > MAX_SINGLE_FILE_SIZE_BYTES {
+			a.logger.Debugf(ctx, "Skipping file %s: size %.2f MB exceeds single file limit of %d MB",
+				candidate.Key, float64(candidate.Size)/(1024*1024), MAX_SINGLE_FILE_SIZE_MB)
+			continue
 		}
 		selected = append(selected, candidate)
 		totalSize += candidate.Size
