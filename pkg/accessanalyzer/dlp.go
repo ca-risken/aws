@@ -1,6 +1,7 @@
 package accessanalyzer
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -336,17 +337,12 @@ func saveToLocalFile(reader io.Reader, localPath string) error {
 	return nil
 }
 
-const CONNECTION_JSON_TEMPLATE = `
-{
-	"sources": {
-		"fs": {
-			"fs1": {
-				"quick_scan": true,
-				"path": "%s"
-			}
-		}
-	}
-}
+const CONNECTION_YAML_TEMPLATE = `
+sources:
+  fs:
+    fs1:
+      quick_scan: true
+      path: "%s"
 `
 
 // scanDirectoryWithResults executes DLP scan and returns structured results
@@ -354,19 +350,32 @@ func (a *accessAnalyzerClient) scanDirectoryWithResults(ctx context.Context, tem
 	startTime := time.Now()
 	a.logger.Infof(ctx, "Starting hawk-eye DLP scan on directory: %s", tempDir)
 	outputFile := filepath.Join(tempDir, "hawkeye-results.json")
-	connectionJSON := fmt.Sprintf(CONNECTION_JSON_TEMPLATE, tempDir)
-	args := []string{"fs", "--connection-json", connectionJSON, "--stdout", "--quiet", "--json", outputFile}
+	connectionFile := filepath.Join(tempDir, "connection.yml")
+	connectionContent := fmt.Sprintf(CONNECTION_YAML_TEMPLATE, tempDir)
+	if err := os.WriteFile(connectionFile, []byte(connectionContent), 0644); err != nil {
+		return nil, fmt.Errorf("failed to write connection file: %w", err)
+	}
+	args := []string{"all", "--connection", connectionFile, "--shutup", "--json", outputFile}
 	if fingerprintPath != "" {
 		args = append(args, "--fingerprint", fingerprintPath)
 	}
 	cmd := exec.CommandContext(ctx, "hawk_scanner", args...)
 	cmd.Dir = tempDir
+	cmd.Env = append(os.Environ(), "TERM=xterm") // Set TERM environment variable to avoid warning
+
+	var stderr bytes.Buffer
+	var stdout bytes.Buffer
+	cmd.Stderr = &stderr
+	cmd.Stdout = &stdout
 	if err := cmd.Run(); err != nil {
+		errMsg := stderr.String()
+		outMsg := stdout.String()
+		a.logger.Errorf(ctx, "Failed to execute hawk_scanner: err=%v, stderr=%s, stdout=%s", err, errMsg, outMsg)
 		return nil, fmt.Errorf("hawk-eye scan failed: %w", err)
 	}
 
 	scanDuration := time.Since(startTime)
-	a.logger.Debugf(ctx, "Hawk-eye DLP scan completed in %v", scanDuration)
+	a.logger.Infof(ctx, "Hawk-eye DLP scan completed in %v: files=%d, bucket=%s", scanDuration, totalFiles, bucketName)
 	return a.processScanResults(ctx, outputFile, bucketName, tempDir, totalFiles, scanDuration)
 }
 
