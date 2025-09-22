@@ -76,7 +76,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqsTypes.Message
 		s.updateStatusToError(ctx, &status, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
-	accessAnalyzer, err := newAccessAnalyzerClient(ctx, s.awsRegion, msg, ds.DataSource, s.retryMaxAttempts, s.dlpFingerprintPath, s.logger)
+	accessAnalyzer, err := newAccessAnalyzerClient(ctx, s.awsRegion, msg, ds.DataSource, s.retryMaxAttempts, s.dlpFingerprintPath, s.findingClient, s.logger)
 	if err != nil {
 		s.logger.Errorf(ctx, "Failed to create AccessAnalyzer session: err=%+v", err)
 		s.updateStatusToError(ctx, &status, err)
@@ -101,7 +101,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqsTypes.Message
 		}
 		s.logger.Infof(ctx, "Start %s region search...", *region.RegionName)
 		// AccessAnalyzer
-		accessAnalyzer, err = newAccessAnalyzerClient(ctx, *region.RegionName, msg, ds.DataSource, s.retryMaxAttempts, s.dlpFingerprintPath, s.logger)
+		accessAnalyzer, err = newAccessAnalyzerClient(ctx, *region.RegionName, msg, ds.DataSource, s.retryMaxAttempts, s.dlpFingerprintPath, s.findingClient, s.logger)
 		if err != nil {
 			s.logger.Errorf(ctx, "Failed to create AccessAnalyzer session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			s.updateStatusToError(ctx, &status, err)
