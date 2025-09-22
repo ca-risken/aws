@@ -435,7 +435,9 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 		// Limit matches to maximum MAX_MATCHES_PER_FINDING items
 		matches := finding.Matches
 		if len(matches) > MAX_MATCHES_PER_FINDING {
+			remainingCount := len(matches) - MAX_MATCHES_PER_FINDING
 			matches = matches[:MAX_MATCHES_PER_FINDING]
+			matches = append(matches, fmt.Sprintf("... and %d more", remainingCount))
 		}
 
 		findings = append(findings, DLPFinding{
