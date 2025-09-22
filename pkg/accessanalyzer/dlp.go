@@ -21,6 +21,7 @@ const (
 	MAX_SCAN_SIZE_BYTES        = MAX_SCAN_SIZE_MB * 1024 * 1024
 	MAX_SINGLE_FILE_SIZE_MB    = 5
 	MAX_SINGLE_FILE_SIZE_BYTES = MAX_SINGLE_FILE_SIZE_MB * 1024 * 1024
+	MAX_MATCHES_PER_FINDING    = 5
 )
 
 // FileCandidate represents a file candidate for scanning
@@ -362,10 +363,17 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 	findings := []DLPFinding{}
 	for _, finding := range hawkEyeOutput.Fs {
 		path := strings.ReplaceAll(finding.FilePath, tempDir, "")
+
+		// Limit matches to maximum MAX_MATCHES_PER_FINDING items
+		matches := finding.Matches
+		if len(matches) > MAX_MATCHES_PER_FINDING {
+			matches = matches[:MAX_MATCHES_PER_FINDING]
+		}
+
 		findings = append(findings, DLPFinding{
 			FilePath:            filepath.Join("s3://", bucketName, path),
 			PatternName:         finding.PatternName,
-			Matches:             finding.Matches,
+			Matches:             matches,
 			Severity:            finding.Severity,
 			SeverityDescription: finding.SeverityDescription,
 		})
