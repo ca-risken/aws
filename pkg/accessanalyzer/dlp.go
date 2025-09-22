@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -23,6 +24,41 @@ const (
 	MAX_SINGLE_FILE_SIZE_BYTES = MAX_SINGLE_FILE_SIZE_MB * 1024 * 1024
 	MAX_MATCHES_PER_FINDING    = 5
 )
+
+// DLP_EXCLUDE_PATTERNS defines file patterns to exclude from scanning
+var DLP_EXCLUDE_PATTERNS = []string{
+	".html",
+	".htm",
+	".css",
+	".js",
+	".jsx",
+	".ts",
+	".tsx",
+	".vue",
+	".svelte",
+	".map",
+	"node_modules",
+	"vendor",
+	"bower_components",
+	"venv",
+	".venv",
+	"virtualenv",
+	"__pycache__",
+	".npm",
+	".yarn",
+	".pnpm",
+	".pyc",
+	".so",
+	".dylib",
+	".dll",
+	".exe",
+	".jar",
+	".class",
+	".woff",
+	".woff2",
+	".ttf",
+	".otf",
+}
 
 // FileCandidate represents a file candidate for scanning
 type FileCandidate struct {
@@ -142,6 +178,7 @@ func (a *accessAnalyzerClient) selectFilesToScan(ctx context.Context, candidates
 	totalSize := int64(0)
 
 	for _, candidate := range candidates {
+		// Reached limit
 		if len(selected) >= MAX_SCAN_FILES {
 			a.logger.Warnf(ctx, "Reached maximum file count limit (%d files)", MAX_SCAN_FILES)
 			break
@@ -150,10 +187,19 @@ func (a *accessAnalyzerClient) selectFilesToScan(ctx context.Context, candidates
 			a.logger.Warnf(ctx, "Reached maximum size limit (%d MB)", MAX_SCAN_SIZE_MB)
 			break
 		}
+
+		// Exclude files
 		// Skip files larger than MAX_SINGLE_FILE_SIZE
 		if candidate.Size > MAX_SINGLE_FILE_SIZE_BYTES {
 			a.logger.Debugf(ctx, "Skipping file %s: size %.2f MB exceeds single file limit of %d MB",
 				candidate.Key, float64(candidate.Size)/(1024*1024), MAX_SINGLE_FILE_SIZE_MB)
+			continue
+		}
+		// Skip files matching exclude patterns
+		if slices.ContainsFunc(DLP_EXCLUDE_PATTERNS, func(p string) bool {
+			return strings.Contains(candidate.Key, p)
+		}) {
+			a.logger.Debugf(ctx, "Skipping file %s: matching exclude patterns", candidate.Key)
 			continue
 		}
 		selected = append(selected, candidate)
@@ -290,12 +336,25 @@ func saveToLocalFile(reader io.Reader, localPath string) error {
 	return nil
 }
 
+const CONNECTION_JSON_TEMPLATE = `
+{
+	"sources": {
+		"fs": {
+			"fs1": {
+				"quick_scan": true,
+				"path": "%s"
+			}
+		}
+	}
+}
+`
+
 // scanDirectoryWithResults executes DLP scan and returns structured results
 func (a *accessAnalyzerClient) scanDirectoryWithResults(ctx context.Context, tempDir, bucketName string, totalFiles int, fingerprintPath string) (*DLPScanResult, error) {
 	startTime := time.Now()
 	a.logger.Infof(ctx, "Starting hawk-eye DLP scan on directory: %s", tempDir)
 	outputFile := filepath.Join(tempDir, "hawkeye-results.json")
-	connectionJSON := fmt.Sprintf(`{"sources":{"fs":{"fs1":{"quick_scan":true,"path":"%s"}}}}`, tempDir)
+	connectionJSON := fmt.Sprintf(CONNECTION_JSON_TEMPLATE, tempDir)
 	args := []string{"fs", "--connection-json", connectionJSON, "--stdout", "--quiet", "--json", outputFile}
 	if fingerprintPath != "" {
 		args = append(args, "--fingerprint", fingerprintPath)
