@@ -109,10 +109,10 @@ func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, fi
 	a.logger.Infof(ctx, "Starting staged DLP scan for public S3 bucket: %s", bucketName)
 
 	// Check previous DLP scan results to avoid duplicate scanning
-	previousResult, err := a.getPreviousDLPFindings(ctx, bucketName, projectID)
+	prevScanResult, err := a.getPreviousDLPFindings(ctx, bucketName, projectID)
 	if err != nil {
 		a.logger.Warnf(ctx, "Failed to get previous DLP findings: %v", err)
-		previousResult = nil
+		prevScanResult = nil
 	}
 
 	// Collect metadata for s3 objects (lightweight)
@@ -124,10 +124,10 @@ func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, fi
 	var filteredCandidates []FileCandidate
 	var cachedFindings []DLPFinding
 	var scanResults *DLPScanResult
-	if previousResult != nil {
+	if prevScanResult != nil && prevScanResult.ScanTime > 0 {
 		// Filter candidates based on previous scan results and object modification time
-		filteredCandidates, cachedFindings = a.filterCandidatesWithCache(ctx, candidates, previousResult, bucketName)
-		scanResults = previousResult // preset scan results(maybe new scan later)
+		filteredCandidates, cachedFindings = a.filterCandidatesWithCache(ctx, candidates, prevScanResult, bucketName)
+		scanResults = prevScanResult // preset scan results(maybe new scan later)
 	} else {
 		filteredCandidates = candidates
 	}
