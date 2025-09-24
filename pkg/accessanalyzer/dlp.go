@@ -1,6 +1,7 @@
 package accessanalyzer
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -16,18 +18,55 @@ import (
 )
 
 const (
-	MAX_SCAN_FILES             = 3000
+	MAX_SCAN_FILES             = 1000
 	MAX_SCAN_SIZE_MB           = 100
 	MAX_SCAN_SIZE_BYTES        = MAX_SCAN_SIZE_MB * 1024 * 1024
 	MAX_SINGLE_FILE_SIZE_MB    = 5
 	MAX_SINGLE_FILE_SIZE_BYTES = MAX_SINGLE_FILE_SIZE_MB * 1024 * 1024
+	MAX_MATCHES_PER_FINDING    = 5
 )
+
+// DLP_EXCLUDE_PATTERNS defines file patterns to exclude from scanning
+var DLP_EXCLUDE_PATTERNS = []string{
+	".html",
+	".htm",
+	".css",
+	".js",
+	".jsx",
+	".ts",
+	".tsx",
+	".vue",
+	".svelte",
+	".map",
+	"node_modules",
+	"vendor",
+	"bower_components",
+	"venv",
+	".venv",
+	"virtualenv",
+	"__pycache__",
+	".npm",
+	".yarn",
+	".pnpm",
+	".pyc",
+	".so",
+	".dylib",
+	".dll",
+	".exe",
+	".jar",
+	".class",
+	".woff",
+	".woff2",
+	".ttf",
+	".otf",
+}
 
 // FileCandidate represents a file candidate for scanning
 type FileCandidate struct {
-	BucketName string
-	Key        string
-	Size       int64
+	BucketName   string
+	Key          string
+	Size         int64
+	LastModified *time.Time
 }
 
 // DLPScanResult represents the complete scan result
@@ -36,6 +75,7 @@ type DLPScanResult struct {
 	TotalFiles   int          `json:"total_files"`
 	Findings     []DLPFinding `json:"findings"`
 	ScanDuration string       `json:"scan_duration"`
+	ScanTime     int64        `json:"scan_time"` // Unix
 }
 
 // DLPFinding represents an individual DLP finding from hawk-eye
@@ -61,12 +101,19 @@ func extractBucketNameFromArn(bucketArn string) string {
 	return ""
 }
 
-func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, fingerprintPath string) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, fingerprintPath string, projectID uint32) (*DLPScanResult, error) {
 	bucketName := extractBucketNameFromArn(bucketArn)
 	if bucketName == "" {
 		return nil, fmt.Errorf("failed to extract bucket name from ARN: %s", bucketArn)
 	}
 	a.logger.Infof(ctx, "Starting staged DLP scan for public S3 bucket: %s", bucketName)
+
+	// Check previous DLP scan results to avoid duplicate scanning
+	prevScanResult, err := a.getPreviousDLPFindings(ctx, bucketName, projectID)
+	if err != nil {
+		a.logger.Warnf(ctx, "Failed to get previous DLP findings: %v", err)
+		prevScanResult = nil
+	}
 
 	// Collect metadata for s3 objects (lightweight)
 	candidates, err := a.collectCandidateFiles(ctx, bucketName)
@@ -74,13 +121,43 @@ func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, fi
 		return nil, fmt.Errorf("failed to collect file candidates: %w", err)
 	}
 
-	// Select files to scan based on size and file count limits only
-	selectedFiles := a.selectFilesToScan(ctx, candidates)
+	var filteredCandidates []FileCandidate
+	var cachedFindings []DLPFinding
+	var scanResults *DLPScanResult
+	if prevScanResult != nil && prevScanResult.ScanTime > 0 {
+		// Filter candidates based on previous scan results and object modification time
+		filteredCandidates, cachedFindings = a.filterCandidatesWithCache(ctx, candidates, prevScanResult, bucketName)
+		scanResults = prevScanResult // preset scan results(maybe new scan later)
+	} else {
+		filteredCandidates = candidates
+	}
 
-	// Download and scan selected files (batch processing with directory scan)
-	scanResults, err := a.downloadAndScanFiles(ctx, selectedFiles, bucketName, fingerprintPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to download and scan files: %w", err)
+	// Select files to scan based on size and file count limits only
+	selectedFiles := a.selectFilesToScan(ctx, filteredCandidates)
+	if len(selectedFiles) > 0 {
+		// Update scan results with new scan
+		newScanResults, err := a.downloadAndScanFiles(ctx, selectedFiles, bucketName, fingerprintPath)
+		if err != nil {
+			a.logger.Warnf(ctx, "Failed to download and scan files: %v", err)
+			// Keep previous scanResults if scan failed
+		} else {
+			scanResults = newScanResults
+		}
+	}
+
+	// Merge cached findings with new scan results
+	if len(cachedFindings) > 0 {
+		var filePaths = map[string]bool{}
+		for _, finding := range scanResults.Findings {
+			filePaths[finding.FilePath] = true
+		}
+		for _, finding := range cachedFindings {
+			// ignore if already exists
+			if _, ok := filePaths[finding.FilePath]; !ok {
+				scanResults.Findings = append(scanResults.Findings, finding)
+			}
+		}
+		a.logger.Infof(ctx, "Merged %d cached DLP findings with %d new findings", len(cachedFindings), len(scanResults.Findings)-len(cachedFindings))
 	}
 
 	return scanResults, nil
@@ -113,10 +190,18 @@ func (a *accessAnalyzerClient) collectCandidateFiles(ctx context.Context, bucket
 				break
 			}
 
+			// Skip directories (keys ending with '/')
+			key := aws.ToString(obj.Key)
+			if strings.HasSuffix(key, "/") {
+				a.logger.Debugf(ctx, "Skipping directory: %s", key)
+				continue
+			}
+
 			candidate := FileCandidate{
-				BucketName: bucketName,
-				Key:        aws.ToString(obj.Key),
-				Size:       obj.Size,
+				BucketName:   bucketName,
+				Key:          key,
+				Size:         obj.Size,
+				LastModified: obj.LastModified,
 			}
 			candidates = append(candidates, candidate)
 			totalFiles++
@@ -141,6 +226,7 @@ func (a *accessAnalyzerClient) selectFilesToScan(ctx context.Context, candidates
 	totalSize := int64(0)
 
 	for _, candidate := range candidates {
+		// Reached limit
 		if len(selected) >= MAX_SCAN_FILES {
 			a.logger.Warnf(ctx, "Reached maximum file count limit (%d files)", MAX_SCAN_FILES)
 			break
@@ -149,10 +235,19 @@ func (a *accessAnalyzerClient) selectFilesToScan(ctx context.Context, candidates
 			a.logger.Warnf(ctx, "Reached maximum size limit (%d MB)", MAX_SCAN_SIZE_MB)
 			break
 		}
+
+		// Exclude files
 		// Skip files larger than MAX_SINGLE_FILE_SIZE
 		if candidate.Size > MAX_SINGLE_FILE_SIZE_BYTES {
 			a.logger.Debugf(ctx, "Skipping file %s: size %.2f MB exceeds single file limit of %d MB",
 				candidate.Key, float64(candidate.Size)/(1024*1024), MAX_SINGLE_FILE_SIZE_MB)
+			continue
+		}
+		// Skip files matching exclude patterns
+		if slices.ContainsFunc(DLP_EXCLUDE_PATTERNS, func(p string) bool {
+			return strings.Contains(candidate.Key, p)
+		}) {
+			a.logger.Debugf(ctx, "Skipping file %s: matching exclude patterns", candidate.Key)
 			continue
 		}
 		selected = append(selected, candidate)
@@ -289,38 +384,53 @@ func saveToLocalFile(reader io.Reader, localPath string) error {
 	return nil
 }
 
+const CONNECTION_YAML_TEMPLATE = `
+sources:
+  fs:
+    fs1:
+      quick_scan: true
+      path: "%s"
+`
+
 // scanDirectoryWithResults executes DLP scan and returns structured results
 func (a *accessAnalyzerClient) scanDirectoryWithResults(ctx context.Context, tempDir, bucketName string, totalFiles int, fingerprintPath string) (*DLPScanResult, error) {
 	startTime := time.Now()
 	a.logger.Infof(ctx, "Starting hawk-eye DLP scan on directory: %s", tempDir)
 	outputFile := filepath.Join(tempDir, "hawkeye-results.json")
-	connectionJSON := fmt.Sprintf(`{"sources":{"fs":{"fs1":{"quick_scan":true,"path":"%s"}}}}`, tempDir)
-	args := []string{"fs", "--connection-json", connectionJSON, "--stdout", "--quiet", "--json", outputFile}
+	connectionFile := filepath.Join(tempDir, "connection.yml")
+	connectionContent := fmt.Sprintf(CONNECTION_YAML_TEMPLATE, tempDir)
+	if err := os.WriteFile(connectionFile, []byte(connectionContent), 0644); err != nil {
+		return nil, fmt.Errorf("failed to write connection file: %w", err)
+	}
+	args := []string{"all", "--connection", connectionFile, "--shutup", "--json", outputFile}
 	if fingerprintPath != "" {
 		args = append(args, "--fingerprint", fingerprintPath)
 	}
 	cmd := exec.CommandContext(ctx, "hawk_scanner", args...)
 	cmd.Dir = tempDir
+	cmd.Env = append(os.Environ(), "TERM=xterm") // Set TERM environment variable to avoid warning
+
+	var stderr bytes.Buffer
+	var stdout bytes.Buffer
+	cmd.Stderr = &stderr
+	cmd.Stdout = &stdout
 	if err := cmd.Run(); err != nil {
+		errMsg := stderr.String()
+		outMsg := stdout.String()
+		a.logger.Errorf(ctx, "Failed to execute hawk_scanner: err=%v, stderr=%s, stdout=%s", err, errMsg, outMsg)
 		return nil, fmt.Errorf("hawk-eye scan failed: %w", err)
 	}
 
 	scanDuration := time.Since(startTime)
-	a.logger.Debugf(ctx, "Hawk-eye DLP scan completed in %v", scanDuration)
-	return a.processScanResults(ctx, outputFile, bucketName, tempDir, totalFiles, scanDuration)
+	a.logger.Infof(ctx, "Hawk-eye DLP scan completed in %v: files=%d, bucket=%s", scanDuration, totalFiles, bucketName)
+	return a.processScanResults(ctx, outputFile, bucketName, tempDir, totalFiles, scanDuration, startTime)
 }
 
 // processScanResults reads hawk-eye results and processes them
-func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFile, bucketName, tempDir string, totalFiles int, scanDuration time.Duration) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFile, bucketName, tempDir string, totalFiles int, scanDuration time.Duration, scanTime time.Time) (*DLPScanResult, error) {
 	// Check if results file exists
 	if _, err := os.Stat(outputFile); os.IsNotExist(err) {
-		a.logger.Warnf(ctx, "No hawk-eye results file found: %s", outputFile)
-		return &DLPScanResult{
-			BucketName:   bucketName,
-			TotalFiles:   totalFiles,
-			Findings:     []DLPFinding{},
-			ScanDuration: scanDuration.String(),
-		}, nil
+		return nil, fmt.Errorf("hawk-eye results file not found: %s", outputFile)
 	}
 
 	// Read results file
@@ -336,36 +446,32 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 			TotalFiles:   totalFiles,
 			Findings:     []DLPFinding{},
 			ScanDuration: scanDuration.String(),
+			ScanTime:     scanTime.Unix(),
 		}, nil
 	}
 
 	// Parse hawk-eye results
 	var hawkEyeOutput HawkEyeOutput
 	if err := json.Unmarshal(resultsData, &hawkEyeOutput); err != nil {
-		a.logger.Warnf(ctx, "Failed to parse hawk-eye results as JSON: %v", err)
-		// If JSON parsing fails, store raw results
-		findings := []DLPFinding{{
-			FilePath:            "raw_output",
-			PatternName:         "raw_scan_result",
-			Matches:             []string{string(resultsData)},
-			Severity:            "info",
-			SeverityDescription: "Raw scan output due to parsing error",
-		}}
-		return &DLPScanResult{
-			BucketName:   bucketName,
-			TotalFiles:   totalFiles,
-			Findings:     findings,
-			ScanDuration: scanDuration.String(),
-		}, nil
+		return nil, fmt.Errorf("failed to parse hawk-eye results as JSON: %w", err)
 	}
 
 	findings := []DLPFinding{}
 	for _, finding := range hawkEyeOutput.Fs {
 		path := strings.ReplaceAll(finding.FilePath, tempDir, "")
+
+		// Limit matches to maximum MAX_MATCHES_PER_FINDING items
+		matches := finding.Matches
+		if len(matches) > MAX_MATCHES_PER_FINDING {
+			remainingCount := len(matches) - MAX_MATCHES_PER_FINDING
+			matches = matches[:MAX_MATCHES_PER_FINDING]
+			matches = append(matches, fmt.Sprintf("... and %d more", remainingCount))
+		}
+
 		findings = append(findings, DLPFinding{
-			FilePath:            filepath.Join("s3://", bucketName, path),
+			FilePath:            filepath.Join(bucketName, path),
 			PatternName:         finding.PatternName,
-			Matches:             finding.Matches,
+			Matches:             matches,
 			Severity:            finding.Severity,
 			SeverityDescription: finding.SeverityDescription,
 		})
@@ -377,6 +483,7 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 		TotalFiles:   totalFiles,
 		Findings:     findings,
 		ScanDuration: scanDuration.String(),
+		ScanTime:     scanTime.Unix(),
 	}
 	a.logger.Debugf(ctx, "Processed %d DLP findings from hawk-eye scan", len(findings))
 	return scanResult, nil
