@@ -359,7 +359,7 @@ func (a *accessAnalyzerClient) scanDirectoryWithResults(ctx context.Context, tem
 	// Connection
 	connectionFile := filepath.Join(tempDir, "connection.yml")
 	connectionContent := fmt.Sprintf(CONNECTION_YAML_TEMPLATE, tempDir)
-	if err := os.WriteFile(connectionFile, []byte(connectionContent), 0644); err != nil {
+	if err := os.WriteFile(connectionFile, []byte(connectionContent), 0600); err != nil {
 		return nil, fmt.Errorf("failed to write connection file: %w", err)
 	}
 	// Fingerprint

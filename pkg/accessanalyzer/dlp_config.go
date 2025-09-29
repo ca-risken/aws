@@ -81,8 +81,6 @@ func LoadDLPConfig(configPath string) (*DLPConfig, error) {
 	if err := validate.Struct(&config); err != nil {
 		return nil, fmt.Errorf("invalid DLP configuration: %w", err)
 	}
-
-
 	return &config, nil
 }
 
