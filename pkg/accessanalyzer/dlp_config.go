@@ -69,7 +69,6 @@ func LoadDLPConfig(configPath string) (*DLPConfig, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to read embedded DLP config: %w", err)
 		}
-
 	}
 
 	var config DLPConfig
@@ -83,20 +82,22 @@ func LoadDLPConfig(configPath string) (*DLPConfig, error) {
 		return nil, fmt.Errorf("invalid DLP configuration: %w", err)
 	}
 
-	// Custom validation: must have either rules or fingerprint file path
-	if len(config.Rules) == 0 && config.FingerprintFilePath == "" {
-		return nil, fmt.Errorf("must specify either 'rules' or 'fingerprint_file_path' in DLP configuration")
-	}
 
 	return &config, nil
 }
 
 // GetScanSizeLimits returns size limits in bytes
 func (c *DLPConfig) GetMaxScanSizeBytes() int64 {
+	if c.MaxScanSizeMB <= 0 {
+		return 10 * 1024 * 1024 // Default 10MB if invalid
+	}
 	return int64(c.MaxScanSizeMB) * 1024 * 1024
 }
 
 func (c *DLPConfig) GetMaxSingleFileSizeBytes() int64 {
+	if c.MaxSingleFileSizeMB <= 0 {
+		return 5 * 1024 * 1024 // Default 5MB if invalid
+	}
 	return int64(c.MaxSingleFileSizeMB) * 1024 * 1024
 }
 

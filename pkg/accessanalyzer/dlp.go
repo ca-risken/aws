@@ -243,18 +243,17 @@ func (a *accessAnalyzerClient) downloadAndScanFiles(ctx context.Context, selecte
 
 // createTempDir creates a temporary directory for DLP scanning
 func createTempDir() (string, error) {
-	timestamp := time.Now().Format("20060102-150405")
-	tempDir := filepath.Join("/tmp", fmt.Sprintf("dlp-scan-%s", timestamp))
-	if err := os.MkdirAll(tempDir, 0755); err != nil {
-		return "", fmt.Errorf("failed to create temp directory %s: %w", tempDir, err)
+	tempDir, err := os.MkdirTemp("", "dlp-scan-")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp directory: %w", err)
 	}
 	return tempDir, nil
 }
 
 // cleanupTempDir removes the temporary directory and all its contents
 func cleanupTempDir(tempDir string) error {
-	if tempDir == "" || !strings.HasPrefix(tempDir, "/tmp/dlp-scan-") {
-		return fmt.Errorf("invalid temp directory path: %s", tempDir)
+	if tempDir == "" {
+		return fmt.Errorf("empty temp directory path")
 	}
 	return os.RemoveAll(tempDir)
 }
