@@ -17,50 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-const (
-	MAX_SCAN_FILES             = 1000
-	MAX_SCAN_SIZE_MB           = 100
-	MAX_SCAN_SIZE_BYTES        = MAX_SCAN_SIZE_MB * 1024 * 1024
-	MAX_SINGLE_FILE_SIZE_MB    = 5
-	MAX_SINGLE_FILE_SIZE_BYTES = MAX_SINGLE_FILE_SIZE_MB * 1024 * 1024
-	MAX_MATCHES_PER_FINDING    = 5
-)
-
-// DLP_EXCLUDE_PATTERNS defines file patterns to exclude from scanning
-var DLP_EXCLUDE_PATTERNS = []string{
-	".html",
-	".htm",
-	".css",
-	".js",
-	".jsx",
-	".ts",
-	".tsx",
-	".vue",
-	".svelte",
-	".map",
-	"node_modules",
-	"vendor",
-	"bower_components",
-	"venv",
-	".venv",
-	"virtualenv",
-	"__pycache__",
-	".npm",
-	".yarn",
-	".pnpm",
-	".pyc",
-	".so",
-	".dylib",
-	".dll",
-	".exe",
-	".jar",
-	".class",
-	".woff",
-	".woff2",
-	".ttf",
-	".otf",
-}
-
 // FileCandidate represents a file candidate for scanning
 type FileCandidate struct {
 	BucketName   string
@@ -80,11 +36,12 @@ type DLPScanResult struct {
 
 // DLPFinding represents an individual DLP finding from hawk-eye
 type DLPFinding struct {
-	FilePath            string   `json:"file_path"`
-	PatternName         string   `json:"pattern_name"`
-	Matches             []string `json:"matches"`
-	Severity            string   `json:"severity"`
-	SeverityDescription string   `json:"severity_description"`
+	FilePath    string   `json:"file_path"`
+	Type        string   `json:"type"`
+	PatternName string   `json:"pattern_name"`
+	Matches     []string `json:"matches"`
+	Severity    string   `json:"severity"`
+	Description string   `json:"description"`
 }
 
 // HawkEyeOutput represents the complete hawk-eye JSON output structure
@@ -101,7 +58,7 @@ func extractBucketNameFromArn(bucketArn string) string {
 	return ""
 }
 
-func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, fingerprintPath string, projectID uint32) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, projectID uint32) (*DLPScanResult, error) {
 	bucketName := extractBucketNameFromArn(bucketArn)
 	if bucketName == "" {
 		return nil, fmt.Errorf("failed to extract bucket name from ARN: %s", bucketArn)
@@ -136,7 +93,7 @@ func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, fi
 	selectedFiles := a.selectFilesToScan(ctx, filteredCandidates)
 	if len(selectedFiles) > 0 {
 		// Update scan results with new scan
-		newScanResults, err := a.downloadAndScanFiles(ctx, selectedFiles, bucketName, fingerprintPath)
+		newScanResults, err := a.downloadAndScanFiles(ctx, selectedFiles, bucketName)
 		if err != nil {
 			a.logger.Warnf(ctx, "Failed to download and scan files: %v", err)
 			// Keep previous scanResults if scan failed
@@ -184,8 +141,8 @@ func (a *accessAnalyzerClient) collectCandidateFiles(ctx context.Context, bucket
 		// Collect metadata for s3 objects in current batch
 		limitReached := false
 		for _, obj := range result.Contents {
-			if totalFiles >= MAX_SCAN_FILES {
-				a.logger.Warnf(ctx, "Reached maximum file metadata collection limit (%d files)", MAX_SCAN_FILES)
+			if totalFiles >= a.dlpConfig.MaxScanFiles {
+				a.logger.Warnf(ctx, "Reached maximum file metadata collection limit (%d files)", a.dlpConfig.MaxScanFiles)
 				limitReached = true
 				break
 			}
@@ -227,24 +184,24 @@ func (a *accessAnalyzerClient) selectFilesToScan(ctx context.Context, candidates
 
 	for _, candidate := range candidates {
 		// Reached limit
-		if len(selected) >= MAX_SCAN_FILES {
-			a.logger.Warnf(ctx, "Reached maximum file count limit (%d files)", MAX_SCAN_FILES)
+		if len(selected) >= a.dlpConfig.MaxScanFiles {
+			a.logger.Warnf(ctx, "Reached maximum file count limit (%d files)", a.dlpConfig.MaxScanFiles)
 			break
 		}
-		if totalSize+candidate.Size > MAX_SCAN_SIZE_BYTES {
-			a.logger.Warnf(ctx, "Reached maximum size limit (%d MB)", MAX_SCAN_SIZE_MB)
+		if totalSize+candidate.Size > a.dlpConfig.GetMaxScanSizeBytes() {
+			a.logger.Warnf(ctx, "Reached maximum size limit (%d MB)", a.dlpConfig.MaxScanSizeMB)
 			break
 		}
 
 		// Exclude files
 		// Skip files larger than MAX_SINGLE_FILE_SIZE
-		if candidate.Size > MAX_SINGLE_FILE_SIZE_BYTES {
+		if candidate.Size > a.dlpConfig.GetMaxSingleFileSizeBytes() {
 			a.logger.Debugf(ctx, "Skipping file %s: size %.2f MB exceeds single file limit of %d MB",
-				candidate.Key, float64(candidate.Size)/(1024*1024), MAX_SINGLE_FILE_SIZE_MB)
+				candidate.Key, float64(candidate.Size)/(1024*1024), a.dlpConfig.MaxSingleFileSizeMB)
 			continue
 		}
 		// Skip files matching exclude patterns
-		if slices.ContainsFunc(DLP_EXCLUDE_PATTERNS, func(p string) bool {
+		if slices.ContainsFunc(a.dlpConfig.ExcludeFilePatterns, func(p string) bool {
 			return strings.Contains(candidate.Key, p)
 		}) {
 			a.logger.Debugf(ctx, "Skipping file %s: matching exclude patterns", candidate.Key)
@@ -259,7 +216,7 @@ func (a *accessAnalyzerClient) selectFilesToScan(ctx context.Context, candidates
 }
 
 // Download and scan selected files (batch processing with directory scan)
-func (a *accessAnalyzerClient) downloadAndScanFiles(ctx context.Context, selectedFiles []FileCandidate, bucketName string, fingerprintPath string) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) downloadAndScanFiles(ctx context.Context, selectedFiles []FileCandidate, bucketName string) (*DLPScanResult, error) {
 	if len(selectedFiles) == 0 {
 		a.logger.Debugf(ctx, "No files selected for scanning")
 		return nil, nil
@@ -277,7 +234,7 @@ func (a *accessAnalyzerClient) downloadAndScanFiles(ctx context.Context, selecte
 	if err := a.downloadFiles(ctx, selectedFiles, tempDir); err != nil {
 		return nil, fmt.Errorf("failed to download files: %w", err)
 	}
-	scanResults, err := a.scanDirectoryWithResults(ctx, tempDir, bucketName, len(selectedFiles), fingerprintPath)
+	scanResults, err := a.scanDirectoryWithResults(ctx, tempDir, bucketName, len(selectedFiles))
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan directory: %w", err)
 	}
@@ -390,22 +347,30 @@ sources:
     fs1:
       quick_scan: true
       path: "%s"
+      exclude_patterns:
+        - "fingerprint.yaml"
 `
 
 // scanDirectoryWithResults executes DLP scan and returns structured results
-func (a *accessAnalyzerClient) scanDirectoryWithResults(ctx context.Context, tempDir, bucketName string, totalFiles int, fingerprintPath string) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) scanDirectoryWithResults(ctx context.Context, tempDir, bucketName string, totalFiles int) (*DLPScanResult, error) {
 	startTime := time.Now()
 	a.logger.Infof(ctx, "Starting hawk-eye DLP scan on directory: %s", tempDir)
 	outputFile := filepath.Join(tempDir, "hawkeye-results.json")
+
+	// Connection
 	connectionFile := filepath.Join(tempDir, "connection.yml")
 	connectionContent := fmt.Sprintf(CONNECTION_YAML_TEMPLATE, tempDir)
 	if err := os.WriteFile(connectionFile, []byte(connectionContent), 0644); err != nil {
 		return nil, fmt.Errorf("failed to write connection file: %w", err)
 	}
-	args := []string{"all", "--connection", connectionFile, "--shutup", "--json", outputFile}
-	if fingerprintPath != "" {
-		args = append(args, "--fingerprint", fingerprintPath)
+	// Fingerprint
+	fingerprintFile, err := a.dlpConfig.CopyFingerprintFile(tempDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup fingerprint file: %w", err)
 	}
+
+	// Cmd
+	args := []string{"all", "--connection", connectionFile, "--fingerprint", fingerprintFile, "--shutup", "--json", outputFile}
 	cmd := exec.CommandContext(ctx, "hawk_scanner", args...)
 	cmd.Dir = tempDir
 	cmd.Env = append(os.Environ(), "TERM=xterm") // Set TERM environment variable to avoid warning
@@ -460,20 +425,31 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 	for _, finding := range hawkEyeOutput.Fs {
 		path := strings.ReplaceAll(finding.FilePath, tempDir, "")
 
-		// Limit matches to maximum MAX_MATCHES_PER_FINDING items
+		// Limit matches to maximum matches per finding
 		matches := finding.Matches
-		if len(matches) > MAX_MATCHES_PER_FINDING {
-			remainingCount := len(matches) - MAX_MATCHES_PER_FINDING
-			matches = matches[:MAX_MATCHES_PER_FINDING]
+		totalMatchCount := len(matches)
+		if len(matches) > a.dlpConfig.MaxMatchesPerFinding {
+			remainingCount := len(matches) - a.dlpConfig.MaxMatchesPerFinding
+			matches = matches[:a.dlpConfig.MaxMatchesPerFinding]
 			matches = append(matches, fmt.Sprintf("... and %d more", remainingCount))
 		}
 
+		rule := a.dlpConfig.GetRule(finding.PatternName)
+		if rule == nil {
+			a.logger.Warnf(ctx, "Rule not found for pattern name: %s", finding.PatternName)
+			rule = &DLPRule{
+				Name:        "Unknown",
+				Description: "Unknown",
+			}
+		}
+
 		findings = append(findings, DLPFinding{
-			FilePath:            filepath.Join(bucketName, path),
-			PatternName:         finding.PatternName,
-			Matches:             matches,
-			Severity:            finding.Severity,
-			SeverityDescription: finding.SeverityDescription,
+			FilePath:    filepath.Join(bucketName, path),
+			Type:        rule.Type,
+			PatternName: rule.Name,
+			Description: rule.Description,
+			Matches:     matches,
+			Severity:    rule.CalculateSeverity(totalMatchCount),
 		})
 	}
 

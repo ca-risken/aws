@@ -1,0 +1,174 @@
+# DLP (Data Loss Prevention) Configuration
+# This file configures the DLP scanning behavior for S3 buckets
+
+# Scanning limits
+## Maximum number of files to scan per bucket
+max_scan_files: 1000
+# Maximum total size in MB for all files to scan
+max_scan_size_mb: 100
+# Maximum size in MB for a single file to be scanned
+max_single_file_size_mb: 5
+# Maximum number of matches to include per finding
+max_matches_per_finding: 5
+
+# File patterns to exclude from scanning
+# These patterns help avoid scanning unnecessary files and improve performance
+exclude_file_patterns:
+  - ".html"
+  - ".htm"
+  - ".css"
+  - ".js"
+  - ".jsx"
+  - ".ts"
+  - ".tsx"
+  - ".vue"
+  - ".svelte"
+  - ".map"
+  - "node_modules"
+  - "vendor"
+  - "bower_components"
+  - "venv"
+  - ".venv"
+  - "virtualenv"
+  - "__pycache__"
+  - ".npm"
+  - ".yarn"
+  - ".pnpm"
+  - ".pyc"
+  - ".so"
+  - ".dylib"
+  - ".dll"
+  - ".exe"
+  - ".jar"
+  - ".class"
+  - ".woff"
+  - ".woff2"
+  - ".ttf"
+  - ".otf"
+  - "fingerprint.yaml" # Exclude DLP fingerprint file
+
+# Use external fingerprint file instead of embedded regex patterns
+fingerprint_file_path: "yaml/fingerprint.yaml"
+
+# DLP detection rules (metadata only - regex patterns loaded from fingerprint file)
+# Each rule defines patterns to detect potentially sensitive information
+# Type:
+# - PII - Personal Identifiable Information
+# - Credential - API Key, Authentication Token, Service Account, Access Token, OAuth Client ID, OAuth Secret
+# - Cloud Resource - Cloud Resource Identifier
+# - Webhook URL - Webhook URL
+rules:
+  - name: "Email"
+    description: "Email addresses that could be personally identifiable information"
+    type: "PII"
+    severity_thresholds:
+      critical: 100
+      high: 30
+      medium: 5
+      low: 1
+  - name: "Phone Number"
+    description: "Phone numbers in various international formats"
+    type: "PII"
+  - name: "Aadhar"
+    description: "Indian Aadhar numbers"
+    type: "PII"
+  - name: "PAN"
+    description: "Permanent Account Number"
+    type: "PII"
+  - name: "Amazon MWS Auth Token"
+    description: "Amazon Marketplace Web Service authentication tokens"
+    type: "Credential"
+  - name: "Amazon SNS Topic Disclosure"
+    description: "Amazon Simple Notification Service topic ARNs"
+    type: "Cloud Resource"
+  - name: "AWS Access Key ID Value"
+    description: "AWS access key IDs in various formats"
+    type: "Credential"
+    severity_thresholds:
+      critical: 1 # Critical if 1+ AWS keys found
+  - name: "Cloudinary Credentials Disclosure"
+    description: "Cloudinary service credentials"
+    type: "Credential"
+  - name: "FCM Server Key"
+    description: "Firebase Cloud Messaging server keys"
+    type: "Credential"
+  - name: "Mailchimp API"
+    description: "Mailchimp API keys"
+    type: "Credential"
+  - name: "Slack access token"
+    description: "Slack bot access tokens"
+    type: "Credential"
+  - name: "Slack User token disclosure"
+    description: "Slack user tokens"
+    type: "Credential"
+  - name: "Slack Webhook"
+    description: "Slack webhook URLs"
+    type: "Webhook URL"
+  - name: "SonarQube Token"
+    description: "SonarQube authentication tokens"
+    type: "Credential"
+  - name: "AWS Access Key ID"
+    description: "AWS access key IDs"
+    type: "Credential"
+    severity_thresholds:
+      critical: 1 # Critical if 1+ AWS keys found
+  - name: "AWS Cognito Pool ID"
+    description: "AWS Cognito pool identifiers"
+    type: "Cloud Resource"
+  - name: "Basic Auth Credentials"
+    description: "Basic authentication credentials in URLs"
+    type: "Credential"
+  - name: "Dynatrace Token"
+    description: "Dynatrace API tokens"
+    type: "Credential"
+  - name: "Facebook Client ID"
+    description: "Facebook application client IDs"
+    type: "Credential"
+  - name: "Facebook Secret Key"
+    description: "Facebook application secret keys"
+    type: "Credential"
+  - name: "Google (GCP) Service-account"
+    description: "Google Cloud Platform service account credentials"
+    type: "Credential"
+  - name: "Google API key"
+    description: "Google API keys"
+    type: "Credential"
+  - name: "Linkedin Client ID"
+    description: "LinkedIn application client IDs"
+    type: "Credential"
+  - name: "Mailchimp API Key"
+    description: "Mailchimp API keys"
+    type: "Credential"
+  - name: "Mailgun API Key"
+    description: "Mailgun API keys"
+    type: "Credential"
+  - name: "Paypal Braintree Access Token"
+    description: "PayPal Braintree access tokens"
+    type: "Credential"
+  - name: "Pictatic API Key"
+    description: "Pictatic API keys"
+    type: "Credential"
+  - name: "Sendgrid API Key"
+    description: "SendGrid API keys"
+    type: "Credential"
+  - name: "Shopify Custom App Access Token"
+    description: "Shopify custom app access tokens"
+    type: "Credential"
+  - name: "Shopify Private App Access Token"
+    description: "Shopify private app access tokens"
+    type: "Credential"
+  - name: "Shopify Shared Secret"
+    description: "Shopify shared secrets"
+    type: "Credential"
+  - name: "Square Accesss Token"
+    description: "Square access tokens"
+    type: "Credential"
+  - name: "Square OAuth Secret"
+    description: "Square OAuth secrets"
+    type: "Credential"
+  - name: "Twilio API Key"
+    description: "Twilio API keys"
+    type: "Credential"
+  - name: "Twitter Secret"
+    description: "Twitter API secrets"
+    type: "Credential"
