@@ -58,6 +58,7 @@ func LoadDLPConfig(configPath string) (*DLPConfig, error) {
 
 	if configPath != "" {
 		// Load from external file
+		configPath = filepath.Clean(configPath)
 		yamlData, err = os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read DLP config file %s: %w", configPath, err)
@@ -128,6 +129,7 @@ func (c *DLPConfig) CopyFingerprintFile(destDir string) (string, error) {
 		}
 	} else {
 		// Use external file
+		fingerprintConfigPath = filepath.Clean(fingerprintConfigPath)
 		fingerprintData, err = os.ReadFile(fingerprintConfigPath)
 		if err != nil {
 			return "", fmt.Errorf("failed to read fingerprint file %s: %w", fingerprintConfigPath, err)
@@ -135,7 +137,7 @@ func (c *DLPConfig) CopyFingerprintFile(destDir string) (string, error) {
 	}
 
 	// Write to destination
-	if err := os.WriteFile(destFile, fingerprintData, 0644); err != nil {
+	if err := os.WriteFile(destFile, fingerprintData, 0600); err != nil {
 		return "", fmt.Errorf("failed to write fingerprint file: %w", err)
 	}
 	return destFile, nil
