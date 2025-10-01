@@ -27,13 +27,13 @@ type FileCandidate struct {
 
 // DLPScanResult represents the complete scan result
 type DLPScanResult struct {
-	BucketName      string       `json:"bucket_name"`
-	TotalFiles      int          `json:"total_files"`
-	Findings        []DLPFinding `json:"findings"`
-	ScanDuration    string       `json:"scan_duration"`
-	ScanTime        int64        `json:"scan_time"` // Unix
-	TotalSeverity   string       `json:"total_severity"`
-	ServerityReason string       `json:"serverity_reason"`
+	BucketName     string       `json:"bucket_name"`
+	TotalFiles     int          `json:"total_files"`
+	Findings       []DLPFinding `json:"findings"`
+	ScanDuration   string       `json:"scan_duration"`
+	ScanTime       int64        `json:"scan_time"` // Unix
+	TotalSeverity  string       `json:"total_severity"`
+	SeverityReason string       `json:"severity_reason"`
 }
 
 // DLPFinding represents an individual DLP finding from hawk-eye
@@ -458,13 +458,13 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 
 	// Create structured scan result
 	scanResult := &DLPScanResult{
-		BucketName:      bucketName,
-		TotalFiles:      totalFiles,
-		Findings:        findings,
-		ScanDuration:    scanDuration.String(),
-		ScanTime:        scanTime.Unix(),
-		TotalSeverity:   totalSeverity,
-		ServerityReason: severityReason,
+		BucketName:     bucketName,
+		TotalFiles:     totalFiles,
+		Findings:       findings,
+		ScanDuration:   scanDuration.String(),
+		ScanTime:       scanTime.Unix(),
+		TotalSeverity:  totalSeverity,
+		SeverityReason: severityReason,
 	}
 	a.logger.Debugf(ctx, "Processed %d DLP findings from hawk-eye scan", len(findings))
 	return scanResult, nil
