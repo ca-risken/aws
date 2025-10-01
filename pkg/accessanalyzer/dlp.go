@@ -27,11 +27,13 @@ type FileCandidate struct {
 
 // DLPScanResult represents the complete scan result
 type DLPScanResult struct {
-	BucketName   string       `json:"bucket_name"`
-	TotalFiles   int          `json:"total_files"`
-	Findings     []DLPFinding `json:"findings"`
-	ScanDuration string       `json:"scan_duration"`
-	ScanTime     int64        `json:"scan_time"` // Unix
+	BucketName      string       `json:"bucket_name"`
+	TotalFiles      int          `json:"total_files"`
+	Findings        []DLPFinding `json:"findings"`
+	ScanDuration    string       `json:"scan_duration"`
+	ScanTime        int64        `json:"scan_time"` // Unix
+	TotalSeverity   string       `json:"total_severity"`
+	ServerityReason string       `json:"serverity_reason"`
 }
 
 // DLPFinding represents an individual DLP finding from hawk-eye
@@ -344,7 +346,6 @@ const CONNECTION_YAML_TEMPLATE = `
 sources:
   fs:
     fs1:
-      quick_scan: true
       path: "%s"
       exclude_patterns:
         - "fingerprint.yaml"
@@ -452,14 +453,60 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 		})
 	}
 
+	// Calculate total severity based on individual finding severities
+	totalSeverity, severityReason := calculateTotalSeverity(findings)
+
 	// Create structured scan result
 	scanResult := &DLPScanResult{
-		BucketName:   bucketName,
-		TotalFiles:   totalFiles,
-		Findings:     findings,
-		ScanDuration: scanDuration.String(),
-		ScanTime:     scanTime.Unix(),
+		BucketName:      bucketName,
+		TotalFiles:      totalFiles,
+		Findings:        findings,
+		ScanDuration:    scanDuration.String(),
+		ScanTime:        scanTime.Unix(),
+		TotalSeverity:   totalSeverity,
+		ServerityReason: severityReason,
 	}
 	a.logger.Debugf(ctx, "Processed %d DLP findings from hawk-eye scan", len(findings))
 	return scanResult, nil
+}
+
+// calculateTotalSeverity determines the overall severity based on individual findings
+func calculateTotalSeverity(findings []DLPFinding) (string, string) {
+	if len(findings) == 0 {
+		return SEVERITY_LOW, "No findings detected"
+	}
+
+	// Count findings by severity
+	criticalCount := 0
+	highCount := 0
+	mediumCount := 0
+	lowCount := 0
+
+	for _, finding := range findings {
+		switch finding.Severity {
+		case SEVERITY_CRITICAL:
+			criticalCount++
+		case SEVERITY_HIGH:
+			highCount++
+		case SEVERITY_MEDIUM:
+			mediumCount++
+		case SEVERITY_LOW:
+			lowCount++
+		}
+	}
+
+	// Create summary reason with all severity counts
+	reason := fmt.Sprintf("CRITICAL: %d, HIGH: %d, MEDIUM: %d, LOW: %d", criticalCount, highCount, mediumCount, lowCount)
+
+	// Determine total severity based on conditions
+	switch {
+	case criticalCount >= 1 || highCount >= 5:
+		return SEVERITY_CRITICAL, reason
+	case highCount >= 1 || mediumCount >= 10:
+		return SEVERITY_HIGH, reason
+	case mediumCount >= 1:
+		return SEVERITY_MEDIUM, reason
+	default: // LOW: All other cases
+		return SEVERITY_LOW, reason
+	}
 }

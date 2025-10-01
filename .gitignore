@@ -6,3 +6,5 @@ env_local.sh
 go.work*
 tmp
 .claude
+testdata
+.DS_Store

@@ -22,6 +22,11 @@ var embeddedFingerprintYaml embed.FS
 const (
 	DEFAULT_DLP_CONFIG_FILE  = "yaml/dlp.yaml"
 	DEFAULT_FINGERPRINT_FILE = "yaml/fingerprint.yaml"
+
+	SEVERITY_LOW      = "LOW"
+	SEVERITY_MEDIUM   = "MEDIUM"
+	SEVERITY_HIGH     = "HIGH"
+	SEVERITY_CRITICAL = "CRITICAL"
 )
 
 // DLPConfig represents the complete DLP configuration
@@ -155,22 +160,22 @@ func (c *DLPConfig) GetRule(patternName string) *DLPRule {
 func (r *DLPRule) CalculateSeverity(matchCount int) string {
 	// If no thresholds are configured, default to LOW
 	if r.SeverityThresholds == nil {
-		return "LOW"
+		return SEVERITY_LOW
 	}
 
 	// Check thresholds from highest to lowest severity
 	if r.SeverityThresholds.Critical != nil && matchCount >= *r.SeverityThresholds.Critical {
-		return "CRITICAL"
+		return SEVERITY_CRITICAL
 	}
 	if r.SeverityThresholds.High != nil && matchCount >= *r.SeverityThresholds.High {
-		return "HIGH"
+		return SEVERITY_HIGH
 	}
 	if r.SeverityThresholds.Medium != nil && matchCount >= *r.SeverityThresholds.Medium {
-		return "MEDIUM"
+		return SEVERITY_MEDIUM
 	}
 	if r.SeverityThresholds.Low != nil && matchCount >= *r.SeverityThresholds.Low {
-		return "LOW"
+		return SEVERITY_LOW
 	}
 	// Default to LOW if rule not found
-	return "LOW"
+	return SEVERITY_LOW
 }
