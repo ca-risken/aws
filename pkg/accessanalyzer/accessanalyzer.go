@@ -154,7 +154,7 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *messa
 				strings.Contains(*data.Resource, "arn:aws:s3:::") &&
 				data.ResourceType == types.ResourceTypeAwsS3Bucket {
 				a.logger.Infof(ctx, "Running DLP scan for public S3 bucket: %s", *data.Resource)
-				dlpFindings, err := a.dlpScan(ctx, *data.Resource, msg.ProjectID)
+				dlpFindings, err := a.dlpScan(ctx, *data.Resource, msg.ProjectID, msg.FullScan)
 				if err != nil {
 					a.logger.Warnf(ctx, "DLP scan failed for bucket %s: %v", *data.Resource, err)
 				}
