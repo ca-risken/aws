@@ -52,6 +52,8 @@ fingerprint_file_path: "yaml/fingerprint.yaml"
 
 # DLP detection rules (metadata only - regex patterns loaded from fingerprint file)
 # Each rule defines patterns to detect potentially sensitive information
+# Note: Thresholds are based on unique value counts (Hawkeye deduplicates matches)
+#
 # Type:
 # - PII - Personal Identifiable Information
 # - Credential - API Key, Authentication Token, Service Account, Access Token, OAuth Client ID, OAuth Secret
@@ -65,7 +67,6 @@ rules:
       critical: 100
       high: 30
       medium: 5
-      low: 1
   - name: "Phone Number"
     description: "Phone numbers in various international formats"
     type: "PII"
@@ -172,3 +173,45 @@ rules:
   - name: "Twitter Secret"
     description: "Twitter API secrets"
     type: "Credential"
+
+  # Japanese PII Detection Rules
+  - name: "Japanese My Number"
+    description: "Japanese My Number (Social Security Number equivalent)"
+    type: "PII"
+    severity_thresholds:
+      high: 100
+  - name: "Japanese Prefecture"
+    description: "Japanese prefecture names (47 prefectures)"
+    type: "PII"
+    severity_thresholds:
+      high: 30
+  - name: "Japanese Address"
+    description: "Japanese addresses with city/ward/town patterns"
+    type: "PII"
+    severity_thresholds:
+      high: 50
+  - name: "Japanese Name (Kanji)"
+    description: "Japanese names written in Kanji characters with common surnames"
+    type: "PII"
+    severity_thresholds:
+      high: 50
+  - name: "Japanese Gender"
+    description: "Gender indicators in Japanese (男性/女性/男/女)"
+    type: "PII"
+    severity_thresholds:
+      high: 2
+  - name: "Japanese Age"
+    description: "Age indicators in Japanese (XX歳/XX才)"
+    type: "PII"
+    severity_thresholds:
+      high: 30
+  - name: "Japanese Birth Date (Kanji)"
+    description: "Birth dates in Japanese format (YYYY年MM月DD日)"
+    type: "PII"
+    severity_thresholds:
+      high: 30
+  - name: "Japanese Birth Date (Era)"
+    description: "Birth dates in Japanese era format (昭和/平成/令和 XX年XX月XX日)"
+    type: "PII"
+    severity_thresholds:
+      high: 30
