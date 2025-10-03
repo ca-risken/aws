@@ -215,3 +215,120 @@ rules:
     type: "PII"
     severity_thresholds:
       high: 30
+
+  # B2B Client Information Header Detection Rules
+  - name: "Client ID Header"
+    description: "Column/field names indicating client identifiers (クライアントID, client_id, customer_id)"
+    type: "Client Info"
+    file_filters:
+      include_extensions:
+        [
+          ".csv",
+          ".tsv",
+          ".log",
+          ".xlsx",
+          ".xls",
+          ".json",
+          ".txt",
+          ".pdf",
+          ".doc",
+          ".docx",
+          ".ppt",
+          ".pptx",
+        ]
+      exclude_file_name: ["*test*"]
+      min_size_kb: 1
+    severity_thresholds:
+      critical: 1
+  - name: "Account ID Header"
+    description: "Column/field names indicating account identifiers (アカウントID, account_id)"
+    type: "Client Info"
+    file_filters:
+      include_extensions:
+        [
+          ".csv",
+          ".tsv",
+          ".log",
+          ".xlsx",
+          ".xls",
+          ".json",
+          ".txt",
+          ".pdf",
+          ".doc",
+          ".docx",
+          ".ppt",
+          ".pptx",
+        ]
+      exclude_file_name: ["*test*"]
+      min_size_kb: 1
+    severity_thresholds:
+      critical: 1
+  - name: "Tenant ID Header"
+    description: "Column/field names indicating tenant/organization identifiers (テナントID, tenant_id, org_id)"
+    type: "Client Info"
+    file_filters:
+      include_extensions:
+        [
+          ".csv",
+          ".tsv",
+          ".log",
+          ".xlsx",
+          ".xls",
+          ".json",
+          ".txt",
+          ".pdf",
+          ".doc",
+          ".docx",
+          ".ppt",
+          ".pptx",
+        ]
+      exclude_file_name: ["*test*"]
+      min_size_kb: 1
+    severity_thresholds:
+      critical: 1
+  - name: "Contract Number Header"
+    description: "Column/field names indicating contract numbers (契約番号, contract_number)"
+    type: "Client Info"
+    file_filters:
+      include_extensions:
+        [
+          ".csv",
+          ".tsv",
+          ".log",
+          ".xlsx",
+          ".xls",
+          ".json",
+          ".txt",
+          ".pdf",
+          ".doc",
+          ".docx",
+          ".ppt",
+          ".pptx",
+        ]
+      exclude_file_name: ["*test*"]
+      min_size_kb: 1
+    severity_thresholds:
+      critical: 1
+  - name: "Company Name Header"
+    description: "Column/field names indicating company names (会社名, company_name)"
+    type: "Client Info"
+    file_filters:
+      include_extensions:
+        [
+          ".csv",
+          ".tsv",
+          ".log",
+          ".xlsx",
+          ".xls",
+          ".json",
+          ".txt",
+          ".pdf",
+          ".doc",
+          ".docx",
+          ".ppt",
+          ".pptx",
+        ]
+      exclude_file_name: ["*test*"]
+      min_size_kb: 1
+    severity_thresholds:
+      critical: 1

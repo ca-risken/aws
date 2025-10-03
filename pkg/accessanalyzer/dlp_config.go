@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
@@ -45,7 +46,15 @@ type DLPRule struct {
 	Name               string              `yaml:"name" validate:"required,min=1"`
 	Description        string              `yaml:"description"`
 	Type               string              `yaml:"type"`
+	FileFilters        *FileFilters        `yaml:"file_filters,omitempty"`
 	SeverityThresholds *SeverityThresholds `yaml:"severity_thresholds,omitempty"`
+}
+
+// FileFilters defines file metadata conditions for applying a rule
+type FileFilters struct {
+	IncludeExtensions []string `yaml:"include_extensions,omitempty"` // e.g., [".csv", ".tsv", ".log"]
+	ExcludeFileName   []string `yaml:"exclude_file_name,omitempty"`  // e.g., ["*_backup*", "*_temp*"]
+	MinSizeKB         *int     `yaml:"min_size_kb,omitempty"`        // Minimum file size in KB
 }
 
 // SeverityThresholds defines match count thresholds for different severity levels
@@ -178,4 +187,41 @@ func (r *DLPRule) CalculateSeverity(matchCount int) string {
 	}
 	// Default to LOW if rule not found
 	return SEVERITY_LOW
+}
+
+// IsApplicableToFile checks if this rule should be applied to the given file
+func (r *DLPRule) IsApplicableToFile(fileName string, fileSizeBytes int64) bool {
+	// No filters means apply to all files
+	if r.FileFilters == nil {
+		return true
+	}
+
+	// Check minimum file size
+	if r.FileFilters.MinSizeKB != nil {
+		fileSizeKB := int(fileSizeBytes / 1024)
+		if fileSizeKB < *r.FileFilters.MinSizeKB {
+			return false
+		}
+	}
+
+	// Check include extensions (if specified, file must match one of them)
+	if len(r.FileFilters.IncludeExtensions) > 0 {
+		ext := filepath.Ext(fileName)
+		if !slices.Contains(r.FileFilters.IncludeExtensions, ext) {
+			return false
+		}
+	}
+
+	// Check exclude file name patterns
+	if len(r.FileFilters.ExcludeFileName) > 0 {
+		baseName := filepath.Base(fileName)
+		for _, pattern := range r.FileFilters.ExcludeFileName {
+			matched, err := filepath.Match(pattern, baseName)
+			if err == nil && matched {
+				return false
+			}
+		}
+	}
+
+	return true
 }

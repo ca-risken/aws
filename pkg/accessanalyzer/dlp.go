@@ -429,15 +429,7 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 	for _, finding := range hawkEyeOutput.Fs {
 		path := strings.ReplaceAll(finding.FilePath, tempDir, "")
 
-		// Limit matches to maximum matches per finding
-		matches := finding.Matches
-		totalMatchCount := len(matches)
-		if len(matches) > a.dlpConfig.MaxMatchesPerFinding {
-			remainingCount := len(matches) - a.dlpConfig.MaxMatchesPerFinding
-			matches = matches[:a.dlpConfig.MaxMatchesPerFinding]
-			matches = append(matches, fmt.Sprintf("... and %d more", remainingCount))
-		}
-
+		// Get rule configuration
 		rule := a.dlpConfig.GetRule(finding.PatternName)
 		if rule == nil {
 			a.logger.Warnf(ctx, "Rule not found for pattern name: %s", finding.PatternName)
@@ -445,6 +437,27 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 				Name:        "Unknown",
 				Description: "Unknown",
 			}
+		}
+
+		// Check if rule is applicable to this file based on file filters
+		fileInfo, err := os.Stat(finding.FilePath)
+		if err != nil {
+			a.logger.Warnf(ctx, "Failed to get file info for %s: %v", finding.FilePath, err)
+		} else {
+			if !rule.IsApplicableToFile(finding.FilePath, fileInfo.Size()) {
+				a.logger.Debugf(ctx, "Skipping finding for %s: rule %s not applicable (file filters)",
+					finding.FilePath, rule.Name)
+				continue
+			}
+		}
+
+		// Limit matches to maximum matches per finding
+		matches := finding.Matches
+		totalMatchCount := len(matches)
+		if len(matches) > a.dlpConfig.MaxMatchesPerFinding {
+			remainingCount := len(matches) - a.dlpConfig.MaxMatchesPerFinding
+			matches = matches[:a.dlpConfig.MaxMatchesPerFinding]
+			matches = append(matches, fmt.Sprintf("... and %d more", remainingCount))
 		}
 
 		findings = append(findings, DLPFinding{
