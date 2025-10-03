@@ -60,18 +60,22 @@ func extractBucketNameFromArn(bucketArn string) string {
 	return ""
 }
 
-func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, projectID uint32) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, projectID uint32, fullScan bool) (*DLPScanResult, error) {
 	bucketName := extractBucketNameFromArn(bucketArn)
 	if bucketName == "" {
 		return nil, fmt.Errorf("failed to extract bucket name from ARN: %s", bucketArn)
 	}
 	a.logger.Infof(ctx, "Starting staged DLP scan for public S3 bucket: %s", bucketName)
 
-	// Check previous DLP scan results to avoid duplicate scanning
-	prevScanResult, err := a.getPreviousDLPFindings(ctx, bucketName, projectID)
-	if err != nil {
-		a.logger.Warnf(ctx, "Failed to get previous DLP findings: %v", err)
-		prevScanResult = nil
+	var err error
+	var prevScanResult *DLPScanResult
+	if !fullScan {
+		// Check previous DLP scan results to avoid duplicate scanning
+		prevScanResult, err = a.getPreviousDLPFindings(ctx, bucketName, projectID)
+		if err != nil {
+			a.logger.Warnf(ctx, "Failed to get previous DLP findings: %v", err)
+			prevScanResult = nil
+		}
 	}
 
 	// Collect metadata for s3 objects (lightweight)
@@ -425,15 +429,7 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 	for _, finding := range hawkEyeOutput.Fs {
 		path := strings.ReplaceAll(finding.FilePath, tempDir, "")
 
-		// Limit matches to maximum matches per finding
-		matches := finding.Matches
-		totalMatchCount := len(matches)
-		if len(matches) > a.dlpConfig.MaxMatchesPerFinding {
-			remainingCount := len(matches) - a.dlpConfig.MaxMatchesPerFinding
-			matches = matches[:a.dlpConfig.MaxMatchesPerFinding]
-			matches = append(matches, fmt.Sprintf("... and %d more", remainingCount))
-		}
-
+		// Get rule configuration
 		rule := a.dlpConfig.GetRule(finding.PatternName)
 		if rule == nil {
 			a.logger.Warnf(ctx, "Rule not found for pattern name: %s", finding.PatternName)
@@ -441,6 +437,27 @@ func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFil
 				Name:        "Unknown",
 				Description: "Unknown",
 			}
+		}
+
+		// Check if rule is applicable to this file based on file filters
+		fileInfo, err := os.Stat(finding.FilePath)
+		if err != nil {
+			a.logger.Warnf(ctx, "Failed to get file info for %s: %v", finding.FilePath, err)
+		} else {
+			if !rule.IsApplicableToFile(finding.FilePath, fileInfo.Size()) {
+				a.logger.Debugf(ctx, "Skipping finding for %s: rule %s not applicable (file filters)",
+					finding.FilePath, rule.Name)
+				continue
+			}
+		}
+
+		// Limit matches to maximum matches per finding
+		matches := finding.Matches
+		totalMatchCount := len(matches)
+		if len(matches) > a.dlpConfig.MaxMatchesPerFinding {
+			remainingCount := len(matches) - a.dlpConfig.MaxMatchesPerFinding
+			matches = matches[:a.dlpConfig.MaxMatchesPerFinding]
+			matches = append(matches, fmt.Sprintf("... and %d more", remainingCount))
 		}
 
 		findings = append(findings, DLPFinding{
