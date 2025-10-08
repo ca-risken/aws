@@ -21,6 +21,7 @@ import (
 	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
+	"github.com/ca-risken/common/pkg/dlp"
 	"github.com/ca-risken/common/pkg/logging"
 	"github.com/ca-risken/core/proto/finding"
 	"github.com/ca-risken/datasource-api/pkg/message"
@@ -41,13 +42,13 @@ type accessAnalyzerClient struct {
 	SQS           *sqs.Client
 	S3            *s3.Client
 	FindingClient finding.FindingServiceClient
-	dlpConfig     *DLPConfig
+	dlpConfig     *dlp.Config
 	logger        logging.Logger
 }
 
-func newAccessAnalyzerClient(ctx context.Context, region string, msg *message.AWSQueueMessage, ds []*riskenaws.DataSource, retry int, dlpConfigPath string, fc finding.FindingServiceClient, l logging.Logger) (accessAnalyzerAPI, error) {
+func newAccessAnalyzerClient(ctx context.Context, region string, msg *message.AWSQueueMessage, ds []*riskenaws.DataSource, retry int, fc finding.FindingServiceClient, l logging.Logger) (accessAnalyzerAPI, error) {
 	// Load DLP configuration
-	dlpConfig, err := LoadDLPConfig(dlpConfigPath)
+	dlpConfig, err := dlp.LoadConfig("") // use default config
 	if err != nil {
 		return nil, fmt.Errorf("failed to load DLP config: %w", err)
 	}
@@ -110,7 +111,7 @@ func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, assumeRole, ex
 
 type AccessAnalyzerFinding struct {
 	types.FindingSummary
-	DlpScan *DLPScanResult `json:"dlp_scan,omitempty"`
+	DlpScan *dlp.ScanResult `json:"dlp_scan,omitempty"`
 }
 
 func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {

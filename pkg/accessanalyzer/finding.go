@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ca-risken/common/pkg/dlp"
 	"github.com/ca-risken/core/proto/finding"
 	"github.com/ca-risken/datasource-api/pkg/message"
 )
 
 
 // getPreviousDLPFindings retrieves previous DLP scan results for the specified bucket
-func (a *accessAnalyzerClient) getPreviousDLPFindings(ctx context.Context, bucketName string, projectID uint32) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) getPreviousDLPFindings(ctx context.Context, bucketName string, projectID uint32) (*dlp.ScanResult, error) {
 	bucketArn := fmt.Sprintf("arn:aws:s3:::%s", bucketName)
 	a.logger.Debugf(ctx, "Retrieving previous DLP findings for bucket: %s", bucketArn)
 
@@ -74,7 +75,7 @@ func (a *accessAnalyzerClient) isDLPFinding(f *finding.Finding) bool {
 }
 
 // parseDLPFindingData parses DLP scan result data from Finding.Data
-func (a *accessAnalyzerClient) parseDLPFindingData(data string) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) parseDLPFindingData(data string) (*dlp.ScanResult, error) {
 	var parsedData map[string]any
 	if err := json.Unmarshal([]byte(data), &parsedData); err != nil {
 		return nil, fmt.Errorf("failed to parse finding data as JSON: %w", err)
@@ -92,7 +93,7 @@ func (a *accessAnalyzerClient) parseDLPFindingData(data string) (*DLPScanResult,
 		return nil, fmt.Errorf("failed to marshal dlp_scan data: %w", err)
 	}
 
-	var dlpResult DLPScanResult
+	var dlpResult dlp.ScanResult
 	if err := json.Unmarshal(dlpBytes, &dlpResult); err != nil {
 		return nil, fmt.Errorf("failed to parse DLP scan result: %w", err)
 	}
@@ -101,20 +102,20 @@ func (a *accessAnalyzerClient) parseDLPFindingData(data string) (*DLPScanResult,
 }
 
 // filterCandidatesWithCache filters file candidates based on previous scan results and object modification time
-func (a *accessAnalyzerClient) filterCandidatesWithCache(ctx context.Context, candidates []FileCandidate, previousResult *DLPScanResult, bucketName string) ([]FileCandidate, []DLPFinding) {
+func (a *accessAnalyzerClient) filterCandidatesWithCache(ctx context.Context, candidates []FileCandidate, previousResult *dlp.ScanResult, bucketName string) ([]FileCandidate, []dlp.Finding) {
 	if previousResult == nil {
 		a.logger.Debugf(ctx, "No previous findings available, scanning all %d candidates", len(candidates))
 		return candidates, nil
 	}
 
 	var toScan []FileCandidate
-	var cachedFindings []DLPFinding
+	var cachedFindings []dlp.Finding
 	skippedCount := 0
 
 	a.logger.Debugf(ctx, "Filtering candidates based on previous scan time: %v", time.Unix(previousResult.ScanTime, 0))
 
 	// Create map from findings for easier lookup
-	fileResults := make(map[string]DLPFinding)
+	fileResults := make(map[string]dlp.Finding)
 	for _, finding := range previousResult.Findings {
 		fileResults[finding.FilePath] = finding
 	}

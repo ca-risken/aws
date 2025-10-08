@@ -8,3 +8,5 @@ tmp
 .claude
 testdata
 .DS_Store
+.build/
+go.mod.orig
