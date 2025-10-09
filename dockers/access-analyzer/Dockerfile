@@ -2,7 +2,6 @@ FROM golang:1.24 AS builder
 WORKDIR /go/src/github.com/ca-risken/aws/
 COPY go.mod .
 COPY go.sum .
-COPY .build .build
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -buildvcs=false -o /go/bin/access-analyzer cmd/access-analyzer/main.go
