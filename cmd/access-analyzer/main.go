@@ -42,9 +42,6 @@ type AppConfig struct {
 	// aws
 	AWSRegion string `envconfig:"aws_region" default:"ap-northeast-1"` // Default region
 
-	// dlp
-	DLPConfigPath string `envconfig:"DLP_CONFIG_PATH" default:""`
-
 	// sqs
 	Debug string `default:"false"`
 
@@ -106,7 +103,7 @@ func main() {
 	if err != nil {
 		appLogger.Fatalf(ctx, "failed to create aws client, err=%+v", err)
 	}
-	handler := accessanalyzer.NewSqsHandler(fc, ac, awsc, conf.AWSRegion, conf.RetryMaxAttempts, conf.DLPConfigPath, appLogger)
+	handler := accessanalyzer.NewSqsHandler(fc, ac, awsc, conf.AWSRegion, conf.RetryMaxAttempts, appLogger)
 	sqsConf := &sqs.SQSConfig{
 		Debug:              conf.Debug,
 		AWSRegion:          conf.AWSRegion,

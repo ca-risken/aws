@@ -1,13 +1,10 @@
 package accessanalyzer
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -15,6 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/ca-risken/common/pkg/dlp"
 )
 
 // FileCandidate represents a file candidate for scanning
@@ -23,32 +21,6 @@ type FileCandidate struct {
 	Key          string
 	Size         int64
 	LastModified *time.Time
-}
-
-// DLPScanResult represents the complete scan result
-type DLPScanResult struct {
-	BucketName     string       `json:"bucket_name"`
-	TotalFiles     int          `json:"total_files"`
-	Findings       []DLPFinding `json:"findings"`
-	ScanDuration   string       `json:"scan_duration"`
-	ScanTime       int64        `json:"scan_time"` // Unix
-	TotalSeverity  string       `json:"total_severity"`
-	SeverityReason string       `json:"severity_reason"`
-}
-
-// DLPFinding represents an individual DLP finding from hawk-eye
-type DLPFinding struct {
-	FilePath    string   `json:"file_path"`
-	Type        string   `json:"type"`
-	PatternName string   `json:"pattern_name"`
-	Matches     []string `json:"matches"`
-	Severity    string   `json:"severity"`
-	Description string   `json:"description"`
-}
-
-// HawkEyeOutput represents the complete hawk-eye JSON output structure
-type HawkEyeOutput struct {
-	Fs []DLPFinding `json:"fs"`
 }
 
 func extractBucketNameFromArn(bucketArn string) string {
@@ -60,7 +32,7 @@ func extractBucketNameFromArn(bucketArn string) string {
 	return ""
 }
 
-func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, projectID uint32, fullScan bool) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, projectID uint32, fullScan bool) (*dlp.ScanResult, error) {
 	bucketName := extractBucketNameFromArn(bucketArn)
 	if bucketName == "" {
 		return nil, fmt.Errorf("failed to extract bucket name from ARN: %s", bucketArn)
@@ -68,7 +40,7 @@ func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, pr
 	a.logger.Infof(ctx, "Starting staged DLP scan for public S3 bucket: %s", bucketName)
 
 	var err error
-	var prevScanResult *DLPScanResult
+	var prevScanResult *dlp.ScanResult
 	if !fullScan {
 		// Check previous DLP scan results to avoid duplicate scanning
 		prevScanResult, err = a.getPreviousDLPFindings(ctx, bucketName, projectID)
@@ -85,8 +57,8 @@ func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, pr
 	}
 
 	var filteredCandidates []FileCandidate
-	var cachedFindings []DLPFinding
-	var scanResults *DLPScanResult
+	var cachedFindings []dlp.Finding
+	var scanResults *dlp.ScanResult
 	if prevScanResult != nil && prevScanResult.ScanTime > 0 {
 		// Filter candidates based on previous scan results and object modification time
 		filteredCandidates, cachedFindings = a.filterCandidatesWithCache(ctx, candidates, prevScanResult, bucketName)
@@ -222,7 +194,7 @@ func (a *accessAnalyzerClient) selectFilesToScan(ctx context.Context, candidates
 }
 
 // Download and scan selected files (batch processing with directory scan)
-func (a *accessAnalyzerClient) downloadAndScanFiles(ctx context.Context, selectedFiles []FileCandidate, bucketName string) (*DLPScanResult, error) {
+func (a *accessAnalyzerClient) downloadAndScanFiles(ctx context.Context, selectedFiles []FileCandidate, bucketName string) (*dlp.ScanResult, error) {
 	if len(selectedFiles) == 0 {
 		a.logger.Debugf(ctx, "No files selected for scanning")
 		return nil, nil
@@ -240,11 +212,15 @@ func (a *accessAnalyzerClient) downloadAndScanFiles(ctx context.Context, selecte
 	if err := a.downloadFiles(ctx, selectedFiles, tempDir); err != nil {
 		return nil, fmt.Errorf("failed to download files: %w", err)
 	}
-	scanResults, err := a.scanDirectoryWithResults(ctx, tempDir, bucketName, len(selectedFiles))
+
+	// Use common DLP scanner
+	scanner := dlp.NewScanner(a.dlpConfig)
+	result, err := scanner.ScanDirectory(ctx, tempDir, bucketName, len(selectedFiles))
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan directory: %w", err)
 	}
-	return scanResults, nil
+
+	return result, nil
 }
 
 // createTempDir creates a temporary directory for DLP scanning
@@ -346,184 +322,3 @@ func saveToLocalFile(reader io.Reader, localPath string) error {
 	return nil
 }
 
-const CONNECTION_YAML_TEMPLATE = `
-sources:
-  fs:
-    fs1:
-      path: "%s"
-      exclude_patterns:
-        - "fingerprint.yaml"
-`
-
-// scanDirectoryWithResults executes DLP scan and returns structured results
-func (a *accessAnalyzerClient) scanDirectoryWithResults(ctx context.Context, tempDir, bucketName string, totalFiles int) (*DLPScanResult, error) {
-	startTime := time.Now()
-	a.logger.Infof(ctx, "Starting hawk-eye DLP scan on directory: %s", tempDir)
-	outputFile := filepath.Join(tempDir, "hawkeye-results.json")
-
-	// Connection
-	connectionFile := filepath.Join(tempDir, "connection.yml")
-	connectionContent := fmt.Sprintf(CONNECTION_YAML_TEMPLATE, tempDir)
-	if err := os.WriteFile(connectionFile, []byte(connectionContent), 0600); err != nil {
-		return nil, fmt.Errorf("failed to write connection file: %w", err)
-	}
-	// Fingerprint
-	fingerprintFile, err := a.dlpConfig.CopyFingerprintFile(tempDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to setup fingerprint file: %w", err)
-	}
-
-	// Cmd
-	args := []string{"all", "--connection", connectionFile, "--fingerprint", fingerprintFile, "--shutup", "--json", outputFile}
-	cmd := exec.CommandContext(ctx, "hawk_scanner", args...)
-	cmd.Dir = tempDir
-	cmd.Env = append(os.Environ(), "TERM=xterm") // Set TERM environment variable to avoid warning
-
-	var stderr bytes.Buffer
-	var stdout bytes.Buffer
-	cmd.Stderr = &stderr
-	cmd.Stdout = &stdout
-	if err := cmd.Run(); err != nil {
-		errMsg := stderr.String()
-		outMsg := stdout.String()
-		a.logger.Errorf(ctx, "Failed to execute hawk_scanner: err=%v, stderr=%s, stdout=%s", err, errMsg, outMsg)
-		return nil, fmt.Errorf("hawk-eye scan failed: %w", err)
-	}
-
-	scanDuration := time.Since(startTime)
-	a.logger.Infof(ctx, "Hawk-eye DLP scan completed in %v: files=%d, bucket=%s", scanDuration, totalFiles, bucketName)
-	return a.processScanResults(ctx, outputFile, bucketName, tempDir, totalFiles, scanDuration, startTime)
-}
-
-// processScanResults reads hawk-eye results and processes them
-func (a *accessAnalyzerClient) processScanResults(ctx context.Context, outputFile, bucketName, tempDir string, totalFiles int, scanDuration time.Duration, scanTime time.Time) (*DLPScanResult, error) {
-	// Check if results file exists
-	if _, err := os.Stat(outputFile); os.IsNotExist(err) {
-		return nil, fmt.Errorf("hawk-eye results file not found: %s", outputFile)
-	}
-
-	// Read results file
-	resultsData, err := os.ReadFile(outputFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read results file: %w", err)
-	}
-
-	if len(resultsData) == 0 {
-		a.logger.Debugf(ctx, "Empty results file, no DLP findings detected")
-		return &DLPScanResult{
-			BucketName:   bucketName,
-			TotalFiles:   totalFiles,
-			Findings:     []DLPFinding{},
-			ScanDuration: scanDuration.String(),
-			ScanTime:     scanTime.Unix(),
-		}, nil
-	}
-
-	// Parse hawk-eye results
-	var hawkEyeOutput HawkEyeOutput
-	if err := json.Unmarshal(resultsData, &hawkEyeOutput); err != nil {
-		return nil, fmt.Errorf("failed to parse hawk-eye results as JSON: %w", err)
-	}
-
-	findings := []DLPFinding{}
-	for _, finding := range hawkEyeOutput.Fs {
-		path := strings.ReplaceAll(finding.FilePath, tempDir, "")
-
-		// Get rule configuration
-		rule := a.dlpConfig.GetRule(finding.PatternName)
-		if rule == nil {
-			a.logger.Warnf(ctx, "Rule not found for pattern name: %s", finding.PatternName)
-			rule = &DLPRule{
-				Name:        "Unknown",
-				Description: "Unknown",
-			}
-		}
-
-		// Check if rule is applicable to this file based on file filters
-		fileInfo, err := os.Stat(finding.FilePath)
-		if err != nil {
-			a.logger.Warnf(ctx, "Failed to get file info for %s: %v", finding.FilePath, err)
-		} else {
-			if !rule.IsApplicableToFile(finding.FilePath, fileInfo.Size()) {
-				a.logger.Debugf(ctx, "Skipping finding for %s: rule %s not applicable (file filters)",
-					finding.FilePath, rule.Name)
-				continue
-			}
-		}
-
-		// Limit matches to maximum matches per finding
-		matches := finding.Matches
-		totalMatchCount := len(matches)
-		if len(matches) > a.dlpConfig.MaxMatchesPerFinding {
-			remainingCount := len(matches) - a.dlpConfig.MaxMatchesPerFinding
-			matches = matches[:a.dlpConfig.MaxMatchesPerFinding]
-			matches = append(matches, fmt.Sprintf("... and %d more", remainingCount))
-		}
-
-		findings = append(findings, DLPFinding{
-			FilePath:    filepath.Join(bucketName, path),
-			Type:        rule.Type,
-			PatternName: rule.Name,
-			Description: rule.Description,
-			Matches:     matches,
-			Severity:    rule.CalculateSeverity(totalMatchCount),
-		})
-	}
-
-	// Calculate total severity based on individual finding severities
-	totalSeverity, severityReason := calculateTotalSeverity(findings)
-
-	// Create structured scan result
-	scanResult := &DLPScanResult{
-		BucketName:     bucketName,
-		TotalFiles:     totalFiles,
-		Findings:       findings,
-		ScanDuration:   scanDuration.String(),
-		ScanTime:       scanTime.Unix(),
-		TotalSeverity:  totalSeverity,
-		SeverityReason: severityReason,
-	}
-	a.logger.Debugf(ctx, "Processed %d DLP findings from hawk-eye scan", len(findings))
-	return scanResult, nil
-}
-
-// calculateTotalSeverity determines the overall severity based on individual findings
-func calculateTotalSeverity(findings []DLPFinding) (string, string) {
-	if len(findings) == 0 {
-		return SEVERITY_LOW, "No findings detected"
-	}
-
-	// Count findings by severity
-	criticalCount := 0
-	highCount := 0
-	mediumCount := 0
-	lowCount := 0
-
-	for _, finding := range findings {
-		switch finding.Severity {
-		case SEVERITY_CRITICAL:
-			criticalCount++
-		case SEVERITY_HIGH:
-			highCount++
-		case SEVERITY_MEDIUM:
-			mediumCount++
-		case SEVERITY_LOW:
-			lowCount++
-		}
-	}
-
-	// Create summary reason with all severity counts
-	reason := fmt.Sprintf("CRITICAL: %d, HIGH: %d, MEDIUM: %d, LOW: %d", criticalCount, highCount, mediumCount, lowCount)
-
-	// Determine total severity based on conditions
-	switch {
-	case criticalCount >= 1 || highCount >= 5:
-		return SEVERITY_CRITICAL, reason
-	case highCount >= 1 || mediumCount >= 10:
-		return SEVERITY_HIGH, reason
-	case mediumCount >= 1:
-		return SEVERITY_MEDIUM, reason
-	default: // LOW: All other cases
-		return SEVERITY_LOW, reason
-	}
-}
