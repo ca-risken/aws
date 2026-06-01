@@ -2906,154 +2906,154 @@ specificPluginSetting:
     score: 3
     recommend:
       risk: |-
-        ElasticSearch Access From IP Addresses
-        - Ensure only whitelisted IP addresses can access Amazon Elasticsearch domains.
-        - ElasticSearch domains should only be accessible only from whitelisted IP addresses to avoid unauthorized access.
+        OpenSearch Access From IP Addresses
+        - Ensure only whitelisted IP addresses can access Amazon OpenSearch domains.
+        - OpenSearch domains should only be accessible only from whitelisted IP addresses to avoid unauthorized access.
       recommendation: |-
-        Modify Elasticseach domain access policy to allow only known/whitelisted IP addresses.
-        - https://aws.amazon.com/blogs/security/how-to-control-access-to-your-amazon-elasticsearch-service-domain/
+        Modify OpenSearch domain access policy to allow only known/whitelisted IP addresses.
+        - https://aws.amazon.com/blogs/security/how-to-control-access-to-your-amazon-opensearch-service-domain/
   OpenSearch/opensearchClusterStatus:
     score: 6
     recommend:
       risk: |
-        ElasticSearch Cluster Status
-        - Ensure that ElasticSearch clusters are healthy, i.e status is green.
-        - Unhealthy Amazon ES clusters with the status set to "Red" is crucial for availability of ElasticSearch applications.
+        OpenSearch Cluster Status
+        - Ensure that OpenSearch clusters are healthy, i.e status is green.
+        - Unhealthy Amazon OpenSearch clusters with the status set to "Red" is crucial for availability of OpenSearch applications.
       recommendation: |
         Configure alarms to send notification if cluster status remains red for more than a minute.
-        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/cloudwatch-alarms.html
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/cloudwatch-alarms.html
   OpenSearch/opensearchCrossAccountAccess:
     score: 3
     recommend:
       risk: |-
-        ElasticSearch Domain Cross Account access
-        - Ensures that only trusted accounts have access to ElasticSearch domains.
-        - Allowing unrestricted access of ES clusters will cause data leaks and data loss. This can be prevented by restricting access only to the trusted entities by implementing the appropriate access policies.
+        OpenSearch Domain Cross Account access
+        - Ensures that only trusted accounts have access to OpenSearch domains.
+        - Allowing unrestricted access of OpenSearch clusters will cause data leaks and data loss. This can be prevented by restricting access only to the trusted entities by implementing the appropriate access policies.
       recommendation: |-
-        Restrict the access to ES clusters to allow only trusted accounts.
-        - http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-gsg-configure-access.html
+        Restrict the access to OpenSearch clusters to allow only trusted accounts.
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html
   OpenSearch/opensearchDedicatedMasterEnabled:
     score: 3
     recommend:
       risk: |-
-        ElasticSearch Dedicated Master Enabled
-        - Ensure that Amazon Elasticsearch domains are using dedicated master nodes.
-        - Using Elasticsearch dedicated master nodes to separate management tasks from index and search requests will improve the clusters ability to manage easily different types of workload and make them more resilient in production.
+        OpenSearch Dedicated Master Enabled
+        - Ensure that Amazon OpenSearch domains are using dedicated master nodes.
+        - Using OpenSearch dedicated master nodes to separate management tasks from index and search requests will improve the clusters ability to manage easily different types of workload and make them more resilient in production.
       recommendation: |-
         Update the domain to use dedicated master nodes.
-        - http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/createupdatedomains.html
   OpenSearch/opensearchDesiredInstanceTypes:
     tags:
       - cost
     recommend:
       risk: |
-        ElasticSearch Desired Instance Type
-        - Ensure that all your Amazon Elasticsearch cluster instances are of given instance types.
-        - Limiting the type of Amazon Elasticsearch cluster instances that can be provisioned will help address compliance requirements and prevent unexpected charges on the AWS bill.
+        OpenSearch Desired Instance Type
+        - Ensure that all your Amazon OpenSearch cluster instances are of given instance types.
+        - Limiting the type of Amazon OpenSearch cluster instances that can be provisioned will help address compliance requirements and prevent unexpected charges on the AWS bill.
       recommendation: |
         Reconfigure the domain to have the desired instance types.
-        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/createupdatedomains.html
   OpenSearch/opensearchDomainEncryptionEnabled:
     score: 3
     recommend:
       risk: |-
-        ElasticSearch Encryption Enabled
-        - Ensure that AWS ElasticSearch domains have encryption enabled.
-        - ElasticSearch domains should be encrypted to ensure that data is secured.
+        OpenSearch Encryption Enabled
+        - Ensure that AWS OpenSearch domains have encryption enabled.
+        - OpenSearch domains should be encrypted to ensure that data is secured.
       recommendation: |-
-        Ensure encryption-at-rest is enabled for all ElasticSearch domains.
-        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html
+        Ensure encryption-at-rest is enabled for all OpenSearch domains.
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/encryption-at-rest.html
   OpenSearch/opensearchEncryptedDomain:
     score: 3
     recommend:
       risk: |-
-        ElasticSearch Encrypted Domain
-        - Ensures ElasticSearch domains are encrypted with KMS
-        - ElasticSearch domains should be encrypted to ensure data at rest is secured.
+        OpenSearch Encrypted Domain
+        - Ensures OpenSearch domains are encrypted with KMS
+        - OpenSearch domains should be encrypted to ensure data at rest is secured.
       recommendation: |-
-        Ensure encryption-at-rest is enabled for all ElasticSearch domains.
-        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html
+        Ensure encryption-at-rest is enabled for all OpenSearch domains.
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/encryption-at-rest.html
   OpenSearch/opensearchExposedDomain:
     score: 3
     recommend:
       risk: |-
-        ElasticSearch Exposed Domain
-        - Ensures ElasticSearch domains are not publicly exposed to all AWS accounts
-        - ElasticSearch domains should not be publicly exposed to all AWS accounts.
+        OpenSearch Exposed Domain
+        - Ensures OpenSearch domains are not publicly exposed to all AWS accounts
+        - OpenSearch domains should not be publicly exposed to all AWS accounts.
       recommendation: |-
-        Update elasticsearch domain to set access control.
-        - https://aws.amazon.com/blogs/database/set-access-control-for-amazon-elasticsearch-service/
+        Update OpenSearch domain to set access control.
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/fgac.html
   OpenSearch/opensearchHttpsOnly:
     score: 3
     recommend:
       risk: |-
-        ElasticSearch HTTPS Only
-        - Ensures ElasticSearch domains are configured to enforce HTTPS connections
-        - ElasticSearch domains should be configured to enforce HTTPS connections for all clients to ensure encryption of data in transit.
+        OpenSearch HTTPS Only
+        - Ensures OpenSearch domains are configured to enforce HTTPS connections
+        - OpenSearch domains should be configured to enforce HTTPS connections for all clients to ensure encryption of data in transit.
       recommendation: |-
-        Ensure HTTPS connections are enforced for all ElasticSearch domains.
-        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html
+        Ensure HTTPS connections are enforced for all OpenSearch domains.
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/createupdatedomains.html
   OpenSearch/opensearchLoggingEnabled:
     score: 3
     recommend:
       risk: |-
-        ElasticSearch Logging Enabled
-        - Ensures ElasticSearch domains are configured to log data to CloudWatch
-        - ElasticSearch domains should be configured with logging enabled with logs sent to CloudWatch for analysis and long-term storage.
+        OpenSearch Logging Enabled
+        - Ensures OpenSearch domains are configured to log data to CloudWatch
+        - OpenSearch domains should be configured with logging enabled with logs sent to CloudWatch for analysis and long-term storage.
       recommendation: |-
-        Ensure logging is enabled and a CloudWatch log group is specified for each ElasticSearch domain.
-        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-slow-logs
+        Ensure logging is enabled and a CloudWatch log group is specified for each OpenSearch domain.
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/createdomain-configure-slow-logs.html
   OpenSearch/opensearchNodeToNodeEncryption:
     score: 3
     recommend:
       risk: |-
-        ElasticSearch Node To Node Encryption
-        - Ensures ElasticSearch domain traffic is encrypted in transit between nodes
-        - ElasticSearch domains should use node-to-node encryption to ensure data in transit remains encrypted using TLS 1.2.
+        OpenSearch Node To Node Encryption
+        - Ensures OpenSearch domain traffic is encrypted in transit between nodes
+        - OpenSearch domains should use node-to-node encryption to ensure data in transit remains encrypted using TLS 1.2.
       recommendation: |-
-        Ensure node-to-node encryption is enabled for all ElasticSearch domains.
-        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/ntn.html
+        Ensure node-to-node encryption is enabled for all OpenSearch domains.
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ntn.html
   OpenSearch/opensearchPublicEndpoint:
     score: 3
     recommend:
       risk: |-
-        ElasticSearch Public Service Domain
-        - Ensures ElasticSearch domains are created with private VPC endpoint options
-        - ElasticSearch domains can either be created with a public endpoint or with a VPC configuration that enables internal VPC communication. Domains should be created without a public endpoint to prevent potential public access to the domain.
+        OpenSearch Public Service Domain
+        - Ensures OpenSearch domains are created with private VPC endpoint options
+        - OpenSearch domains can either be created with a public endpoint or with a VPC configuration that enables internal VPC communication. Domains should be created without a public endpoint to prevent potential public access to the domain.
       recommendation: |-
-        Configure the ElasticSearch domain to use a VPC endpoint for secure VPC communication.
-        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-vpc.html
+        Configure the OpenSearch domain to use a VPC endpoint for secure VPC communication.
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/vpc.html
   OpenSearch/opensearchRequireIAMAuth:
     score: 3
     recommend:
       risk: |-
-        ElasticSearch IAM Authentication
-        - Ensures ElasticSearch domains require IAM Authentication
-        - ElasticSearch domains can allow access without IAM authentication by having a policy that does not specify the principal or has a wildcard principal
+        OpenSearch IAM Authentication
+        - Ensures OpenSearch domains require IAM Authentication
+        - OpenSearch domains can allow access without IAM authentication by having a policy that does not specify the principal or has a wildcard principal
       recommendation: |-
-        Configure the ElasticSearch domain to have an access policy without a global principal or no principal
-        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-ac.html
+        Configure the OpenSearch domain to have an access policy without a global principal or no principal
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html
   OpenSearch/opensearchTlsVersion:
     score: 3
     recommend:
       risk: |-
-        ElasticSearch TLS Version
-        - Ensure ElasticSearch domain is using the latest security policy to only allow TLS v1.2
-        - ElasticSearch domains should be configured to enforce TLS version 1.2 for all clients to ensure encryption of data in transit with updated features.
+        OpenSearch TLS Version
+        - Ensure OpenSearch domain is using the latest security policy to only allow TLS v1.2
+        - OpenSearch domains should be configured to enforce TLS version 1.2 for all clients to ensure encryption of data in transit with updated features.
       recommendation: |-
-        Update elasticsearch domain to set TLSSecurityPolicy to contain TLS version 1.2.
-        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/infrastructure-security.html
+        Update OpenSearch domain to set TLSSecurityPolicy to contain TLS version 1.2.
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/infrastructure-security.html
   OpenSearch/opensearchUpgradeAvailable:
     tags:
       - operation
     recommend:
       risk: |-
-        ElasticSearch Upgrade Available
-        - Ensures ElasticSearch domains are running the latest service software
-        - ElasticSearch domains should be configured to run the latest service software which often contains security updates.
+        OpenSearch Upgrade Available
+        - Ensures OpenSearch domains are running the latest service software
+        - OpenSearch domains should be configured to run the latest service software which often contains security updates.
       recommendation: |-
-        Ensure each ElasticSearch domain is running the latest service software and update out-of-date domains.
-        - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-version-migration.html
+        Ensure each OpenSearch domain is running the latest service software and update out-of-date domains.
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/version-migration.html
   ElastiCache/elasticCacheClusterHasTags:
     score: 3
     recommend:
