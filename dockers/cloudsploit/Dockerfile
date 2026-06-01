@@ -6,9 +6,9 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -buildvcs=false -o /go/bin/cloudsploit cmd/cloudsploit/main.go
 
-FROM node:lts-alpine3.12 AS cloudsploit
-# 2023/03/20時点で最新
-ARG CLOUDSPLOIT_COMMIT_HASH=3d5f72d46e495ffcb8d9ebf44e60b6551fddbf4e
+FROM node:lts-alpine3.18 AS cloudsploit
+# 2023/06/26時点。bucketPolicyCloudFrontOacのisValidCondition戻り値型ガード追加を含む最小限のアップデート
+ARG CLOUDSPLOIT_COMMIT_HASH=6050cfc09982070e4aca420c2bb9f24a91a2ef70
 RUN apk add --no-cache ca-certificates tzdata git \
   && git clone https://github.com/aquasecurity/cloudsploit.git /opt/cloudsploit \
   && cd /opt/cloudsploit \
@@ -21,7 +21,7 @@ RUN yarn install --frozen-lockfile \
 
 FROM public.ecr.aws/risken/base/risken-base:v0.0.1 AS risken-base
 
-FROM node:lts-alpine3.12
+FROM node:lts-alpine3.18
 COPY --from=builder /go/bin/cloudsploit /usr/local/cloudsploit/bin/
 COPY --from=cloudsploit /opt/cloudsploit /opt/cloudsploit
 COPY --from=risken-base /usr/local/bin/env-injector /usr/local/bin/
