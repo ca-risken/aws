@@ -2902,7 +2902,7 @@ specificPluginSetting:
       recommendation: |-
         Ensure that the number of running EMR cluster instances matches the expected count. If instances are launched above the threshold, investigate to ensure they are legitimate.
         - https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-manage-view-clusters.html
-  ES/esAccessFromIps:
+  OpenSearch/opensearchAccessFromIps:
     score: 3
     recommend:
       risk: |-
@@ -2912,7 +2912,7 @@ specificPluginSetting:
       recommendation: |-
         Modify Elasticseach domain access policy to allow only known/whitelisted IP addresses.
         - https://aws.amazon.com/blogs/security/how-to-control-access-to-your-amazon-elasticsearch-service-domain/
-  ES/esClusterStatus:
+  OpenSearch/opensearchClusterStatus:
     score: 6
     recommend:
       risk: |
@@ -2922,7 +2922,7 @@ specificPluginSetting:
       recommendation: |
         Configure alarms to send notification if cluster status remains red for more than a minute.
         - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/cloudwatch-alarms.html
-  ES/esCrossAccountAccess:
+  OpenSearch/opensearchCrossAccountAccess:
     score: 3
     recommend:
       risk: |-
@@ -2932,7 +2932,7 @@ specificPluginSetting:
       recommendation: |-
         Restrict the access to ES clusters to allow only trusted accounts.
         - http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-gsg-configure-access.html
-  ES/esDedicatedMasterEnabled:
+  OpenSearch/opensearchDedicatedMasterEnabled:
     score: 3
     recommend:
       risk: |-
@@ -2942,7 +2942,7 @@ specificPluginSetting:
       recommendation: |-
         Update the domain to use dedicated master nodes.
         - http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html
-  ES/esDesiredInstanceTypes:
+  OpenSearch/opensearchDesiredInstanceTypes:
     tags:
       - cost
     recommend:
@@ -2953,7 +2953,7 @@ specificPluginSetting:
       recommendation: |
         Reconfigure the domain to have the desired instance types.
         - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html
-  ES/esDomainEncryptionEnabled:
+  OpenSearch/opensearchDomainEncryptionEnabled:
     score: 3
     recommend:
       risk: |-
@@ -2963,7 +2963,7 @@ specificPluginSetting:
       recommendation: |-
         Ensure encryption-at-rest is enabled for all ElasticSearch domains.
         - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html
-  ES/esEncryptedDomain:
+  OpenSearch/opensearchEncryptedDomain:
     score: 3
     recommend:
       risk: |-
@@ -2973,7 +2973,7 @@ specificPluginSetting:
       recommendation: |-
         Ensure encryption-at-rest is enabled for all ElasticSearch domains.
         - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html
-  ES/esExposedDomain:
+  OpenSearch/opensearchExposedDomain:
     score: 3
     recommend:
       risk: |-
@@ -2983,7 +2983,7 @@ specificPluginSetting:
       recommendation: |-
         Update elasticsearch domain to set access control.
         - https://aws.amazon.com/blogs/database/set-access-control-for-amazon-elasticsearch-service/
-  ES/esHttpsOnly:
+  OpenSearch/opensearchHttpsOnly:
     score: 3
     recommend:
       risk: |-
@@ -2993,7 +2993,7 @@ specificPluginSetting:
       recommendation: |-
         Ensure HTTPS connections are enforced for all ElasticSearch domains.
         - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html
-  ES/esLoggingEnabled:
+  OpenSearch/opensearchLoggingEnabled:
     score: 3
     recommend:
       risk: |-
@@ -3003,7 +3003,7 @@ specificPluginSetting:
       recommendation: |-
         Ensure logging is enabled and a CloudWatch log group is specified for each ElasticSearch domain.
         - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-slow-logs
-  ES/esNodeToNodeEncryption:
+  OpenSearch/opensearchNodeToNodeEncryption:
     score: 3
     recommend:
       risk: |-
@@ -3013,7 +3013,7 @@ specificPluginSetting:
       recommendation: |-
         Ensure node-to-node encryption is enabled for all ElasticSearch domains.
         - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/ntn.html
-  ES/esPublicEndpoint:
+  OpenSearch/opensearchPublicEndpoint:
     score: 3
     recommend:
       risk: |-
@@ -3023,7 +3023,7 @@ specificPluginSetting:
       recommendation: |-
         Configure the ElasticSearch domain to use a VPC endpoint for secure VPC communication.
         - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-vpc.html
-  ES/esRequireIAMAuth:
+  OpenSearch/opensearchRequireIAMAuth:
     score: 3
     recommend:
       risk: |-
@@ -3033,7 +3033,7 @@ specificPluginSetting:
       recommendation: |-
         Configure the ElasticSearch domain to have an access policy without a global principal or no principal
         - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-ac.html
-  ES/esTlsVersion:
+  OpenSearch/opensearchTlsVersion:
     score: 3
     recommend:
       risk: |-
@@ -3043,7 +3043,7 @@ specificPluginSetting:
       recommendation: |-
         Update elasticsearch domain to set TLSSecurityPolicy to contain TLS version 1.2.
         - https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/infrastructure-security.html
-  ES/esUpgradeAvailable:
+  OpenSearch/opensearchUpgradeAvailable:
     tags:
       - operation
     recommend:
