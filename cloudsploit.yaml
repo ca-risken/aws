@@ -2911,7 +2911,7 @@ specificPluginSetting:
         - OpenSearch domains should only be accessible only from whitelisted IP addresses to avoid unauthorized access.
       recommendation: |-
         Modify OpenSearch domain access policy to allow only known/whitelisted IP addresses.
-        - https://aws.amazon.com/blogs/security/how-to-control-access-to-your-amazon-opensearch-service-domain/
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#ac-types-ip
   OpenSearch/opensearchClusterStatus:
     score: 6
     recommend:
@@ -2931,7 +2931,7 @@ specificPluginSetting:
         - Allowing unrestricted access of OpenSearch clusters will cause data leaks and data loss. This can be prevented by restricting access only to the trusted entities by implementing the appropriate access policies.
       recommendation: |-
         Restrict the access to OpenSearch clusters to allow only trusted accounts.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/cross-cluster-search.html
   OpenSearch/opensearchDedicatedMasterEnabled:
     score: 3
     recommend:
@@ -2941,7 +2941,7 @@ specificPluginSetting:
         - Using OpenSearch dedicated master nodes to separate management tasks from index and search requests will improve the clusters ability to manage easily different types of workload and make them more resilient in production.
       recommendation: |-
         Update the domain to use dedicated master nodes.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/createupdatedomains.html
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-dedicatedmasternodes.html
   OpenSearch/opensearchDesiredInstanceTypes:
     tags:
       - cost
@@ -2952,7 +2952,7 @@ specificPluginSetting:
         - Limiting the type of Amazon OpenSearch cluster instances that can be provisioned will help address compliance requirements and prevent unexpected charges on the AWS bill.
       recommendation: |
         Reconfigure the domain to have the desired instance types.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/createupdatedomains.html
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/supported-instance-types.html
   OpenSearch/opensearchDomainEncryptionEnabled:
     score: 3
     recommend:
@@ -3022,7 +3022,7 @@ specificPluginSetting:
         - OpenSearch domains can either be created with a public endpoint or with a VPC configuration that enables internal VPC communication. Domains should be created without a public endpoint to prevent potential public access to the domain.
       recommendation: |-
         Configure the OpenSearch domain to use a VPC endpoint for secure VPC communication.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/vpc.html
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/os-vpc.html
   OpenSearch/opensearchRequireIAMAuth:
     score: 3
     recommend:
@@ -3042,7 +3042,7 @@ specificPluginSetting:
         - OpenSearch domains should be configured to enforce TLS version 1.2 for all clients to ensure encryption of data in transit with updated features.
       recommendation: |-
         Update OpenSearch domain to set TLSSecurityPolicy to contain TLS version 1.2.
-        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/infrastructure-security.html
+        - https://docs.aws.amazon.com/opensearch-service/latest/developerguide/what-is.html
   OpenSearch/opensearchUpgradeAvailable:
     tags:
       - operation
