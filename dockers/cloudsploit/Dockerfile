@@ -8,7 +8,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -buildvcs=false -o /go/bin/cloudsploit cmd
 
 FROM node:lts-alpine3.18 AS cloudsploit
 # 2023/06/26時点。bucketPolicyCloudFrontOacのisValidCondition戻り値型ガード追加を含む最小限のアップデート
-ARG CLOUDSPLOIT_COMMIT_HASH=6050cfc09982070e4aca420c2bb9f24a91a2ef70
+ARG CLOUDSPLOIT_COMMIT_HASH=006c1cb73c1dc1bf2446b5e41c90f887b5cc5a09
 RUN apk add --no-cache ca-certificates tzdata git \
   && git clone https://github.com/aquasecurity/cloudsploit.git /opt/cloudsploit \
   && cd /opt/cloudsploit \
