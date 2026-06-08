@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -84,6 +85,9 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 	var results []*cloudSploitResult
 	var wg sync.WaitGroup
 	resultChan := make(chan []*cloudSploitResult)
+	// errChan は EmptyOutputError 専用。cloudsploit本体のバグ起因で空出力が返ったときだけ
+	// SQS リトライを発火させる目的で残している。それ以外の通常エラーは握りつぶす。
+	errChan := make(chan error, 1)
 	s.logger.Debugf(ctx, "exec parallel scan: accountID=%s, plugins=%d, parallelScanNum=%d, maxMemSizeMB=%d",
 		msg.AccountID, len(s.cloudsploitSetting.SpecificPluginSetting), s.cloudsploitConf.ParallelScanNum, s.cloudsploitConf.MaxMemSizeMB)
 	semaphore := make(chan struct{}, s.cloudsploitConf.ParallelScanNum) // parallel scan
@@ -124,7 +128,17 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 						msg.AccountID, category, pluginName, int(s.cloudsploitConf.ScanTimeout.Minutes()))
 					return
 				}
-				// プラグイン単位の失敗は全体を止めず、ログだけ残して次へ進む。
+				// EmptyOutputError は cloudsploit本体のバグ起因で再スキャンで回復しうるため、
+				// errChan に流して上位で SQS リトライを発火させる（旧挙動を維持）。
+				var empty EmptyOutputError
+				if errors.As(err, &empty) {
+					select {
+					case errChan <- fmt.Errorf("accountID=%s, category=%s, plugin=%s, error=%w", accountID, category, pluginName, err):
+					default:
+					}
+					return
+				}
+				// それ以外の通常エラーは全体を止めず、ログだけ残して次へ進む。
 				// 失敗ログは週次でCloudWatch Logs Insightsから抽出して傾向分析する想定。
 				s.logger.Errorf(ctx, "plugin scan failed: accountID=%s, category=%s, plugin=%s, error=%+v",
 					accountID, category, pluginName, err)
@@ -154,7 +168,13 @@ COLLECTION_LOOP:
 		select {
 		case <-done:
 			close(resultChan)
+			close(errChan)
 			break COLLECTION_LOOP
+		case err := <-errChan:
+			// EmptyOutputError 検出時は run() 全体を中断して上位で SQS リトライさせる。
+			if err != nil {
+				return nil, fmt.Errorf("scan error: %w", err)
+			}
 		case res, ok := <-resultChan:
 			if !ok {
 				continue
@@ -198,7 +218,7 @@ func (s *SqsHandler) scan(ctx context.Context, accountID, category, pluginName s
 		return nil, err
 	}
 	if len(buf) == 0 {
-		return nil, fmt.Errorf("scan output file is empty")
+		return nil, EmptyOutputError{errors.New("scan output file is empty")}
 	}
 
 	var results []*cloudSploitResult
