@@ -162,13 +162,13 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 	}()
 
 	// Result collection loop (blocking)
-COLLECTION_LOOP:
 	for {
 		select {
 		case <-done:
+			// Finish all scan
 			close(resultChan)
 			close(errChan)
-			break COLLECTION_LOOP
+			goto COLLECTION_COMPLETE
 		case err := <-errChan:
 			// EmptyOutputError 検出時は run() 全体を中断して上位で SQS リトライさせる。
 			if err != nil {
@@ -181,6 +181,8 @@ COLLECTION_LOOP:
 			results = append(results, res...)
 		}
 	}
+
+COLLECTION_COMPLETE:
 	s.logger.Debugf(ctx, "end parallel scan: accountID=%s, plugins=%d, parallelScanNum=%d, maxMemSizeMB=%d",
 		msg.AccountID, len(s.cloudsploitSetting.SpecificPluginSetting), s.cloudsploitConf.ParallelScanNum, s.cloudsploitConf.MaxMemSizeMB)
 	if len(results) > 0 {
