@@ -2,7 +2,6 @@ package cloudsploit
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -86,14 +85,21 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	if err != nil {
 		s.logger.Errorf(ctx, "Failed to exec cloudsploit, error: %v", err)
 		s.updateStatusToError(ctx, &status, err)
-		var target EmptyOutputError
-		if errors.As(err, &target) {
-			s.logger.Warnf(ctx, "EmptyOutputError detected. Retry scanning ...: %v", err)
-			return err // Retryable error
-		}
 		return mimosasqs.WrapNonRetryable(err)
 	}
 	s.logger.Infof(ctx, "end cloudsploit scan, RequestID=%s", requestID)
+
+	// 結果0件のときは putFindings/ClearScore を両方スキップして前回のFindingを保持する。
+	// cloudsploit本体やプラグインが総崩れしたときに、UI上のFindingが一気に消える事故を防ぐため。
+	if len(cloudsploitResult) == 0 {
+		s.logger.Warnf(ctx, "scan result is empty, skip putFindings and ClearScore to preserve previous findings. AWSID: %v", msg.AWSID)
+		if err := s.updateScanStatusSuccess(ctx, &status, "scan result is empty. previous findings are preserved."); err != nil {
+			s.logger.Errorf(ctx, "Faild to update scan status. AWSID: %v, error: %v", msg.AWSID, err)
+			return mimosasqs.WrapNonRetryable(err)
+		}
+		s.logger.Infof(ctx, "end Scan, RequestID=%s", requestID)
+		return nil
+	}
 
 	// Put Finding and Tag Finding
 	if err := s.putFindings(ctx, cloudsploitResult, msg); err != nil {

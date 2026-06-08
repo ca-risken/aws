@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -85,7 +84,6 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 	var results []*cloudSploitResult
 	var wg sync.WaitGroup
 	resultChan := make(chan []*cloudSploitResult)
-	errChan := make(chan error, 1)
 	s.logger.Debugf(ctx, "exec parallel scan: accountID=%s, plugins=%d, parallelScanNum=%d, maxMemSizeMB=%d",
 		msg.AccountID, len(s.cloudsploitSetting.SpecificPluginSetting), s.cloudsploitConf.ParallelScanNum, s.cloudsploitConf.MaxMemSizeMB)
 	semaphore := make(chan struct{}, s.cloudsploitConf.ParallelScanNum) // parallel scan
@@ -111,9 +109,7 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 				if allScanCtx.Err() == context.DeadlineExceeded {
 					s.logger.Warnf(ctx, "scan timeout: accountID=%s, category=%s, plugin=%s, timeout=%d(min)",
 						msg.AccountID, category, pluginName, int(s.cloudsploitConf.ScanTimeoutAll.Minutes()))
-					return
 				}
-				errChan <- allScanCtx.Err()
 				return
 			case semaphore <- struct{}{}: // get semaphore
 				defer func() { <-semaphore }()
@@ -127,10 +123,12 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 					s.logger.Warnf(ctx, "scan timeout: accountID=%s, category=%s, plugin=%s, timeout=%d(min)",
 						msg.AccountID, category, pluginName, int(s.cloudsploitConf.ScanTimeout.Minutes()))
 					return
-				} else {
-					errChan <- fmt.Errorf("accountID=%s, category=%s, plugin=%s, error=%w", accountID, category, pluginName, err)
-					return
 				}
+				// プラグイン単位の失敗は全体を止めず、ログだけ残して次へ進む。
+				// 失敗ログは週次でCloudWatch Logs Insightsから抽出して傾向分析する想定。
+				s.logger.Errorf(ctx, "plugin scan failed: accountID=%s, category=%s, plugin=%s, error=%+v",
+					accountID, category, pluginName, err)
+				return
 			}
 			endUnix := time.Now().Unix()
 			s.logger.Debugf(ctx, "end scan: accountID=%s, category=%s, plugin=%s, time=%d(sec)", accountID, category, pluginName, endUnix-startUnix)
@@ -151,17 +149,12 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 	}()
 
 	// Result collection loop (blocking)
+COLLECTION_LOOP:
 	for {
 		select {
 		case <-done:
-			// Finish all scan
 			close(resultChan)
-			close(errChan)
-			goto COLLECTION_COMPLETE
-		case err := <-errChan:
-			if err != nil && err != context.Canceled && err != context.DeadlineExceeded {
-				return nil, fmt.Errorf("scan error: %w", err)
-			}
+			break COLLECTION_LOOP
 		case res, ok := <-resultChan:
 			if !ok {
 				continue
@@ -169,8 +162,6 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 			results = append(results, res...)
 		}
 	}
-
-COLLECTION_COMPLETE:
 	s.logger.Debugf(ctx, "end parallel scan: accountID=%s, plugins=%d, parallelScanNum=%d, maxMemSizeMB=%d",
 		msg.AccountID, len(s.cloudsploitSetting.SpecificPluginSetting), s.cloudsploitConf.ParallelScanNum, s.cloudsploitConf.MaxMemSizeMB)
 	if len(results) > 0 {
@@ -207,7 +198,7 @@ func (s *SqsHandler) scan(ctx context.Context, accountID, category, pluginName s
 		return nil, err
 	}
 	if len(buf) == 0 {
-		return nil, EmptyOutputError{errors.New("scan output file is empty")}
+		return nil, fmt.Errorf("scan output file is empty")
 	}
 
 	var results []*cloudSploitResult
