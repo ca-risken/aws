@@ -97,14 +97,12 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 
 	// 結果0件のときは putFindings/ClearScore を両方スキップして前回のFindingを保持する。
 	// cloudsploit本体やプラグインが総崩れしたときに、UI上のFindingが一気に消える事故を防ぐため。
+	// 結果0件は cloudsploit が正常に動いていない異常事態なので status は ERROR にして運用者が気付ける形にする。
 	if len(cloudsploitResult) == 0 {
+		emptyErr := fmt.Errorf("scan result is empty. previous findings are preserved")
 		s.logger.Warnf(ctx, "scan result is empty, skip putFindings and ClearScore to preserve previous findings. AWSID: %v", msg.AWSID)
-		if err := s.updateScanStatusSuccess(ctx, &status, "scan result is empty. previous findings are preserved."); err != nil {
-			s.logger.Errorf(ctx, "Faild to update scan status. AWSID: %v, error: %v", msg.AWSID, err)
-			return mimosasqs.WrapNonRetryable(err)
-		}
-		s.logger.Infof(ctx, "end Scan, RequestID=%s", requestID)
-		return nil
+		s.updateStatusToError(ctx, &status, emptyErr)
+		return mimosasqs.WrapNonRetryable(emptyErr)
 	}
 
 	// Put Finding and Tag Finding
