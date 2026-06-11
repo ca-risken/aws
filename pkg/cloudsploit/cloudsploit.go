@@ -134,7 +134,7 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 					default:
 					}
 				default:
-					s.logger.Errorf(ctx, "plugin scan failed: accountID=%s, category=%s, plugin=%s, error=%+v",
+					s.logger.Warnf(ctx, "plugin scan failed: accountID=%s, category=%s, plugin=%s, error=%+v",
 						accountID, category, pluginName, err)
 				}
 				return
