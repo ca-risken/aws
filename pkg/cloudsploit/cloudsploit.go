@@ -111,7 +111,9 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 				if allScanCtx.Err() == context.DeadlineExceeded {
 					s.logger.Warnf(ctx, "scan timeout: accountID=%s, category=%s, plugin=%s, timeout=%d(min)",
 						msg.AccountID, category, pluginName, int(s.cloudsploitConf.ScanTimeoutAll.Minutes()))
+					return
 				}
+				errChan <- allScanCtx.Err()
 				return
 			case semaphore <- struct{}{}: // get semaphore
 				defer func() { <-semaphore }()
@@ -164,7 +166,7 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 			close(errChan)
 			goto COLLECTION_COMPLETE
 		case err := <-errChan:
-			if err != nil {
+			if err != nil && err != context.Canceled && err != context.DeadlineExceeded {
 				return nil, fmt.Errorf("scan error: %w", err)
 			}
 		case res, ok := <-resultChan:
