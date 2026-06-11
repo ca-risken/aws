@@ -85,8 +85,6 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 	var results []*cloudSploitResult
 	var wg sync.WaitGroup
 	resultChan := make(chan []*cloudSploitResult)
-	// errChan は EmptyOutputError 専用。cloudsploit本体のバグ起因で空出力が返ったときだけ
-	// SQS リトライを発火させる目的で残している。それ以外の通常エラーは握りつぶす。
 	errChan := make(chan error, 1)
 	s.logger.Debugf(ctx, "exec parallel scan: accountID=%s, plugins=%d, parallelScanNum=%d, maxMemSizeMB=%d",
 		msg.AccountID, len(s.cloudsploitSetting.SpecificPluginSetting), s.cloudsploitConf.ParallelScanNum, s.cloudsploitConf.MaxMemSizeMB)
@@ -126,18 +124,14 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 				var empty EmptyOutputError
 				switch {
 				case scanCtx.Err() == context.DeadlineExceeded:
-					// タイムアウトは握りつぶす。
 					s.logger.Warnf(ctx, "scan timeout: accountID=%s, category=%s, plugin=%s, timeout=%d(min)",
 						msg.AccountID, category, pluginName, int(s.cloudsploitConf.ScanTimeout.Minutes()))
 				case errors.As(err, &empty):
-					// cloudsploit本体のバグ起因で再スキャンで回復しうるため、errChan に流して上位で SQS リトライを発火させる。
 					select {
 					case errChan <- fmt.Errorf("accountID=%s, category=%s, plugin=%s, error=%w", accountID, category, pluginName, err):
 					default:
 					}
 				default:
-					// 通常エラーは全体を止めず、ログだけ残して次へ進む。
-					// 失敗ログは週次でCloudWatch Logs Insightsから抽出して傾向分析する想定。
 					s.logger.Errorf(ctx, "plugin scan failed: accountID=%s, category=%s, plugin=%s, error=%+v",
 						accountID, category, pluginName, err)
 				}
@@ -170,7 +164,6 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 			close(errChan)
 			goto COLLECTION_COMPLETE
 		case err := <-errChan:
-			// EmptyOutputError 検出時は run() 全体を中断して上位で SQS リトライさせる。
 			if err != nil {
 				return nil, fmt.Errorf("scan error: %w", err)
 			}
