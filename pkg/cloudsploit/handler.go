@@ -95,6 +95,13 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	}
 	s.logger.Infof(ctx, "end cloudsploit scan, RequestID=%s", requestID)
 
+	if len(cloudsploitResult) == 0 {
+		emptyErr := fmt.Errorf("scan result is empty. previous findings are preserved")
+		s.logger.Warnf(ctx, "scan result is empty, skip putFindings and ClearScore to preserve previous findings. AWSID: %v", msg.AWSID)
+		s.updateStatusToError(ctx, &status, emptyErr)
+		return mimosasqs.WrapNonRetryable(emptyErr)
+	}
+
 	// Put Finding and Tag Finding
 	if err := s.putFindings(ctx, cloudsploitResult, msg); err != nil {
 		s.logger.Errorf(ctx, "Faild to put findings. AWSID: %v, error: %v", msg.AWSID, err)

@@ -123,14 +123,21 @@ func (s *SqsHandler) run(ctx context.Context, msg *message.AWSQueueMessage) ([]*
 			startUnix := time.Now().Unix()
 			pluginResults, err := s.scan(scanCtx, accountID, category, pluginName, now)
 			if err != nil {
-				if scanCtx.Err() == context.DeadlineExceeded {
+				var empty EmptyOutputError
+				switch {
+				case scanCtx.Err() == context.DeadlineExceeded:
 					s.logger.Warnf(ctx, "scan timeout: accountID=%s, category=%s, plugin=%s, timeout=%d(min)",
 						msg.AccountID, category, pluginName, int(s.cloudsploitConf.ScanTimeout.Minutes()))
-					return
-				} else {
-					errChan <- fmt.Errorf("accountID=%s, category=%s, plugin=%s, error=%w", accountID, category, pluginName, err)
-					return
+				case errors.As(err, &empty):
+					select {
+					case errChan <- fmt.Errorf("accountID=%s, category=%s, plugin=%s, error=%w", accountID, category, pluginName, err):
+					default:
+					}
+				default:
+					s.logger.Warnf(ctx, "plugin scan failed: accountID=%s, category=%s, plugin=%s, error=%+v",
+						accountID, category, pluginName, err)
 				}
+				return
 			}
 			endUnix := time.Now().Unix()
 			s.logger.Debugf(ctx, "end scan: accountID=%s, category=%s, plugin=%s, time=%d(sec)", accountID, category, pluginName, endUnix-startUnix)
