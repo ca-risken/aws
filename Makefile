@@ -1,4 +1,4 @@
-TARGETS = access-analyzer admin-checker cloudsploit guard-duty portscan
+TARGETS = access-analyzer admin-checker cloudsploit guard-duty portscan ai-remediation
 BUILD_TARGETS = $(TARGETS:=.build)
 BUILD_CI_TARGETS = $(TARGETS:=.build-ci)
 IMAGE_PUSH_TARGETS = $(TARGETS:=.push-image)
@@ -102,5 +102,12 @@ enqueue-portscan:
 		--endpoint-url http://localhost:9324 \
 		--queue-url http://localhost:9324/queue/aws-portscan \
 		--message-body '{"aws_id":1001, "aws_data_source_id":1005, "data_source":"aws:portscan", "project_id":1001, "account_id":"315855282677", "assume_role_arn":"arn:aws:iam::315855282677:role/stg-security-monitor", "external_id":""}'
+
+.PHONY: enqueue-ai-remediation
+enqueue-ai-remediation:
+	aws sqs send-message \
+		--endpoint-url http://localhost:9324 \
+		--queue-url http://localhost:9324/queue/aws-ai-remediation \
+		--message-body '{"remediation_proposal_id":1001, "finding_id":2001, "project_id":1001, "data_source":"aws:cloudsploit", "aws_id":1001, "aws_data_source_id":1001, "account_id":"123456789012", "assume_role_arn":"arn:aws:iam::123456789012:role/example", "external_id":""}'
 
 FAKE:
