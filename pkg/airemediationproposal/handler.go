@@ -22,6 +22,7 @@ func NewSqsHandler(l logging.Logger) *SqsHandler {
 func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) error {
 	msgBody := aws.ToString(sqsMsg.Body)
 	s.logger.Info(ctx, "got AI remediation proposal message")
+	s.logger.Debugf(ctx, "AI remediation proposal message body: %s", msgBody)
 
 	msg, err := ParseQueueMessage(msgBody)
 	if err != nil {
@@ -40,16 +41,6 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 		requestID = fmt.Sprint(msg.ProjectID)
 	}
 
-	s.logger.Infof(ctx,
-		"AI remediation proposal worker skeleton received message, RequestID=%s, remediation_proposal_id=%d, finding_id=%d, project_id=%d, data_source=%s, aws_id=%d, aws_data_source_id=%d, account_id=%s",
-		requestID,
-		msg.RemediationProposalID,
-		msg.FindingID,
-		msg.ProjectID,
-		msg.DataSource,
-		msg.AWSID,
-		msg.AWSDataSourceID,
-		msg.AccountID,
-	)
+	s.logger.Infof(ctx, "start AI remediation proposal, RequestID=%s", requestID)
 	return nil
 }
