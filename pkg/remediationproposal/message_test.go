@@ -11,14 +11,11 @@ func TestParseQueueMessage(t *testing.T) {
 	}{
 		{
 			name: "OK",
-			body: `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001,"data_source":"aws:cloudsploit","aws_id":1001,"account_id":"123456789012","assume_role_arn":"arn:aws:iam::123456789012:role/test","external_id":"external"}`,
+			body: `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001,"assume_role_arn":"arn:aws:iam::123456789012:role/test","external_id":"external"}`,
 			want: &QueueMessage{
 				RemediationProposalID: 1001,
 				FindingID:             2001,
 				ProjectID:             1001,
-				DataSource:            "aws:cloudsploit",
-				AWSID:                 1001,
-				AccountID:             "123456789012",
 				AssumeRoleArn:         "arn:aws:iam::123456789012:role/test",
 				ExternalID:            "external",
 			},
@@ -30,12 +27,12 @@ func TestParseQueueMessage(t *testing.T) {
 		},
 		{
 			name:    "NG missing remediation_proposal_id",
-			body:    `{"finding_id":2001,"project_id":1001,"data_source":"aws:cloudsploit","aws_id":1001,"account_id":"123456789012","assume_role_arn":"arn:aws:iam::123456789012:role/test"}`,
+			body:    `{"finding_id":2001,"project_id":1001,"assume_role_arn":"arn:aws:iam::123456789012:role/test"}`,
 			wantErr: true,
 		},
 		{
 			name:    "NG missing assume_role_arn",
-			body:    `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001,"data_source":"aws:cloudsploit","aws_id":1001,"account_id":"123456789012"}`,
+			body:    `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001}`,
 			wantErr: true,
 		},
 	}

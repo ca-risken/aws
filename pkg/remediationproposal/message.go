@@ -10,9 +10,6 @@ type QueueMessage struct {
 	RemediationProposalID uint32 `json:"remediation_proposal_id"`
 	FindingID             uint64 `json:"finding_id"`
 	ProjectID             uint32 `json:"project_id"`
-	DataSource            string `json:"data_source"`
-	AWSID                 uint32 `json:"aws_id"`
-	AccountID             string `json:"account_id"`
 	AssumeRoleArn         string `json:"assume_role_arn"`
 	ExternalID            string `json:"external_id"`
 }
@@ -37,15 +34,6 @@ func (m *QueueMessage) Validate() error {
 	}
 	if m.ProjectID == 0 {
 		return errors.New("project_id is required")
-	}
-	if m.DataSource == "" {
-		return errors.New("data_source is required")
-	}
-	if m.AWSID == 0 {
-		return errors.New("aws_id is required")
-	}
-	if m.AccountID == "" {
-		return errors.New("account_id is required")
 	}
 	if m.AssumeRoleArn == "" {
 		return errors.New("assume_role_arn is required")

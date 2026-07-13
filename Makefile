@@ -108,6 +108,6 @@ enqueue-remediation-proposal:
 	aws sqs send-message \
 		--endpoint-url http://localhost:9324 \
 		--queue-url http://localhost:9324/queue/aws-remediation-proposal \
-		--message-body '{"remediation_proposal_id":1001, "finding_id":2001, "project_id":1001, "data_source":"aws:cloudsploit", "aws_id":1001, "account_id":"123456789012", "assume_role_arn":"arn:aws:iam::123456789012:role/example", "external_id":""}'
+		--message-body '{"remediation_proposal_id":1001, "finding_id":2001, "project_id":1001, "assume_role_arn":"arn:aws:iam::123456789012:role/example", "external_id":""}'
 
 FAKE:
