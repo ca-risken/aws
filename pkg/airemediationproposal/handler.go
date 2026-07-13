@@ -42,5 +42,6 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	}
 
 	s.logger.Infof(ctx, "start AI remediation proposal, RequestID=%s", requestID)
+	s.logger.Infof(ctx, "end AI remediation proposal, RequestID=%s", requestID)
 	return nil
 }

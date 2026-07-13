@@ -12,7 +12,6 @@ type QueueMessage struct {
 	ProjectID             uint32 `json:"project_id"`
 	DataSource            string `json:"data_source"`
 	AWSID                 uint32 `json:"aws_id"`
-	AWSDataSourceID       uint32 `json:"aws_data_source_id"`
 	AccountID             string `json:"account_id"`
 	AssumeRoleArn         string `json:"assume_role_arn"`
 	ExternalID            string `json:"external_id"`
@@ -44,9 +43,6 @@ func (m *QueueMessage) Validate() error {
 	}
 	if m.AWSID == 0 {
 		return errors.New("aws_id is required")
-	}
-	if m.AWSDataSourceID == 0 {
-		return errors.New("aws_data_source_id is required")
 	}
 	if m.AccountID == "" {
 		return errors.New("account_id is required")
