@@ -1,4 +1,4 @@
-package airemediation
+package airemediationproposal
 
 import "testing"
 

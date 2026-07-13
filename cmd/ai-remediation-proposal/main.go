@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ca-risken/aws/pkg/airemediation"
+	"github.com/ca-risken/aws/pkg/airemediationproposal"
 	"github.com/ca-risken/aws/pkg/sqs"
 	"github.com/ca-risken/common/pkg/logging"
 	"github.com/ca-risken/common/pkg/profiler"
@@ -15,7 +15,7 @@ import (
 
 const (
 	nameSpace   = "aws"
-	serviceName = "ai-remediation"
+	serviceName = "ai-remediation-proposal"
 )
 
 var (
@@ -37,10 +37,10 @@ type AppConfig struct {
 	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
 	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://queue.middleware.svc.cluster.local:9324"`
 
-	AIRemediationQueueName string `split_words:"true" default:"aws-ai-remediation"`
-	AIRemediationQueueURL  string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-ai-remediation"`
-	MaxNumberOfMessage     int32  `split_words:"true" default:"1"`
-	WaitTimeSecond         int32  `split_words:"true" default:"20"`
+	AIRemediationProposalQueueName string `split_words:"true" default:"aws-ai-remediation-proposal"`
+	AIRemediationProposalQueueURL  string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-ai-remediation-proposal"`
+	MaxNumberOfMessage             int32  `split_words:"true" default:"1"`
+	WaitTimeSecond                 int32  `split_words:"true" default:"20"`
 }
 
 func main() {
@@ -82,8 +82,8 @@ func main() {
 		Debug:              conf.Debug,
 		AWSRegion:          conf.AWSRegion,
 		SQSEndpoint:        conf.SQSEndpoint,
-		QueueName:          conf.AIRemediationQueueName,
-		QueueURL:           conf.AIRemediationQueueURL,
+		QueueName:          conf.AIRemediationProposalQueueName,
+		QueueURL:           conf.AIRemediationProposalQueueURL,
 		MaxNumberOfMessage: conf.MaxNumberOfMessage,
 		WaitTimeSecond:     conf.WaitTimeSecond,
 	}
@@ -92,8 +92,8 @@ func main() {
 		appLogger.Fatalf(ctx, "Failed to create SQS consumer, err=%+v", err)
 	}
 
-	handler := airemediation.NewSqsHandler(appLogger)
-	appLogger.Info(ctx, "Start the AWS AI remediation SQS consumer server...")
+	handler := airemediationproposal.NewSqsHandler(appLogger)
+	appLogger.Info(ctx, "Start the AWS AI remediation proposal SQS consumer server...")
 	consumer.Start(ctx,
 		mimosasqs.InitializeHandler(
 			mimosasqs.RetryableErrorHandler(
