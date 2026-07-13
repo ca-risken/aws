@@ -1,4 +1,4 @@
-package airemediationproposal
+package remediationproposal
 
 import (
 	"context"
@@ -21,12 +21,12 @@ func NewSqsHandler(l logging.Logger) *SqsHandler {
 
 func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) error {
 	msgBody := aws.ToString(sqsMsg.Body)
-	s.logger.Info(ctx, "got AI remediation proposal message")
-	s.logger.Debugf(ctx, "AI remediation proposal message body: %s", msgBody)
+	s.logger.Info(ctx, "got remediation proposal message")
+	s.logger.Debugf(ctx, "remediation proposal message body: %s", msgBody)
 
 	msg, err := ParseQueueMessage(msgBody)
 	if err != nil {
-		s.logger.Errorf(ctx, "Invalid AI remediation proposal message: SQS_msg=%+v, err=%+v", sqsMsg, err)
+		s.logger.Errorf(ctx, "Invalid remediation proposal message: SQS_msg=%+v, err=%+v", sqsMsg, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
 	if !common.IsMatchAccountIDArn(msg.AccountID, msg.AssumeRoleArn) {
@@ -41,7 +41,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 		requestID = fmt.Sprint(msg.ProjectID)
 	}
 
-	s.logger.Infof(ctx, "start AI remediation proposal, RequestID=%s", requestID)
-	s.logger.Infof(ctx, "end AI remediation proposal, RequestID=%s", requestID)
+	s.logger.Infof(ctx, "start remediation proposal, RequestID=%s", requestID)
+	s.logger.Infof(ctx, "end remediation proposal, RequestID=%s", requestID)
 	return nil
 }

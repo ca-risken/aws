@@ -1,4 +1,4 @@
-package airemediationproposal
+package remediationproposal
 
 import (
 	"encoding/json"
@@ -20,7 +20,7 @@ type QueueMessage struct {
 func ParseQueueMessage(body string) (*QueueMessage, error) {
 	var msg QueueMessage
 	if err := json.Unmarshal([]byte(body), &msg); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal AI remediation proposal queue message: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal remediation proposal queue message: %w", err)
 	}
 	if err := msg.Validate(); err != nil {
 		return nil, err

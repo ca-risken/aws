@@ -1,4 +1,4 @@
-package airemediationproposal
+package remediationproposal
 
 import (
 	"context"
