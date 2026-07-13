@@ -35,6 +35,11 @@ func TestParseQueueMessage(t *testing.T) {
 			body:    `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001}`,
 			wantErr: true,
 		},
+		{
+			name:    "NG missing external_id",
+			body:    `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001,"assume_role_arn":"arn:aws:iam::123456789012:role/test"}`,
+			wantErr: true,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

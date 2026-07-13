@@ -17,7 +17,7 @@ func TestHandleMessage(t *testing.T) {
 	}{
 		{
 			name: "OK",
-			body: `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001,"assume_role_arn":"arn:aws:iam::123456789012:role/test","external_id":""}`,
+			body: `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001,"assume_role_arn":"arn:aws:iam::123456789012:role/test","external_id":"external"}`,
 		},
 		{
 			name:    "NG invalid message",

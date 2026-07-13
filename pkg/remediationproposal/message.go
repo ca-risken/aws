@@ -38,5 +38,8 @@ func (m *QueueMessage) Validate() error {
 	if m.AssumeRoleArn == "" {
 		return errors.New("assume_role_arn is required")
 	}
+	if m.ExternalID == "" {
+		return errors.New("external_id is required")
+	}
 	return nil
 }
