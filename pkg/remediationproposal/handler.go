@@ -24,7 +24,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 
 	msg, err := ParseQueueMessage(msgBody)
 	if err != nil {
-		s.logger.Errorf(ctx, "Invalid remediation proposal message: SQS_msg=%+v, err=%+v", sqsMsg, err)
+		s.logger.Errorf(ctx, "Invalid remediation proposal message: message_id=%s, err=%+v", aws.ToString(sqsMsg.MessageId), err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
 	s.logger.Debugf(ctx,
