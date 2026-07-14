@@ -5,10 +5,9 @@ import (
 	"fmt"
 
 	"github.com/ca-risken/aws/pkg/remediationproposal"
-	"github.com/ca-risken/aws/pkg/sqs"
 	"github.com/ca-risken/common/pkg/logging"
 	"github.com/ca-risken/common/pkg/profiler"
-	mimosasqs "github.com/ca-risken/common/pkg/sqs"
+	commonsqs "github.com/ca-risken/common/pkg/sqs"
 	"github.com/ca-risken/common/pkg/tracer"
 	"github.com/gassara-kys/envconfig"
 )
@@ -37,10 +36,8 @@ type AppConfig struct {
 	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
 	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://queue.middleware.svc.cluster.local:9324"`
 
-	RemediationProposalQueueName string `split_words:"true" default:"aws-remediation-proposal"`
-	RemediationProposalQueueURL  string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-remediation-proposal"`
-	MaxNumberOfMessage           int32  `split_words:"true" default:"1"`
-	WaitTimeSecond               int32  `split_words:"true" default:"20"`
+	RemediationProposalQueueURL string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-remediation-proposal"`
+	WaitTimeSecond              int32  `split_words:"true" default:"20"`
 }
 
 func main() {
@@ -81,25 +78,21 @@ func main() {
 	tracer.Start(tc)
 	defer tracer.Stop()
 
-	sqsConf := &sqs.SQSConfig{
-		Debug:              conf.Debug,
-		AWSRegion:          conf.AWSRegion,
-		SQSEndpoint:        conf.SQSEndpoint,
-		QueueName:          conf.RemediationProposalQueueName,
-		QueueURL:           conf.RemediationProposalQueueURL,
-		MaxNumberOfMessage: conf.MaxNumberOfMessage,
-		WaitTimeSecond:     conf.WaitTimeSecond,
-	}
-	consumer, err := sqs.NewSQSConsumer(ctx, sqsConf, appLogger)
+	queueClient, err := remediationproposal.NewQueueClient(ctx, conf.AWSRegion, conf.SQSEndpoint)
 	if err != nil {
-		appLogger.Fatalf(ctx, "Failed to create SQS consumer, err=%+v", err)
+		appLogger.Fatalf(ctx, "Failed to create SQS client, err=%+v", err)
 	}
 
 	handler := remediationproposal.NewSqsHandler(appLogger)
-	appLogger.Info(ctx, "Start the AWS remediation proposal SQS consumer server...")
-	consumer.Start(ctx,
-		mimosasqs.InitializeHandler(
-			mimosasqs.RetryableErrorHandler(
-				mimosasqs.TracingHandler(getFullServiceName(),
-					mimosasqs.StatusLoggingHandler(appLogger, handler)))))
+	appLogger.Info(ctx, "Start the AWS remediation proposal job...")
+	processed, err := remediationproposal.RunOnce(ctx, queueClient, conf.RemediationProposalQueueURL, conf.WaitTimeSecond,
+		commonsqs.RetryableErrorHandler(
+			commonsqs.TracingHandler(getFullServiceName(),
+				commonsqs.StatusLoggingHandler(appLogger, handler))), appLogger)
+	if err != nil {
+		appLogger.Fatalf(ctx, "Failed to handle remediation proposal message, err=%+v", err)
+	}
+	if !processed {
+		appLogger.Info(ctx, "No remediation proposal message to process")
+	}
 }
