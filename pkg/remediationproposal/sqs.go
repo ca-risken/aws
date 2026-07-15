@@ -84,6 +84,6 @@ func (r *Runner) handleMessage(ctx context.Context, msg *types.Message) error {
 	}); err != nil {
 		return fmt.Errorf("failed to delete remediation proposal message: %w", err)
 	}
-	r.logger.Debugf(ctx, "deleted remediation proposal message: receipt_handle=%s", aws.ToString(msg.ReceiptHandle))
+	r.logger.Debug(ctx, "deleted remediation proposal message")
 	return nil
 }
