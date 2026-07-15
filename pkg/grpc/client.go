@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ca-risken/core/proto/ai"
 	"github.com/ca-risken/core/proto/alert"
 	"github.com/ca-risken/core/proto/finding"
 	"github.com/ca-risken/datasource-api/proto/aws"
@@ -26,6 +27,14 @@ func NewAlertClient(ctx context.Context, svcAddr string) (alert.AlertServiceClie
 		return nil, fmt.Errorf("failed to get GRPC connection: err=%w", err)
 	}
 	return alert.NewAlertServiceClient(conn), nil
+}
+
+func NewAIClient(ctx context.Context, svcAddr string) (ai.AIServiceClient, error) {
+	conn, err := getGRPCConn(ctx, svcAddr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get GRPC connection: err=%w", err)
+	}
+	return ai.NewAIServiceClient(conn), nil
 }
 
 func NewAWSClient(ctx context.Context, svcAddr string) (aws.AWSServiceClient, error) {

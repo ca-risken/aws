@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	riskenGrpc "github.com/ca-risken/aws/pkg/grpc"
 	"github.com/ca-risken/aws/pkg/remediationproposal"
 	"github.com/ca-risken/common/pkg/logging"
 	"github.com/ca-risken/common/pkg/profiler"
@@ -35,6 +36,7 @@ type AppConfig struct {
 	Debug       string `default:"false"`
 	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
 	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://queue.middleware.svc.cluster.local:9324"`
+	CoreSvcAddr string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
 
 	RemediationProposalQueueURL string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-remediation-proposal"`
 	WaitTimeSecond              int32  `split_words:"true" default:"20"`
@@ -82,8 +84,12 @@ func main() {
 	if err != nil {
 		appLogger.Fatalf(ctx, "Failed to create SQS client, err=%+v", err)
 	}
+	aiClient, err := riskenGrpc.NewAIClient(ctx, conf.CoreSvcAddr)
+	if err != nil {
+		appLogger.Fatalf(ctx, "Failed to create AI client, err=%+v", err)
+	}
 
-	handler := remediationproposal.NewSqsHandler(appLogger)
+	handler := remediationproposal.NewSqsHandler(appLogger, aiClient)
 	appLogger.Info(ctx, "Start the AWS remediation proposal job...")
 	runner := remediationproposal.NewRunner(queueClient, conf.RemediationProposalQueueURL, conf.WaitTimeSecond,
 		commonsqs.RetryableErrorHandler(
