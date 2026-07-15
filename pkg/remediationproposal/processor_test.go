@@ -41,7 +41,7 @@ type mockMCPProxyRunner struct {
 	process *mockMCPProxyProcess
 }
 
-func (m *mockMCPProxyRunner) Start(ctx context.Context, creds aws.Credentials, region string) (MCPProxyProcess, error) {
+func (m *mockMCPProxyRunner) StartProxy(ctx context.Context, creds aws.Credentials, region string) (MCPProxyProcess, error) {
 	m.creds = creds
 	m.region = region
 	if m.err != nil {
@@ -155,15 +155,31 @@ func TestBuildMCPProxyEnv(t *testing.T) {
 	}
 }
 
-func TestExecMCPProxyRunnerStartValidation(t *testing.T) {
-	runner := NewExecMCPProxyRunner("")
-	_, err := runner.Start(context.Background(), aws.Credentials{}, "us-east-1")
+func TestNewAWSMCPProxyRunner(t *testing.T) {
+	runner := NewAWSMCPProxyRunner("uvx", "mcp-proxy-for-aws@latest", "https://aws-mcp.us-east-1.api.aws/mcp", "us-west-2")
+	if runner.command != "uvx" {
+		t.Fatalf("unexpected command: got=%s", runner.command)
+	}
+	wantArgs := []string{
+		"mcp-proxy-for-aws@latest",
+		"https://aws-mcp.us-east-1.api.aws/mcp",
+		"--metadata",
+		"AWS_REGION=us-west-2",
+	}
+	if strings.Join(runner.args, "\n") != strings.Join(wantArgs, "\n") {
+		t.Fatalf("unexpected args: got=%v, want=%v", runner.args, wantArgs)
+	}
+}
+
+func TestAWSMCPProxyRunnerStartValidation(t *testing.T) {
+	runner := newAWSMCPProxyRunner("")
+	_, err := runner.StartProxy(context.Background(), aws.Credentials{}, "us-east-1")
 	if err == nil {
 		t.Fatal("expected command validation error")
 	}
 
-	runner = NewExecMCPProxyRunner(os.Args[0])
-	_, err = runner.Start(context.Background(), aws.Credentials{}, "us-east-1")
+	runner = newAWSMCPProxyRunner(os.Args[0])
+	_, err = runner.StartProxy(context.Background(), aws.Credentials{}, "us-east-1")
 	if err == nil {
 		t.Fatal("expected credential validation error")
 	}

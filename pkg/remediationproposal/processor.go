@@ -17,12 +17,14 @@ import (
 
 const roleSessionNamePrefix = "RISKEN-AI"
 
+const awsRegionMetadataKey = "AWS_REGION"
+
 type CredentialProvider interface {
 	AssumeRole(ctx context.Context, region, roleARN, externalID, sessionName string) (aws.Credentials, error)
 }
 
 type MCPProxyRunner interface {
-	Start(ctx context.Context, creds aws.Credentials, region string) (MCPProxyProcess, error)
+	StartProxy(ctx context.Context, creds aws.Credentials, region string) (MCPProxyProcess, error)
 }
 
 type MCPProxyProcess interface {
@@ -53,7 +55,7 @@ func (p *RemediationProcessor) Process(ctx context.Context, msg *QueueMessage, r
 	if err != nil {
 		return fmt.Errorf("failed to assume role for remediation proposal: remediation_proposal_id=%d, err=%w", msg.RemediationProposalID, err)
 	}
-	proxy, err := p.mcpProxyRunner.Start(ctx, creds, p.mcpRegion)
+	proxy, err := p.mcpProxyRunner.StartProxy(ctx, creds, p.mcpRegion)
 	if err != nil {
 		return fmt.Errorf("failed to start AWS MCP proxy: remediation_proposal_id=%d, err=%w", msg.RemediationProposalID, err)
 	}
@@ -98,16 +100,26 @@ func (p *STSCredentialProvider) AssumeRole(ctx context.Context, region, roleARN,
 	return aws.NewCredentialsCache(provider).Retrieve(ctx)
 }
 
-type ExecMCPProxyRunner struct {
+type AWSMCPProxyRunner struct {
 	command string
 	args    []string
 }
 
-func NewExecMCPProxyRunner(command string, args ...string) *ExecMCPProxyRunner {
-	return &ExecMCPProxyRunner{command: command, args: args}
+func newAWSMCPProxyRunner(command string, args ...string) *AWSMCPProxyRunner {
+	return &AWSMCPProxyRunner{command: command, args: args}
 }
 
-func (r *ExecMCPProxyRunner) Start(ctx context.Context, creds aws.Credentials, region string) (MCPProxyProcess, error) {
+func NewAWSMCPProxyRunner(command, packageName, endpoint, region string) *AWSMCPProxyRunner {
+	return newAWSMCPProxyRunner(
+		command,
+		packageName,
+		endpoint,
+		"--metadata",
+		fmt.Sprintf("%s=%s", awsRegionMetadataKey, region),
+	)
+}
+
+func (r *AWSMCPProxyRunner) StartProxy(ctx context.Context, creds aws.Credentials, region string) (MCPProxyProcess, error) {
 	if r.command == "" {
 		return nil, errors.New("MCP proxy command is required")
 	}
@@ -121,14 +133,14 @@ func (r *ExecMCPProxyRunner) Start(ctx context.Context, creds aws.Credentials, r
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	return &execMCPProxyProcess{cmd: cmd}, nil
+	return &mcpProxyProcess{cmd: cmd}, nil
 }
 
-type execMCPProxyProcess struct {
+type mcpProxyProcess struct {
 	cmd *exec.Cmd
 }
 
-func (p *execMCPProxyProcess) Stop() error {
+func (p *mcpProxyProcess) Stop() error {
 	if p.cmd == nil || p.cmd.Process == nil {
 		return nil
 	}

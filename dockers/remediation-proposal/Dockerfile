@@ -19,6 +19,7 @@ ENV DEBUG= \
     MCP_REGION=us-east-1 \
     MCP_PROXY_COMMAND=uvx \
     MCP_PROXY_PACKAGE=mcp-proxy-for-aws@latest \
+    MCP_PROXY_ENDPOINT=https://aws-mcp.us-east-1.api.aws/mcp \
     REMEDIATION_PROPOSAL_QUEUE_NAME= \
     REMEDIATION_PROPOSAL_QUEUE_URL= \
     MAX_NUMBER_OF_MESSAGE= \

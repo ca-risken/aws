@@ -41,6 +41,7 @@ type AppConfig struct {
 	WaitTimeSecond              int32  `split_words:"true" default:"20"`
 	MCPProxyCommand             string `split_words:"true" default:"uvx"`
 	MCPProxyPackage             string `split_words:"true" default:"mcp-proxy-for-aws@latest"`
+	MCPProxyEndpoint            string `split_words:"true" default:"https://aws-mcp.us-east-1.api.aws/mcp"`
 }
 
 func main() {
@@ -90,7 +91,7 @@ func main() {
 		conf.AWSRegion,
 		conf.MCPRegion,
 		remediationproposal.NewSTSCredentialProvider(),
-		remediationproposal.NewExecMCPProxyRunner(conf.MCPProxyCommand, conf.MCPProxyPackage),
+		remediationproposal.NewAWSMCPProxyRunner(conf.MCPProxyCommand, conf.MCPProxyPackage, conf.MCPProxyEndpoint, conf.MCPRegion),
 		appLogger,
 	)
 	handler := remediationproposal.NewSqsHandler(appLogger, remediationproposal.WithProcessor(processor))
