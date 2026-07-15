@@ -54,7 +54,7 @@ func TestHandleMessage(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			processor := &mockProcessor{err: c.processorErr}
-			handler := NewSqsHandler(logging.NewLogger(), WithProcessor(processor))
+			handler := NewSqsHandler(logging.NewLogger(), processor)
 			err := handler.HandleMessage(context.Background(), &types.Message{Body: aws.String(c.body)})
 			if err != nil && !c.wantErr {
 				t.Fatalf("unexpected error: %+v", err)

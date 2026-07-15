@@ -19,20 +19,11 @@ type Processor interface {
 	Process(ctx context.Context, msg *QueueMessage, requestID string) error
 }
 
-type HandlerOption func(*SqsHandler)
-
-func WithProcessor(processor Processor) HandlerOption {
-	return func(s *SqsHandler) {
-		s.processor = processor
+func NewSqsHandler(l logging.Logger, processor Processor) *SqsHandler {
+	return &SqsHandler{
+		logger:    l,
+		processor: processor,
 	}
-}
-
-func NewSqsHandler(l logging.Logger, opts ...HandlerOption) *SqsHandler {
-	handler := &SqsHandler{logger: l}
-	for _, opt := range opts {
-		opt(handler)
-	}
-	return handler
 }
 
 func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) error {

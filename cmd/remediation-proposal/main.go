@@ -94,7 +94,7 @@ func main() {
 		remediationproposal.NewAWSMCPProxyRunner(conf.MCPProxyCommand, conf.MCPProxyPackage, conf.MCPProxyEndpoint, conf.MCPRegion),
 		appLogger,
 	)
-	handler := remediationproposal.NewSqsHandler(appLogger, remediationproposal.WithProcessor(processor))
+	handler := remediationproposal.NewSqsHandler(appLogger, processor)
 	appLogger.Info(ctx, "Start the AWS remediation proposal job...")
 	runner := remediationproposal.NewRunner(queueClient, conf.RemediationProposalQueueURL, conf.WaitTimeSecond,
 		commonsqs.RetryableErrorHandler(
