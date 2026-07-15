@@ -78,14 +78,14 @@ func main() {
 	tracer.Start(tc)
 	defer tracer.Stop()
 
-	queueClient, err := remediationproposal.NewQueueClient(ctx, conf.AWSRegion, conf.SQSEndpoint)
+	queueClient, err := remediationproposal.NewSQSClient(ctx, conf.AWSRegion, conf.SQSEndpoint)
 	if err != nil {
 		appLogger.Fatalf(ctx, "Failed to create SQS client, err=%+v", err)
 	}
 
 	handler := remediationproposal.NewSqsHandler(appLogger)
 	appLogger.Info(ctx, "Start the AWS remediation proposal job...")
-	runner := remediationproposal.NewQueueRunner(queueClient, conf.RemediationProposalQueueURL, conf.WaitTimeSecond,
+	runner := remediationproposal.NewRunner(queueClient, conf.RemediationProposalQueueURL, conf.WaitTimeSecond,
 		commonsqs.RetryableErrorHandler(
 			commonsqs.TracingHandler(getFullServiceName(),
 				commonsqs.StatusLoggingHandler(appLogger, handler))), appLogger)

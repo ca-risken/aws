@@ -17,7 +17,7 @@ type QueueClient interface {
 	DeleteMessage(ctx context.Context, params *awssqs.DeleteMessageInput, optFns ...func(*awssqs.Options)) (*awssqs.DeleteMessageOutput, error)
 }
 
-type QueueRunner struct {
+type Runner struct {
 	client          QueueClient
 	queueURL        string
 	waitTimeSeconds int32
@@ -25,8 +25,8 @@ type QueueRunner struct {
 	logger          logging.Logger
 }
 
-func NewQueueRunner(client QueueClient, queueURL string, waitTimeSeconds int32, handler commonsqs.Handler, logger logging.Logger) *QueueRunner {
-	return &QueueRunner{
+func NewRunner(client QueueClient, queueURL string, waitTimeSeconds int32, handler commonsqs.Handler, logger logging.Logger) *Runner {
+	return &Runner{
 		client:          client,
 		queueURL:        queueURL,
 		waitTimeSeconds: waitTimeSeconds,
@@ -35,7 +35,7 @@ func NewQueueRunner(client QueueClient, queueURL string, waitTimeSeconds int32, 
 	}
 }
 
-func NewQueueClient(ctx context.Context, region, endpoint string) (QueueClient, error) {
+func NewSQSClient(ctx context.Context, region, endpoint string) (QueueClient, error) {
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		if service != awssqs.ServiceID {
 			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
@@ -52,7 +52,7 @@ func NewQueueClient(ctx context.Context, region, endpoint string) (QueueClient, 
 	return awssqs.NewFromConfig(cfg), nil
 }
 
-func (r *QueueRunner) RunOnce(ctx context.Context) (bool, error) {
+func (r *Runner) RunOnce(ctx context.Context) (bool, error) {
 	r.logger.Debug(ctx, "receive one remediation proposal message")
 	resp, err := r.client.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{
 		QueueUrl:            aws.String(r.queueURL),
@@ -73,7 +73,7 @@ func (r *QueueRunner) RunOnce(ctx context.Context) (bool, error) {
 	return true, r.handleMessage(ctx, &resp.Messages[0])
 }
 
-func (r *QueueRunner) handleMessage(ctx context.Context, msg *types.Message) error {
+func (r *Runner) handleMessage(ctx context.Context, msg *types.Message) error {
 	r.logger.Info(ctx, "received remediation proposal message")
 	if err := r.handler.HandleMessage(ctx, msg); err != nil {
 		return err
