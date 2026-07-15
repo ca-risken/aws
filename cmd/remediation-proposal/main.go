@@ -40,7 +40,7 @@ type AppConfig struct {
 	RemediationProposalQueueURL string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-remediation-proposal"`
 	WaitTimeSecond              int32  `split_words:"true" default:"20"`
 	MCPProxyCommand             string `split_words:"true" default:"uvx"`
-	MCPProxyPackage             string `split_words:"true" default:"mcp-proxy-for-aws@latest"`
+	MCPProxyPackage             string `split_words:"true" default:"mcp-proxy-for-aws@1.6.3"`
 	MCPProxyEndpoint            string `split_words:"true" default:"https://aws-mcp.us-east-1.api.aws/mcp"`
 }
 

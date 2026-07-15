@@ -156,12 +156,12 @@ func TestBuildMCPProxyEnv(t *testing.T) {
 }
 
 func TestNewAWSMCPProxyRunner(t *testing.T) {
-	runner := NewAWSMCPProxyRunner("uvx", "mcp-proxy-for-aws@latest", "https://aws-mcp.us-east-1.api.aws/mcp", "us-west-2")
+	runner := NewAWSMCPProxyRunner("uvx", "mcp-proxy-for-aws@1.6.3", "https://aws-mcp.us-east-1.api.aws/mcp", "us-west-2")
 	if runner.command != "uvx" {
 		t.Fatalf("unexpected command: got=%s", runner.command)
 	}
 	wantArgs := []string{
-		"mcp-proxy-for-aws@latest",
+		"mcp-proxy-for-aws@1.6.3",
 		"https://aws-mcp.us-east-1.api.aws/mcp",
 		"--metadata",
 		"AWS_REGION=us-west-2",
