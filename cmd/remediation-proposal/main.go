@@ -85,10 +85,11 @@ func main() {
 
 	handler := remediationproposal.NewSqsHandler(appLogger)
 	appLogger.Info(ctx, "Start the AWS remediation proposal job...")
-	processed, err := remediationproposal.RunOnce(ctx, queueClient, conf.RemediationProposalQueueURL, conf.WaitTimeSecond,
+	runner := remediationproposal.NewQueueRunner(queueClient, conf.RemediationProposalQueueURL, conf.WaitTimeSecond,
 		commonsqs.RetryableErrorHandler(
 			commonsqs.TracingHandler(getFullServiceName(),
 				commonsqs.StatusLoggingHandler(appLogger, handler))), appLogger)
+	processed, err := runner.RunOnce(ctx)
 	if err != nil {
 		appLogger.Fatalf(ctx, "Failed to handle remediation proposal message, err=%+v", err)
 	}

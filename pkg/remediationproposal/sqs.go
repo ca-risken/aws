@@ -17,6 +17,24 @@ type QueueClient interface {
 	DeleteMessage(ctx context.Context, params *awssqs.DeleteMessageInput, optFns ...func(*awssqs.Options)) (*awssqs.DeleteMessageOutput, error)
 }
 
+type QueueRunner struct {
+	client          QueueClient
+	queueURL        string
+	waitTimeSeconds int32
+	handler         commonsqs.Handler
+	logger          logging.Logger
+}
+
+func NewQueueRunner(client QueueClient, queueURL string, waitTimeSeconds int32, handler commonsqs.Handler, logger logging.Logger) *QueueRunner {
+	return &QueueRunner{
+		client:          client,
+		queueURL:        queueURL,
+		waitTimeSeconds: waitTimeSeconds,
+		handler:         handler,
+		logger:          logger,
+	}
+}
+
 func NewQueueClient(ctx context.Context, region, endpoint string) (QueueClient, error) {
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		if service != awssqs.ServiceID {
@@ -34,38 +52,38 @@ func NewQueueClient(ctx context.Context, region, endpoint string) (QueueClient, 
 	return awssqs.NewFromConfig(cfg), nil
 }
 
-func RunOnce(ctx context.Context, client QueueClient, queueURL string, waitTimeSeconds int32, handler commonsqs.Handler, logger logging.Logger) (bool, error) {
-	logger.Debug(ctx, "receive one remediation proposal message")
-	resp, err := client.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{
-		QueueUrl:            aws.String(queueURL),
+func (r *QueueRunner) RunOnce(ctx context.Context) (bool, error) {
+	r.logger.Debug(ctx, "receive one remediation proposal message")
+	resp, err := r.client.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{
+		QueueUrl:            aws.String(r.queueURL),
 		MaxNumberOfMessages: 1,
 		AttributeNames: []types.QueueAttributeName{
 			"All",
 		},
-		WaitTimeSeconds: waitTimeSeconds,
+		WaitTimeSeconds: r.waitTimeSeconds,
 	})
 	if err != nil {
 		return false, fmt.Errorf("failed to receive remediation proposal message: %w", err)
 	}
 	if len(resp.Messages) == 0 {
-		logger.Info(ctx, "no remediation proposal message received")
+		r.logger.Info(ctx, "no remediation proposal message received")
 		return false, nil
 	}
 
-	return true, handleMessage(ctx, client, queueURL, &resp.Messages[0], handler, logger)
+	return true, r.handleMessage(ctx, &resp.Messages[0])
 }
 
-func handleMessage(ctx context.Context, client QueueClient, queueURL string, msg *types.Message, handler commonsqs.Handler, logger logging.Logger) error {
-	logger.Info(ctx, "received remediation proposal message")
-	if err := handler.HandleMessage(ctx, msg); err != nil {
+func (r *QueueRunner) handleMessage(ctx context.Context, msg *types.Message) error {
+	r.logger.Info(ctx, "received remediation proposal message")
+	if err := r.handler.HandleMessage(ctx, msg); err != nil {
 		return err
 	}
-	if _, err := client.DeleteMessage(ctx, &awssqs.DeleteMessageInput{
-		QueueUrl:      aws.String(queueURL),
+	if _, err := r.client.DeleteMessage(ctx, &awssqs.DeleteMessageInput{
+		QueueUrl:      aws.String(r.queueURL),
 		ReceiptHandle: msg.ReceiptHandle,
 	}); err != nil {
 		return fmt.Errorf("failed to delete remediation proposal message: %w", err)
 	}
-	logger.Debugf(ctx, "deleted remediation proposal message: receipt_handle=%s", aws.ToString(msg.ReceiptHandle))
+	r.logger.Debugf(ctx, "deleted remediation proposal message: receipt_handle=%s", aws.ToString(msg.ReceiptHandle))
 	return nil
 }

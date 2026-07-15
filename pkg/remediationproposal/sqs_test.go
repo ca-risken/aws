@@ -108,7 +108,8 @@ func TestRunOnce(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			processed, err := RunOnce(context.Background(), c.client, "http://localhost:9324/queue/test", 1, c.handler, logging.NewLogger())
+			runner := NewQueueRunner(c.client, "http://localhost:9324/queue/test", 1, c.handler, logging.NewLogger())
+			processed, err := runner.RunOnce(context.Background())
 			if (err != nil) != c.wantErr {
 				t.Fatalf("unexpected error: wantErr=%t, err=%+v", c.wantErr, err)
 			}
