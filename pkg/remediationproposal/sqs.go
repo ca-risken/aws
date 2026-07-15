@@ -18,7 +18,7 @@ type QueueClient interface {
 }
 
 func NewQueueClient(ctx context.Context, region, endpoint string) (QueueClient, error) {
-	resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		if service != awssqs.ServiceID {
 			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
 		}
@@ -27,7 +27,7 @@ func NewQueueClient(ctx context.Context, region, endpoint string) (QueueClient, 
 		}
 		return aws.Endpoint{PartitionID: "aws", URL: endpoint, SigningRegion: region}, nil
 	})
-	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithEndpointResolverWithOptions(resolver))
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithEndpointResolverWithOptions(customResolver))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load aws configuration: %w", err)
 	}
@@ -52,17 +52,20 @@ func RunOnce(ctx context.Context, client QueueClient, queueURL string, waitTimeS
 		return false, nil
 	}
 
-	msg := resp.Messages[0]
+	return true, handleMessage(ctx, client, queueURL, &resp.Messages[0], handler, logger)
+}
+
+func handleMessage(ctx context.Context, client QueueClient, queueURL string, msg *types.Message, handler commonsqs.Handler, logger logging.Logger) error {
 	logger.Info(ctx, "received remediation proposal message")
-	if err := handler.HandleMessage(ctx, &msg); err != nil {
-		return true, err
+	if err := handler.HandleMessage(ctx, msg); err != nil {
+		return err
 	}
 	if _, err := client.DeleteMessage(ctx, &awssqs.DeleteMessageInput{
 		QueueUrl:      aws.String(queueURL),
 		ReceiptHandle: msg.ReceiptHandle,
 	}); err != nil {
-		return true, fmt.Errorf("failed to delete remediation proposal message: %w", err)
+		return fmt.Errorf("failed to delete remediation proposal message: %w", err)
 	}
 	logger.Debugf(ctx, "deleted remediation proposal message: receipt_handle=%s", aws.ToString(msg.ReceiptHandle))
-	return true, nil
+	return nil
 }
