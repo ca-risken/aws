@@ -122,3 +122,60 @@ func TestRunOnce(t *testing.T) {
 		})
 	}
 }
+
+func TestNewSQSConfig(t *testing.T) {
+	cases := []struct {
+		name              string
+		region            string
+		endpoint          string
+		wantResolver      bool
+		wantEndpoint      string
+		wantSigningRegion string
+	}{
+		{
+			name:              "standard endpoint",
+			region:            "ap-northeast-1",
+			wantSigningRegion: "ap-northeast-1",
+		},
+		{
+			name:              "custom endpoint",
+			region:            "ap-northeast-1",
+			endpoint:          "http://localhost:9324",
+			wantResolver:      true,
+			wantEndpoint:      "http://localhost:9324",
+			wantSigningRegion: "ap-northeast-1",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			cfg, err := newSQSConfig(context.Background(), c.region, c.endpoint)
+			if err != nil {
+				t.Fatalf("unexpected error: %+v", err)
+			}
+			if cfg.Region != c.region {
+				t.Fatalf("unexpected region: want=%s, got=%s", c.region, cfg.Region)
+			}
+			if (cfg.EndpointResolverWithOptions != nil) != c.wantResolver {
+				t.Fatalf("unexpected resolver: want=%t, got=%t", c.wantResolver, cfg.EndpointResolverWithOptions != nil)
+			}
+			if !c.wantResolver {
+				return
+			}
+
+			endpoint, err := cfg.EndpointResolverWithOptions.ResolveEndpoint(awssqs.ServiceID, cfg.Region)
+			if err != nil {
+				t.Fatalf("unexpected endpoint resolve error: %+v", err)
+			}
+			if endpoint.URL != c.wantEndpoint {
+				t.Fatalf("unexpected endpoint: want=%s, got=%s", c.wantEndpoint, endpoint.URL)
+			}
+			if endpoint.SigningRegion != c.wantSigningRegion {
+				t.Fatalf("unexpected signing region: want=%s, got=%s", c.wantSigningRegion, endpoint.SigningRegion)
+			}
+			if _, err := cfg.EndpointResolverWithOptions.ResolveEndpoint("sts", cfg.Region); err == nil {
+				t.Fatal("expected non-SQS service to fallback")
+			}
+		})
+	}
+}
