@@ -35,9 +35,12 @@ type AppConfig struct {
 	Debug       string `default:"false"`
 	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
 	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://queue.middleware.svc.cluster.local:9324"`
+	MCPRegion   string `split_words:"true" default:"us-east-1"`
 
 	RemediationProposalQueueURL string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-remediation-proposal"`
 	WaitTimeSecond              int32  `split_words:"true" default:"20"`
+	MCPProxyCommand             string `split_words:"true" default:"uvx"`
+	MCPProxyPackage             string `split_words:"true" default:"mcp-proxy-for-aws@latest"`
 }
 
 func main() {
@@ -83,7 +86,14 @@ func main() {
 		appLogger.Fatalf(ctx, "Failed to create SQS client, err=%+v", err)
 	}
 
-	handler := remediationproposal.NewSqsHandler(appLogger)
+	processor := remediationproposal.NewRemediationProcessor(
+		conf.AWSRegion,
+		conf.MCPRegion,
+		remediationproposal.NewSTSCredentialProvider(),
+		remediationproposal.NewExecMCPProxyRunner(conf.MCPProxyCommand, conf.MCPProxyPackage),
+		appLogger,
+	)
+	handler := remediationproposal.NewSqsHandler(appLogger, remediationproposal.WithProcessor(processor))
 	appLogger.Info(ctx, "Start the AWS remediation proposal job...")
 	runner := remediationproposal.NewRunner(queueClient, conf.RemediationProposalQueueURL, conf.WaitTimeSecond,
 		commonsqs.RetryableErrorHandler(
