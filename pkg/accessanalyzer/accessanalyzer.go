@@ -207,7 +207,17 @@ func (a *accessAnalyzerClient) listAnalyzers(ctx context.Context) (*[]string, er
 			return nil, err
 		}
 		for _, analyzer := range out.Analyzers {
-			analyzers = append(analyzers, *analyzer.Arn)
+			switch analyzer.Type {
+			case types.TypeAccount, types.TypeOrganization:
+				analyzers = append(analyzers, *analyzer.Arn)
+			default:
+				a.logger.Infof(
+					ctx,
+					"Skip unsupported analyzer type: analyzerArn=%s, type=%s",
+					*analyzer.Arn,
+					analyzer.Type,
+				)
+			}
 		}
 		if out.NextToken == nil || *out.NextToken == "" {
 			break
