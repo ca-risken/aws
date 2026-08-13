@@ -156,13 +156,16 @@ func TestNewSQSConfig(t *testing.T) {
 			if cfg.Region != c.region {
 				t.Fatalf("unexpected region: want=%s, got=%s", c.region, cfg.Region)
 			}
+			//nolint:staticcheck // Keep the existing endpoint resolver until migration to BaseEndpoint.
 			if (cfg.EndpointResolverWithOptions != nil) != c.wantResolver {
+				//nolint:staticcheck // Keep the existing endpoint resolver until migration to BaseEndpoint.
 				t.Fatalf("unexpected resolver: want=%t, got=%t", c.wantResolver, cfg.EndpointResolverWithOptions != nil)
 			}
 			if !c.wantResolver {
 				return
 			}
 
+			//nolint:staticcheck // Keep the existing endpoint resolver until migration to BaseEndpoint.
 			endpoint, err := cfg.EndpointResolverWithOptions.ResolveEndpoint(awssqs.ServiceID, cfg.Region)
 			if err != nil {
 				t.Fatalf("unexpected endpoint resolve error: %+v", err)
