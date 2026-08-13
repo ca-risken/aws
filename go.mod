@@ -3,10 +3,10 @@ module github.com/ca-risken/aws
 go 1.21.3
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.19.1
+	github.com/aws/aws-sdk-go-v2 v1.23.1
 	github.com/aws/aws-sdk-go-v2/config v1.18.21
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.20
-	github.com/aws/aws-sdk-go-v2/service/accessanalyzer v1.17.2
+	github.com/aws/aws-sdk-go-v2/service/accessanalyzer v1.24.0
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.16.15
 	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.13.16
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.102.0
@@ -20,7 +20,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sns v1.20.8
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.20.8
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.9
-	github.com/aws/smithy-go v1.13.5
+	github.com/aws/smithy-go v1.17.0
 	github.com/ca-risken/common/pkg/cloudsploit v0.0.0-20240913022110-d46627f38918
 	github.com/ca-risken/common/pkg/dlp v0.0.0-20251009082317-0c402b55a771
 	github.com/ca-risken/common/pkg/logging v0.0.0-20220601065422-5b97bd6efc9b
@@ -54,8 +54,8 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.4.10 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.2 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.36 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.30 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.4 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.4 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.34 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.0.26 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.9.11 // indirect
