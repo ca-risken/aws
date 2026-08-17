@@ -176,6 +176,7 @@ func TestNewSQSConfig(t *testing.T) {
 			if endpoint.SigningRegion != c.wantSigningRegion {
 				t.Fatalf("unexpected signing region: want=%s, got=%s", c.wantSigningRegion, endpoint.SigningRegion)
 			}
+			//nolint:staticcheck // Keep the existing endpoint resolver until migration to BaseEndpoint.
 			if _, err := cfg.EndpointResolverWithOptions.ResolveEndpoint("sts", cfg.Region); err == nil {
 				t.Fatal("expected non-SQS service to fallback")
 			}
