@@ -207,10 +207,9 @@ func (a *accessAnalyzerClient) listAnalyzers(ctx context.Context) (*[]string, er
 			return nil, err
 		}
 		for _, analyzer := range out.Analyzers {
-			switch analyzer.Type {
-			case types.TypeAccount, types.TypeOrganization:
+			if isSupportedAnalyzerType(analyzer.Type) {
 				analyzers = append(analyzers, *analyzer.Arn)
-			default:
+			} else {
 				a.logger.Infof(
 					ctx,
 					"Skip unsupported analyzer type: analyzerArn=%s, type=%s",
@@ -225,6 +224,15 @@ func (a *accessAnalyzerClient) listAnalyzers(ctx context.Context) (*[]string, er
 		nextToken = *out.NextToken
 	}
 	return &analyzers, nil
+}
+
+func isSupportedAnalyzerType(analyzerType types.Type) bool {
+	switch analyzerType {
+	case types.TypeAccount, types.TypeOrganization:
+		return true
+	default:
+		return false
+	}
 }
 
 func (a *accessAnalyzerClient) listFindings(ctx context.Context, accountID string, analyzerArn string) (*[]types.FindingSummary, error) {
