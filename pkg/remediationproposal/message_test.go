@@ -40,6 +40,11 @@ func TestParseQueueMessage(t *testing.T) {
 			body:    `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001,"assume_role_arn":"arn:aws:iam::123456789012:role/test"}`,
 			wantErr: true,
 		},
+		{
+			name:    "NG invalid assume_role_arn",
+			body:    `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001,"assume_role_arn":"invalid-role-arn","external_id":"external"}`,
+			wantErr: true,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

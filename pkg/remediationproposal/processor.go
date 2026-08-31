@@ -80,9 +80,6 @@ func NewSTSCredentialProvider() *STSCredentialProvider {
 }
 
 func (p *STSCredentialProvider) AssumeRole(ctx context.Context, region, roleARN, externalID, sessionName string) (aws.Credentials, error) {
-	if err := validateRoleARN(roleARN); err != nil {
-		return aws.Credentials{}, err
-	}
 	if externalID == "" {
 		return aws.Credentials{}, errors.New("external_id is required")
 	}
