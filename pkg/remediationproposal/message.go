@@ -22,6 +22,9 @@ func ParseQueueMessage(body string) (*QueueMessage, error) {
 	if err := msg.Validate(); err != nil {
 		return nil, err
 	}
+	if err := validateRoleARN(msg.AssumeRoleArn); err != nil {
+		return nil, err
+	}
 	return &msg, nil
 }
 
