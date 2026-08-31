@@ -128,7 +128,6 @@ func TestRemediationProcessorProcess(t *testing.T) {
 }
 
 func TestBuildMCPProxyEnv(t *testing.T) {
-	t.Setenv("PATH", "/usr/local/bin")
 	t.Setenv("AWS_ACCESS_KEY_ID", "parent-access-key")
 	creds := aws.Credentials{
 		AccessKeyID:     "access-key",
@@ -139,7 +138,6 @@ func TestBuildMCPProxyEnv(t *testing.T) {
 	env := buildMCPProxyEnv(creds, "us-east-1")
 	got := strings.Join(env, "\n")
 	for _, want := range []string{
-		"PATH=/usr/local/bin",
 		"AWS_ACCESS_KEY_ID=access-key",
 		"AWS_SECRET_ACCESS_KEY=secret-key",
 		"AWS_SESSION_TOKEN=session-token",

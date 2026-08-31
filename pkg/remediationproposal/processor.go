@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -152,24 +151,11 @@ func (p *mcpProxyProcess) Stop() error {
 }
 
 func buildMCPProxyEnv(creds aws.Credentials, region string) []string {
-	env := preservedEnv()
-	env = append(env,
-		"AWS_ACCESS_KEY_ID="+creds.AccessKeyID,
-		"AWS_SECRET_ACCESS_KEY="+creds.SecretAccessKey,
-		"AWS_SESSION_TOKEN="+creds.SessionToken,
-		"AWS_REGION="+region,
-		"AWS_DEFAULT_REGION="+region,
-	)
-	return env
-}
-
-func preservedEnv() []string {
-	keys := []string{"PATH", "HOME", "TMPDIR", "SSL_CERT_FILE", "SSL_CERT_DIR", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY"}
-	env := make([]string, 0, len(keys))
-	for _, key := range keys {
-		if value, ok := os.LookupEnv(key); ok {
-			env = append(env, key+"="+value)
-		}
+	return []string{
+		"AWS_ACCESS_KEY_ID=" + creds.AccessKeyID,
+		"AWS_SECRET_ACCESS_KEY=" + creds.SecretAccessKey,
+		"AWS_SESSION_TOKEN=" + creds.SessionToken,
+		"AWS_REGION=" + region,
+		"AWS_DEFAULT_REGION=" + region,
 	}
-	return env
 }
