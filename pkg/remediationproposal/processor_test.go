@@ -182,3 +182,27 @@ func TestAWSMCPProxyRunnerStartValidation(t *testing.T) {
 		t.Fatal("expected credential validation error")
 	}
 }
+
+func TestValidateRoleARN(t *testing.T) {
+	cases := []struct {
+		name    string
+		roleARN string
+		wantErr bool
+	}{
+		{name: "valid", roleARN: "arn:aws:iam::123456789012:role/test"},
+		{name: "valid with path", roleARN: "arn:aws:iam::123456789012:role/team/test"},
+		{name: "invalid partition", roleARN: "arn:aws-us-gov:iam::123456789012:role/test", wantErr: true},
+		{name: "invalid service", roleARN: "arn:aws:s3:::bucket", wantErr: true},
+		{name: "invalid account", roleARN: "arn:aws:iam::not-an-account:role/test", wantErr: true},
+		{name: "invalid resource", roleARN: "arn:aws:iam::123456789012:user/test", wantErr: true},
+		{name: "empty", roleARN: "", wantErr: true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := validateRoleARN(c.roleARN)
+			if (err != nil) != c.wantErr {
+				t.Fatalf("unexpected error: wantErr=%t, err=%v", c.wantErr, err)
+			}
+		})
+	}
+}

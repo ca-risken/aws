@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -78,8 +80,8 @@ func NewSTSCredentialProvider() *STSCredentialProvider {
 }
 
 func (p *STSCredentialProvider) AssumeRole(ctx context.Context, region, roleARN, externalID, sessionName string) (aws.Credentials, error) {
-	if roleARN == "" {
-		return aws.Credentials{}, errors.New("assume_role_arn is required")
+	if err := validateRoleARN(roleARN); err != nil {
+		return aws.Credentials{}, err
 	}
 	if externalID == "" {
 		return aws.Credentials{}, errors.New("external_id is required")
@@ -97,6 +99,29 @@ func (p *STSCredentialProvider) AssumeRole(ctx context.Context, region, roleARN,
 		options.ExternalID = &externalID
 	})
 	return aws.NewCredentialsCache(provider).Retrieve(ctx)
+}
+
+func validateRoleARN(roleARN string) error {
+	parsedARN, err := arn.Parse(roleARN)
+	if err != nil {
+		return fmt.Errorf("invalid assume_role_arn: %w", err)
+	}
+	if parsedARN.Partition != "aws" || parsedARN.Service != "iam" || !isAWSAccountID(parsedARN.AccountID) || !strings.HasPrefix(parsedARN.Resource, "role/") || len(parsedARN.Resource) <= len("role/") {
+		return errors.New("invalid assume_role_arn")
+	}
+	return nil
+}
+
+func isAWSAccountID(accountID string) bool {
+	if len(accountID) != 12 {
+		return false
+	}
+	for _, c := range accountID {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 type AWSMCPProxyRunner struct {

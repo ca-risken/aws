@@ -2,6 +2,7 @@ package remediationproposal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -27,6 +28,10 @@ func NewSqsHandler(l logging.Logger, processor Processor) *SqsHandler {
 }
 
 func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) error {
+	if s.processor == nil {
+		return errors.New("remediation proposal processor is required")
+	}
+
 	msgBody := aws.ToString(sqsMsg.Body)
 	s.logger.Info(ctx, "got remediation proposal message")
 
@@ -49,10 +54,8 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	}
 
 	s.logger.Infof(ctx, "start remediation proposal, RequestID=%s", requestID)
-	if s.processor != nil {
-		if err := s.processor.Process(ctx, msg, requestID); err != nil {
-			return err
-		}
+	if err := s.processor.Process(ctx, msg, requestID); err != nil {
+		return err
 	}
 	s.logger.Infof(ctx, "end remediation proposal, RequestID=%s", requestID)
 	return nil
