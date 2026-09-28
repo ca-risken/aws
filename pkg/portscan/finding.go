@@ -108,7 +108,8 @@ func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 }
 
 func (s *SqsHandler) generateFindingBatch(ctx context.Context, awsAccountID, category string, f *finding.FindingForUpsert, addPublicTag bool) *finding.FindingBatchForUpsert {
-	common.SetAWSProvider(f, awsAccountID)
+	f.Provider = "aws"
+	f.ProviderTarget = awsAccountID
 	data := &finding.FindingBatchForUpsert{Finding: f}
 	// tag
 	tags := []*finding.FindingTagForBatch{

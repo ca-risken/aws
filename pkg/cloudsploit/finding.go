@@ -59,6 +59,8 @@ func (s *SqsHandler) putFindings(ctx context.Context, results []*cloudSploitResu
 
 		// finding
 		f := &finding.FindingForUpsert{
+			Provider:         "aws",
+			ProviderTarget:   message.AccountID,
 			Description:      result.Description,
 			DataSource:       message.DataSource,
 			DataSourceId:     generateDataSourceID(fmt.Sprintf("description_%v_%v_%v", result.Description, result.Region, result.Resource)),
@@ -68,7 +70,6 @@ func (s *SqsHandler) putFindings(ctx context.Context, results []*cloudSploitResu
 			OriginalMaxScore: maxScore,
 			Data:             string(data),
 		}
-		common.SetAWSProvider(f, message.AccountID)
 		tags = append(tags, common.TagCloudsploit, result.Plugin)
 		tags = append(tags, s.getPluginTags(result.Category, result.Plugin)...)
 		var findingTagForBatch []*finding.FindingTagForBatch
