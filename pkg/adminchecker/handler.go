@@ -155,6 +155,8 @@ func (s *SqsHandler) putUserFindings(ctx context.Context, msg *message.AWSQueueM
 		}
 		// Put finding to core
 		if err := s.putFindings(ctx, typeAdmin, msg, &finding.FindingForUpsert{
+			Provider:         "aws",
+			ProviderTarget:   msg.AccountID,
 			Description:      desc,
 			DataSource:       msg.DataSource,
 			DataSourceId:     user.UserArn,
@@ -168,6 +170,8 @@ func (s *SqsHandler) putUserFindings(ctx context.Context, msg *message.AWSQueueM
 			return err
 		}
 		if err := s.putFindings(ctx, typeAccessReport, msg, &finding.FindingForUpsert{
+			Provider:         "aws",
+			ProviderTarget:   msg.AccountID,
 			Description:      fmt.Sprintf("Detected over-authorized IAM user: (unused service rate=%.1f%%, user=%s)", (1-user.ServiceAccessedReport.AccessRate)*100, user.UserName),
 			DataSource:       msg.DataSource,
 			DataSourceId:     prefixAccessReport + user.UserArn,
@@ -193,6 +197,8 @@ func (s *SqsHandler) putRoleFindings(ctx context.Context, msg *message.AWSQueueM
 		}
 		// Put finding to core
 		if err := s.putFindings(ctx, typeAccessReport, msg, &finding.FindingForUpsert{
+			Provider:         "aws",
+			ProviderTarget:   msg.AccountID,
 			Description:      fmt.Sprintf("Detected over-authorized IAM role: (unused service rate=%.1f%%, role=%s)", (1-role.ServiceAccessedReport.AccessRate)*100, role.RoleName),
 			DataSource:       msg.DataSource,
 			DataSourceId:     prefixAccessReport + role.RoleArn,
@@ -211,8 +217,6 @@ func (s *SqsHandler) putRoleFindings(ctx context.Context, msg *message.AWSQueueM
 
 func (s *SqsHandler) putFindings(ctx context.Context, findingType string, msg *message.AWSQueueMessage, f *finding.FindingForUpsert) error {
 	// finding
-	f.Provider = "aws"
-	f.ProviderTarget = msg.AccountID
 	resp, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
 	if err != nil {
 		return err
