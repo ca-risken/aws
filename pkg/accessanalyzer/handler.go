@@ -151,6 +151,7 @@ func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 	sort.Slice(findings, func(i, j int) bool { return findings[i].OriginalScore < findings[j].OriginalScore })
 	for _, f := range findings {
 		// finding
+		common.SetAWSProvider(f, msg.AccountID)
 		resp, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
 		if err != nil {
 			return err

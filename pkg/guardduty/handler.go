@@ -164,7 +164,7 @@ func supportedRegion(region string) bool {
 
 func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessage, findings []*guardDutyFinding) error {
 	for _, f := range findings {
-		resp, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: &finding.FindingForUpsert{
+		findingForUpsert := &finding.FindingForUpsert{
 			Description:      f.Description,
 			DataSource:       f.DataSource,
 			DataSourceId:     f.DataSourceId,
@@ -173,7 +173,9 @@ func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 			OriginalScore:    f.OriginalScore,
 			OriginalMaxScore: f.OriginalMaxScore,
 			Data:             f.Data,
-		}})
+		}
+		common.SetAWSProvider(findingForUpsert, msg.AccountID)
+		resp, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: findingForUpsert})
 		if err != nil {
 			return err
 		}

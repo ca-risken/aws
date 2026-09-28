@@ -211,6 +211,7 @@ func (s *SqsHandler) putRoleFindings(ctx context.Context, msg *message.AWSQueueM
 
 func (s *SqsHandler) putFindings(ctx context.Context, findingType string, msg *message.AWSQueueMessage, f *finding.FindingForUpsert) error {
 	// finding
+	common.SetAWSProvider(f, msg.AccountID)
 	resp, err := s.findingClient.PutFinding(ctx, &finding.PutFindingRequest{Finding: f})
 	if err != nil {
 		return err
