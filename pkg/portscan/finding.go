@@ -24,7 +24,7 @@ func makeFindings(results []*portscan.NmapResult, message *message.AWSQueueMessa
 		if err != nil {
 			return nil, err
 		}
-		findings = append(findings, r.GetFindings(message.ProjectID, message.DataSource, string(data))...)
+		findings = append(findings, r.GetFindings(message.ProjectID, message.DataSource, string(data), "aws", message.AccountID)...)
 	}
 	return findings, nil
 }
@@ -37,6 +37,8 @@ func makeExcludeFindings(results []*excludeResult, message *message.AWSQueueMess
 			return nil, err
 		}
 		findings = append(findings, &finding.FindingForUpsert{
+			Provider:         "aws",
+			ProviderTarget:   message.AccountID,
 			Description:      getExcludeDescription(r.Target, r.Protocol, r.FromPort, r.ToPort, r.SecurityGroup),
 			DataSource:       message.DataSource,
 			DataSourceId:     generateDataSourceID(fmt.Sprintf("%v:%v:%v:%v", r.Target, r.Protocol, r.FromPort, r.ToPort)),
@@ -62,6 +64,8 @@ func makeSecurityGroupFindings(results map[string]*relSecurityGroupArn, message 
 			score = 3.0
 		}
 		findings = append(findings, &finding.FindingForUpsert{
+			Provider:         "aws",
+			ProviderTarget:   message.AccountID,
 			Description:      getSecurityGroupDescription(groupArn, r.SecurityGroup.GroupId, r.IsPublic),
 			DataSource:       message.DataSource,
 			DataSourceId:     generateDataSourceID(fmt.Sprintf("%v:portscan_sg:%v", message.AWSID, groupArn)),
@@ -108,8 +112,6 @@ func (s *SqsHandler) putFindings(ctx context.Context, msg *message.AWSQueueMessa
 }
 
 func (s *SqsHandler) generateFindingBatch(ctx context.Context, awsAccountID, category string, f *finding.FindingForUpsert, addPublicTag bool) *finding.FindingBatchForUpsert {
-	f.Provider = "aws"
-	f.ProviderTarget = awsAccountID
 	data := &finding.FindingBatchForUpsert{Finding: f}
 	// tag
 	tags := []*finding.FindingTagForBatch{
