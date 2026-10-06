@@ -24,7 +24,7 @@ require (
 	github.com/ca-risken/common/pkg/cloudsploit v0.0.0-20240913022110-d46627f38918
 	github.com/ca-risken/common/pkg/dlp v0.0.0-20251009082317-0c402b55a771
 	github.com/ca-risken/common/pkg/logging v0.0.0-20220601065422-5b97bd6efc9b
-	github.com/ca-risken/common/pkg/portscan v0.0.0-20260928074348-cc7bf4fe1b49
+	github.com/ca-risken/common/pkg/portscan v0.0.0-20261006055254-bc917fb62bcc
 	github.com/ca-risken/common/pkg/profiler v0.0.0-20221119073224-9db027bda6f8
 	github.com/ca-risken/common/pkg/sqs v0.0.0-20221119073224-9db027bda6f8
 	github.com/ca-risken/common/pkg/tracer v0.0.0-20230727031236-b35703d5c59d
