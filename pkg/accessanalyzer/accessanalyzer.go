@@ -169,6 +169,8 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *messa
 			}
 
 			putData = append(putData, &finding.FindingForUpsert{
+				Provider:         "aws",
+				ProviderTarget:   msg.AccountID,
 				Description:      description,
 				DataSource:       msg.DataSource,
 				DataSourceId:     *data.Id,
