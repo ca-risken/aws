@@ -9,7 +9,22 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/ca-risken/common/pkg/logging"
+	corefinding "github.com/ca-risken/core/proto/finding"
+	"google.golang.org/grpc"
 )
+
+type mockFindingClient struct {
+	projectID uint32
+	findingID uint64
+	response  *corefinding.GetFindingResponse
+	err       error
+}
+
+func (m *mockFindingClient) GetFinding(ctx context.Context, req *corefinding.GetFindingRequest, opts ...grpc.CallOption) (*corefinding.GetFindingResponse, error) {
+	m.projectID = req.ProjectId
+	m.findingID = req.FindingId
+	return m.response, m.err
+}
 
 type mockCredentialProvider struct {
 	region      string
@@ -72,34 +87,48 @@ func TestRemediationProcessorProcess(t *testing.T) {
 	}
 
 	cases := []struct {
-		name          string
-		credentialErr error
-		proxyErr      error
-		wantErr       bool
-		wantStopped   bool
+		name           string
+		provider       string
+		providerTarget string
+		credentialErr  error
+		proxyErr       error
+		wantErr        bool
+		wantStopped    bool
 	}{
 		{
-			name:        "OK",
-			wantStopped: true,
+			name:           "OK",
+			provider:       "aws",
+			providerTarget: "123456789012",
+			wantStopped:    true,
 		},
 		{
-			name:          "NG assume role error",
-			credentialErr: errAssumeRole,
-			wantErr:       true,
+			name:           "NG assume role error",
+			provider:       "aws",
+			providerTarget: "123456789012",
+			credentialErr:  errAssumeRole,
+			wantErr:        true,
 		},
 		{
-			name:        "NG proxy start error",
-			proxyErr:    errStartProxy,
-			wantErr:     true,
-			wantStopped: false,
+			name:           "NG proxy start error",
+			provider:       "aws",
+			providerTarget: "123456789012",
+			proxyErr:       errStartProxy,
+			wantErr:        true,
+			wantStopped:    false,
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			findingClient := &mockFindingClient{response: &corefinding.GetFindingResponse{Finding: &corefinding.Finding{
+				FindingId:      msg.FindingID,
+				ProjectId:      msg.ProjectID,
+				Provider:       c.provider,
+				ProviderTarget: c.providerTarget,
+			}}}
 			credentialProvider := &mockCredentialProvider{err: c.credentialErr}
 			proxyRunner := &mockMCPProxyRunner{err: c.proxyErr}
-			processor := NewRemediationProcessor("ap-northeast-1", "us-east-1", credentialProvider, proxyRunner, logging.NewLogger())
+			processor := NewRemediationProcessor("ap-northeast-1", "us-east-1", findingClient, credentialProvider, proxyRunner, logging.NewLogger())
 
 			err := processor.Process(context.Background(), msg, "request-id")
 			if (err != nil) != c.wantErr {
@@ -107,6 +136,9 @@ func TestRemediationProcessorProcess(t *testing.T) {
 			}
 			if credentialProvider.region != "ap-northeast-1" {
 				t.Fatalf("unexpected assume role region: got=%s", credentialProvider.region)
+			}
+			if findingClient.projectID != msg.ProjectID || findingClient.findingID != msg.FindingID {
+				t.Fatalf("unexpected finding request: project_id=%d, finding_id=%d", findingClient.projectID, findingClient.findingID)
 			}
 			if credentialProvider.roleARN != msg.AssumeRoleArn {
 				t.Fatalf("unexpected assume role arn: got=%s", credentialProvider.roleARN)

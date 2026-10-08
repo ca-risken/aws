@@ -14,6 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/ca-risken/common/pkg/logging"
+	corefinding "github.com/ca-risken/core/proto/finding"
+	"google.golang.org/grpc"
 )
 
 const roleSessionNamePrefix = "RISKEN-AI"
@@ -32,18 +34,24 @@ type MCPProxyProcess interface {
 	Stop() error
 }
 
+type FindingClient interface {
+	GetFinding(ctx context.Context, in *corefinding.GetFindingRequest, opts ...grpc.CallOption) (*corefinding.GetFindingResponse, error)
+}
+
 type RemediationProcessor struct {
 	awsRegion          string
 	mcpRegion          string
+	findingClient      FindingClient
 	credentialProvider CredentialProvider
 	mcpProxyRunner     MCPProxyRunner
 	logger             logging.Logger
 }
 
-func NewRemediationProcessor(awsRegion, mcpRegion string, credentialProvider CredentialProvider, mcpProxyRunner MCPProxyRunner, logger logging.Logger) *RemediationProcessor {
+func NewRemediationProcessor(awsRegion, mcpRegion string, findingClient FindingClient, credentialProvider CredentialProvider, mcpProxyRunner MCPProxyRunner, logger logging.Logger) *RemediationProcessor {
 	return &RemediationProcessor{
 		awsRegion:          awsRegion,
 		mcpRegion:          mcpRegion,
+		findingClient:      findingClient,
 		credentialProvider: credentialProvider,
 		mcpProxyRunner:     mcpProxyRunner,
 		logger:             logger,
@@ -51,6 +59,17 @@ func NewRemediationProcessor(awsRegion, mcpRegion string, credentialProvider Cre
 }
 
 func (p *RemediationProcessor) Process(ctx context.Context, msg *QueueMessage, requestID string) error {
+	finding, err := p.getFinding(ctx, msg)
+	if err != nil {
+		return err
+	}
+	if finding.Provider != "aws" {
+		return fmt.Errorf("unsupported finding provider: finding_id=%d, provider=%s", msg.FindingID, finding.Provider)
+	}
+	if err := validateProviderTarget(finding.ProviderTarget, msg.AssumeRoleArn); err != nil {
+		return fmt.Errorf("invalid finding provider target: finding_id=%d, err=%w", msg.FindingID, err)
+	}
+
 	sessionName := buildRoleSessionName(requestID)
 	creds, err := p.credentialProvider.AssumeRole(ctx, p.awsRegion, msg.AssumeRoleArn, msg.ExternalID, sessionName)
 	if err != nil {
@@ -66,6 +85,37 @@ func (p *RemediationProcessor) Process(ctx context.Context, msg *QueueMessage, r
 		}
 	}()
 	p.logger.Infof(ctx, "started AWS MCP proxy, remediation_proposal_id=%d", msg.RemediationProposalID)
+	return nil
+}
+
+func (p *RemediationProcessor) getFinding(ctx context.Context, msg *QueueMessage) (*corefinding.Finding, error) {
+	if p.findingClient == nil {
+		return nil, errors.New("finding client is required")
+	}
+	resp, err := p.findingClient.GetFinding(ctx, &corefinding.GetFindingRequest{
+		ProjectId: msg.ProjectID,
+		FindingId: msg.FindingID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get finding: finding_id=%d, err=%w", msg.FindingID, err)
+	}
+	if resp == nil || resp.Finding == nil {
+		return nil, fmt.Errorf("finding not found: finding_id=%d", msg.FindingID)
+	}
+	return resp.Finding, nil
+}
+
+func validateProviderTarget(providerTarget, roleARN string) error {
+	if !isAWSAccountID(providerTarget) {
+		return errors.New("provider_target must be an AWS account ID")
+	}
+	parsedARN, err := arn.Parse(roleARN)
+	if err != nil {
+		return fmt.Errorf("invalid assume_role_arn: %w", err)
+	}
+	if parsedARN.AccountID != providerTarget {
+		return fmt.Errorf("provider_target does not match assume_role_arn account")
+	}
 	return nil
 }
 
