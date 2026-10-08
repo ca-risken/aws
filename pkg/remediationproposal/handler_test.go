@@ -8,6 +8,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/ca-risken/common/pkg/logging"
+	coreai "github.com/ca-risken/core/proto/ai"
+	coreaimocks "github.com/ca-risken/core/proto/ai/mocks"
+	"github.com/stretchr/testify/mock"
 )
 
 type mockProcessor struct {
@@ -54,7 +57,19 @@ func TestHandleMessage(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			processor := &mockProcessor{err: c.processorErr}
-			handler := NewSqsHandler(logging.NewLogger(), processor)
+			aiClient := coreaimocks.NewAIServiceClient(t)
+			status := remediationProposalStatusSucceeded
+			statusDetail := ""
+			if c.processorErr != nil {
+				status = remediationProposalStatusFailed
+				statusDetail = c.processorErr.Error()
+			}
+			if c.wantProcessorCall {
+				aiClient.On("UpdateRemediationProposalStatus", mock.Anything, mock.MatchedBy(func(req *coreai.UpdateRemediationProposalStatusRequest) bool {
+					return req.ProjectId == 1001 && req.RemediationProposalId == 1001 && req.Status == status && req.StatusDetail == statusDetail
+				})).Return(&coreai.UpdateRemediationProposalStatusResponse{}, nil).Once()
+			}
+			handler := NewSqsHandler(logging.NewLogger(), processor, aiClient)
 			err := handler.HandleMessage(context.Background(), &types.Message{Body: aws.String(c.body)})
 			if err != nil && !c.wantErr {
 				t.Fatalf("unexpected error: %+v", err)
@@ -73,7 +88,7 @@ func TestHandleMessage(t *testing.T) {
 }
 
 func TestHandleMessageWithoutProcessor(t *testing.T) {
-	handler := NewSqsHandler(logging.NewLogger(), nil)
+	handler := NewSqsHandler(logging.NewLogger(), nil, coreaimocks.NewAIServiceClient(t))
 	err := handler.HandleMessage(context.Background(), &types.Message{})
 	if err == nil {
 		t.Fatal("expected error but got nil")
