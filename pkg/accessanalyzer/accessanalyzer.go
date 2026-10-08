@@ -169,6 +169,8 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *messa
 			}
 
 			putData = append(putData, &finding.FindingForUpsert{
+				Provider:         "aws",
+				ProviderTarget:   msg.AccountID,
 				Description:      description,
 				DataSource:       msg.DataSource,
 				DataSourceId:     *data.Id,
@@ -207,7 +209,16 @@ func (a *accessAnalyzerClient) listAnalyzers(ctx context.Context) (*[]string, er
 			return nil, err
 		}
 		for _, analyzer := range out.Analyzers {
-			analyzers = append(analyzers, *analyzer.Arn)
+			if isSupportedAnalyzerType(analyzer.Type) {
+				analyzers = append(analyzers, *analyzer.Arn)
+			} else {
+				a.logger.Infof(
+					ctx,
+					"Skip unsupported analyzer type: analyzerArn=%s, type=%s",
+					*analyzer.Arn,
+					analyzer.Type,
+				)
+			}
 		}
 		if out.NextToken == nil || *out.NextToken == "" {
 			break
@@ -215,6 +226,15 @@ func (a *accessAnalyzerClient) listAnalyzers(ctx context.Context) (*[]string, er
 		nextToken = *out.NextToken
 	}
 	return &analyzers, nil
+}
+
+func isSupportedAnalyzerType(analyzerType types.Type) bool {
+	switch analyzerType {
+	case types.TypeAccount, types.TypeOrganization:
+		return true
+	default:
+		return false
+	}
 }
 
 func (a *accessAnalyzerClient) listFindings(ctx context.Context, accountID string, analyzerArn string) (*[]types.FindingSummary, error) {

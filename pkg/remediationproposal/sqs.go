@@ -36,20 +36,28 @@ func NewRunner(client QueueClient, queueURL string, waitTimeSeconds int32, handl
 }
 
 func NewSQSClient(ctx context.Context, region, endpoint string) (QueueClient, error) {
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		if service != awssqs.ServiceID {
-			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-		}
-		if endpoint == "" {
-			return aws.Endpoint{PartitionID: "aws", SigningRegion: region}, nil
-		}
-		return aws.Endpoint{PartitionID: "aws", URL: endpoint, SigningRegion: region}, nil
-	})
-	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithEndpointResolverWithOptions(customResolver))
+	cfg, err := newSQSConfig(ctx, region, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load aws configuration: %w", err)
 	}
 	return awssqs.NewFromConfig(cfg), nil
+}
+
+func newSQSConfig(ctx context.Context, region, endpoint string) (aws.Config, error) {
+	opts := []func(*awsconfig.LoadOptions) error{}
+	if region != "" {
+		opts = append(opts, awsconfig.WithRegion(region))
+	}
+	if endpoint != "" {
+		customResolver := aws.EndpointResolverWithOptionsFunc(func(service, signingRegion string, options ...interface{}) (aws.Endpoint, error) {
+			if service != awssqs.ServiceID {
+				return aws.Endpoint{}, &aws.EndpointNotFoundError{}
+			}
+			return aws.Endpoint{PartitionID: "aws", URL: endpoint, SigningRegion: signingRegion}, nil
+		})
+		opts = append(opts, awsconfig.WithEndpointResolverWithOptions(customResolver))
+	}
+	return awsconfig.LoadDefaultConfig(ctx, opts...)
 }
 
 func (r *Runner) RunOnce(ctx context.Context) (bool, error) {

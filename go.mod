@@ -24,16 +24,15 @@ require (
 	github.com/ca-risken/common/pkg/cloudsploit v0.0.0-20240913022110-d46627f38918
 	github.com/ca-risken/common/pkg/dlp v0.0.0-20251009082317-0c402b55a771
 	github.com/ca-risken/common/pkg/logging v0.0.0-20220601065422-5b97bd6efc9b
-	github.com/ca-risken/common/pkg/portscan v0.0.0-20230501023912-29382763676f
+	github.com/ca-risken/common/pkg/portscan v0.0.0-20261006055254-bc917fb62bcc
 	github.com/ca-risken/common/pkg/profiler v0.0.0-20221119073224-9db027bda6f8
 	github.com/ca-risken/common/pkg/sqs v0.0.0-20221119073224-9db027bda6f8
 	github.com/ca-risken/common/pkg/tracer v0.0.0-20230727031236-b35703d5c59d
-	github.com/ca-risken/core v0.16.1-0.20260713042505-63c5f434928e
+	github.com/ca-risken/core v0.16.1-0.20261002050808-7575b0301069
 	github.com/ca-risken/datasource-api v0.16.1-0.20251002083517-92a4ac71dc6e
 	github.com/ca-risken/go-sqs-poller/worker/v5 v5.0.0-20220525093235-9148d33b6aee
 	github.com/gassara-kys/envconfig v1.4.4
 	github.com/google/go-cmp v0.7.0
-	github.com/stretchr/testify v1.9.0
 	github.com/vikyd/zero v0.0.0-20190921142904-0f738d0bc858
 	golang.org/x/sync v0.10.0
 	google.golang.org/grpc v1.54.0
@@ -66,9 +65,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.12.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.8 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/envoyproxy/protoc-gen-validate v0.9.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible // indirect
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
@@ -84,13 +81,11 @@ require (
 	github.com/outcaste-io/ristretto v0.2.1 // indirect
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/richardartoul/molecule v1.0.1-0.20221107223329-32cfee06a052 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.6.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/tinylib/msgp v1.1.6 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go4.org/intern v0.0.0-20211027215823-ae77deb06f29 // indirect

@@ -2,34 +2,41 @@ package remediationproposal
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/ca-risken/common/pkg/logging"
-	coreai "github.com/ca-risken/core/proto/ai"
-	coreaimocks "github.com/ca-risken/core/proto/ai/mocks"
-	"github.com/stretchr/testify/mock"
 )
 
+type mockProcessor struct {
+	called    bool
+	requestID string
+	msg       *QueueMessage
+	err       error
+}
+
+func (m *mockProcessor) Process(ctx context.Context, msg *QueueMessage, requestID string) error {
+	m.called = true
+	m.requestID = requestID
+	m.msg = msg
+	return m.err
+}
+
 func TestHandleMessage(t *testing.T) {
+	errProcess := errors.New("process error")
 	cases := []struct {
-		name    string
-		body    string
-		setup   func(ai *coreaimocks.AIServiceClient)
-		wantErr bool
+		name              string
+		body              string
+		processorErr      error
+		wantProcessorCall bool
+		wantErr           bool
 	}{
 		{
-			name: "OK",
-			body: `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001,"assume_role_arn":"arn:aws:iam::123456789012:role/test","external_id":"external"}`,
-			setup: func(ai *coreaimocks.AIServiceClient) {
-				ai.On("UpdateRemediationProposalStatus", mock.Anything, mock.MatchedBy(func(req *coreai.UpdateRemediationProposalStatusRequest) bool {
-					return req.ProjectId == 1001 &&
-						req.RemediationProposalId == 1001 &&
-						req.Status == remediationProposalStatusFailed &&
-						req.StatusDetail == remediationProposalStatusDetailNotImplemented
-				})).Return(&coreai.UpdateRemediationProposalStatusResponse{}, nil).Once()
-			},
+			name:              "OK",
+			body:              `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001,"assume_role_arn":"arn:aws:iam::123456789012:role/test","external_id":"external"}`,
+			wantProcessorCall: true,
 		},
 		{
 			name:    "NG invalid message",
@@ -37,21 +44,17 @@ func TestHandleMessage(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "NG update remediation proposal status error",
-			body: `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001,"assume_role_arn":"arn:aws:iam::123456789012:role/test","external_id":"external"}`,
-			setup: func(ai *coreaimocks.AIServiceClient) {
-				ai.On("UpdateRemediationProposalStatus", mock.Anything, mock.Anything).Return(nil, assertAnError{}).Once()
-			},
-			wantErr: true,
+			name:              "NG processor error",
+			body:              `{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001,"assume_role_arn":"arn:aws:iam::123456789012:role/test","external_id":"external"}`,
+			processorErr:      errProcess,
+			wantProcessorCall: true,
+			wantErr:           true,
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			aiClient := coreaimocks.NewAIServiceClient(t)
-			if c.setup != nil {
-				c.setup(aiClient)
-			}
-			handler := NewSqsHandler(logging.NewLogger(), aiClient)
+			processor := &mockProcessor{err: c.processorErr}
+			handler := NewSqsHandler(logging.NewLogger(), processor)
 			err := handler.HandleMessage(context.Background(), &types.Message{Body: aws.String(c.body)})
 			if err != nil && !c.wantErr {
 				t.Fatalf("unexpected error: %+v", err)
@@ -59,12 +62,23 @@ func TestHandleMessage(t *testing.T) {
 			if err == nil && c.wantErr {
 				t.Fatal("expected error but got nil")
 			}
+			if processor.called != c.wantProcessorCall {
+				t.Fatalf("unexpected processor call: want=%t, got=%t", c.wantProcessorCall, processor.called)
+			}
+			if c.wantProcessorCall && processor.msg.RemediationProposalID != 1001 {
+				t.Fatalf("unexpected remediation_proposal_id: got=%d", processor.msg.RemediationProposalID)
+			}
 		})
 	}
 }
 
-type assertAnError struct{}
-
-func (assertAnError) Error() string {
-	return "error"
+func TestHandleMessageWithoutProcessor(t *testing.T) {
+	handler := NewSqsHandler(logging.NewLogger(), nil)
+	err := handler.HandleMessage(context.Background(), &types.Message{})
+	if err == nil {
+		t.Fatal("expected error but got nil")
+	}
+	if err.Error() != "remediation proposal processor is required" {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }
