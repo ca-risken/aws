@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/ca-risken/common/pkg/logging"
+	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	corefinding "github.com/ca-risken/core/proto/finding"
 	"google.golang.org/grpc"
 )
@@ -154,6 +155,58 @@ func TestRemediationProcessorProcess(t *testing.T) {
 			}
 			if proxyRunner.process != nil && proxyRunner.process.stopped != c.wantStopped {
 				t.Fatalf("unexpected proxy stop: want=%t, got=%t", c.wantStopped, proxyRunner.process.stopped)
+			}
+		})
+	}
+}
+
+func TestRemediationProcessorProcessReturnsNonRetryableForPermanentErrors(t *testing.T) {
+	msg := &QueueMessage{
+		FindingID:     2001,
+		ProjectID:     3001,
+		AssumeRoleArn: "arn:aws:iam::123456789012:role/test",
+		ExternalID:    "external",
+	}
+	cases := []struct {
+		name    string
+		finding *corefinding.Finding
+	}{
+		{
+			name:    "finding not found",
+			finding: nil,
+		},
+		{
+			name: "unsupported provider",
+			finding: &corefinding.Finding{
+				Provider:       "gcp",
+				ProviderTarget: "123456789012",
+			},
+		},
+		{
+			name: "invalid provider target",
+			finding: &corefinding.Finding{
+				Provider:       "aws",
+				ProviderTarget: "999999999999",
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			findingClient := &mockFindingClient{response: &corefinding.GetFindingResponse{Finding: c.finding}}
+			processor := NewRemediationProcessor(
+				"ap-northeast-1",
+				"us-east-1",
+				findingClient,
+				&mockCredentialProvider{},
+				&mockMCPProxyRunner{},
+				logging.NewLogger(),
+			)
+
+			err := processor.Process(context.Background(), msg, "request-id")
+			var nonRetryableErr mimosasqs.NonRetryableError
+			if !errors.As(err, &nonRetryableErr) {
+				t.Fatalf("expected non-retryable error, got=%+v", err)
 			}
 		})
 	}

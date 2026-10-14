@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/ca-risken/common/pkg/logging"
+	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	corefinding "github.com/ca-risken/core/proto/finding"
 	"google.golang.org/grpc"
 )
@@ -64,10 +65,10 @@ func (p *RemediationProcessor) Process(ctx context.Context, msg *QueueMessage, r
 		return err
 	}
 	if finding.Provider != "aws" {
-		return fmt.Errorf("unsupported finding provider: finding_id=%d, provider=%s", msg.FindingID, finding.Provider)
+		return mimosasqs.WrapNonRetryable(fmt.Errorf("unsupported finding provider: finding_id=%d, provider=%s", msg.FindingID, finding.Provider))
 	}
 	if err := validateProviderTarget(finding.ProviderTarget, msg.AssumeRoleArn); err != nil {
-		return fmt.Errorf("invalid finding provider target: finding_id=%d, err=%w", msg.FindingID, err)
+		return mimosasqs.WrapNonRetryable(fmt.Errorf("invalid finding provider target: finding_id=%d, err=%w", msg.FindingID, err))
 	}
 
 	sessionName := buildRoleSessionName(requestID)
@@ -100,7 +101,7 @@ func (p *RemediationProcessor) getFinding(ctx context.Context, msg *QueueMessage
 		return nil, fmt.Errorf("failed to get finding: finding_id=%d, err=%w", msg.FindingID, err)
 	}
 	if resp == nil || resp.Finding == nil {
-		return nil, fmt.Errorf("finding not found: finding_id=%d", msg.FindingID)
+		return nil, mimosasqs.WrapNonRetryable(fmt.Errorf("finding not found: finding_id=%d", msg.FindingID))
 	}
 	return resp.Finding, nil
 }

@@ -69,7 +69,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	s.logger.Infof(ctx, "start remediation proposal, RequestID=%s", requestID)
 	if err := s.processor.Process(ctx, msg, requestID); err != nil {
 		if statusErr := s.updateRemediationProposalStatus(ctx, msg, remediationProposalStatusFailed, err.Error()); statusErr != nil {
-			return fmt.Errorf("%w: failed to update remediation proposal status: %v", err, statusErr)
+			return fmt.Errorf("failed to update remediation proposal status: process_err=%v: %w", err, statusErr)
 		}
 		return err
 	}
