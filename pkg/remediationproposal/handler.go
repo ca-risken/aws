@@ -4,26 +4,40 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/ca-risken/common/pkg/logging"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
+	"github.com/ca-risken/core/proto/ai"
+	"google.golang.org/grpc"
 )
+
+const (
+	remediationProposalStatusFailed    = "FAILED"
+	remediationProposalStatusSucceeded = "SUCCEEDED"
+)
+
+type remediationProposalUpdater interface {
+	UpdateRemediationProposalStatus(ctx context.Context, in *ai.UpdateRemediationProposalStatusRequest, opts ...grpc.CallOption) (*ai.UpdateRemediationProposalStatusResponse, error)
+}
 
 type SqsHandler struct {
 	logger    logging.Logger
 	processor Processor
+	ai        remediationProposalUpdater
 }
 
 type Processor interface {
 	Process(ctx context.Context, msg *QueueMessage, requestID string) error
 }
 
-func NewSqsHandler(l logging.Logger, processor Processor) *SqsHandler {
+func NewSqsHandler(l logging.Logger, processor Processor, ai remediationProposalUpdater) *SqsHandler {
 	return &SqsHandler{
 		logger:    l,
 		processor: processor,
+		ai:        ai,
 	}
 }
 
@@ -55,8 +69,47 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 
 	s.logger.Infof(ctx, "start remediation proposal, RequestID=%s", requestID)
 	if err := s.processor.Process(ctx, msg, requestID); err != nil {
+		if statusErr := s.updateRemediationProposalStatus(ctx, msg, remediationProposalStatusFailed, remediationProposalStatusDetail(err)); statusErr != nil {
+			return fmt.Errorf("failed to update remediation proposal status: process_err=%v: %w", err, statusErr)
+		}
+		return err
+	}
+	if err := s.updateRemediationProposalStatus(ctx, msg, remediationProposalStatusSucceeded, ""); err != nil {
 		return err
 	}
 	s.logger.Infof(ctx, "end remediation proposal, RequestID=%s", requestID)
+	return nil
+}
+
+func remediationProposalStatusDetail(err error) string {
+	message := err.Error()
+	switch {
+	case strings.Contains(message, "failed to get finding"):
+		return "failed to get finding"
+	case strings.Contains(message, "failed to assume role"):
+		return "failed to assume role"
+	case strings.Contains(message, "failed to start AWS MCP proxy"):
+		return "failed to start MCP proxy"
+	case strings.Contains(message, "unsupported finding provider"):
+		return "unsupported finding provider"
+	case strings.Contains(message, "invalid finding provider target"):
+		return "invalid finding provider target"
+	default:
+		return "failed to generate remediation proposal"
+	}
+}
+
+func (s *SqsHandler) updateRemediationProposalStatus(ctx context.Context, msg *QueueMessage, status, statusDetail string) error {
+	if s.ai == nil {
+		return errors.New("remediation proposal AI client is required")
+	}
+	if _, err := s.ai.UpdateRemediationProposalStatus(ctx, &ai.UpdateRemediationProposalStatusRequest{
+		ProjectId:             msg.ProjectID,
+		RemediationProposalId: msg.RemediationProposalID,
+		Status:                status,
+		StatusDetail:          statusDetail,
+	}); err != nil {
+		return fmt.Errorf("failed to update remediation proposal status: remediation_proposal_id=%d, status=%s, err=%w", msg.RemediationProposalID, status, err)
+	}
 	return nil
 }
