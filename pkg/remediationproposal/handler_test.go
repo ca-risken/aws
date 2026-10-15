@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/ca-risken/common/pkg/logging"
-	coreai "github.com/ca-risken/core/proto/ai"
+	"github.com/ca-risken/core/proto/ai"
 	coreaimocks "github.com/ca-risken/core/proto/ai/mocks"
 	"github.com/stretchr/testify/mock"
 )
@@ -65,9 +65,9 @@ func TestHandleMessage(t *testing.T) {
 				statusDetail = c.processorErr.Error()
 			}
 			if c.wantProcessorCall {
-				aiClient.On("UpdateRemediationProposalStatus", mock.Anything, mock.MatchedBy(func(req *coreai.UpdateRemediationProposalStatusRequest) bool {
+				aiClient.On("UpdateRemediationProposalStatus", mock.Anything, mock.MatchedBy(func(req *ai.UpdateRemediationProposalStatusRequest) bool {
 					return req.ProjectId == 1001 && req.RemediationProposalId == 1001 && req.Status == status && req.StatusDetail == statusDetail
-				})).Return(&coreai.UpdateRemediationProposalStatusResponse{}, nil).Once()
+				})).Return(&ai.UpdateRemediationProposalStatusResponse{}, nil).Once()
 			}
 			handler := NewSqsHandler(logging.NewLogger(), processor, aiClient)
 			err := handler.HandleMessage(context.Background(), &types.Message{Body: aws.String(c.body)})

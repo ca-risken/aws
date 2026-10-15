@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/ca-risken/common/pkg/logging"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
-	coreai "github.com/ca-risken/core/proto/ai"
+	"github.com/ca-risken/core/proto/ai"
 	"google.golang.org/grpc"
 )
 
@@ -19,7 +19,7 @@ const (
 )
 
 type remediationProposalUpdater interface {
-	UpdateRemediationProposalStatus(ctx context.Context, in *coreai.UpdateRemediationProposalStatusRequest, opts ...grpc.CallOption) (*coreai.UpdateRemediationProposalStatusResponse, error)
+	UpdateRemediationProposalStatus(ctx context.Context, in *ai.UpdateRemediationProposalStatusRequest, opts ...grpc.CallOption) (*ai.UpdateRemediationProposalStatusResponse, error)
 }
 
 type SqsHandler struct {
@@ -84,7 +84,7 @@ func (s *SqsHandler) updateRemediationProposalStatus(ctx context.Context, msg *Q
 	if s.ai == nil {
 		return errors.New("remediation proposal AI client is required")
 	}
-	if _, err := s.ai.UpdateRemediationProposalStatus(ctx, &coreai.UpdateRemediationProposalStatusRequest{
+	if _, err := s.ai.UpdateRemediationProposalStatus(ctx, &ai.UpdateRemediationProposalStatusRequest{
 		ProjectId:             msg.ProjectID,
 		RemediationProposalId: msg.RemediationProposalID,
 		Status:                status,
