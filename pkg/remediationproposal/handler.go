@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
@@ -68,7 +69,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 
 	s.logger.Infof(ctx, "start remediation proposal, RequestID=%s", requestID)
 	if err := s.processor.Process(ctx, msg, requestID); err != nil {
-		if statusErr := s.updateRemediationProposalStatus(ctx, msg, remediationProposalStatusFailed, err.Error()); statusErr != nil {
+		if statusErr := s.updateRemediationProposalStatus(ctx, msg, remediationProposalStatusFailed, remediationProposalStatusDetail(err)); statusErr != nil {
 			return fmt.Errorf("failed to update remediation proposal status: process_err=%v: %w", err, statusErr)
 		}
 		return err
@@ -78,6 +79,24 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	}
 	s.logger.Infof(ctx, "end remediation proposal, RequestID=%s", requestID)
 	return nil
+}
+
+func remediationProposalStatusDetail(err error) string {
+	message := err.Error()
+	switch {
+	case strings.Contains(message, "failed to get finding"):
+		return "failed to get finding"
+	case strings.Contains(message, "failed to assume role"):
+		return "failed to assume role"
+	case strings.Contains(message, "failed to start AWS MCP proxy"):
+		return "failed to start MCP proxy"
+	case strings.Contains(message, "unsupported finding provider"):
+		return "unsupported finding provider"
+	case strings.Contains(message, "invalid finding provider target"):
+		return "invalid finding provider target"
+	default:
+		return "failed to generate remediation proposal"
+	}
 }
 
 func (s *SqsHandler) updateRemediationProposalStatus(ctx context.Context, msg *QueueMessage, status, statusDetail string) error {

@@ -62,7 +62,7 @@ func TestHandleMessage(t *testing.T) {
 			statusDetail := ""
 			if c.processorErr != nil {
 				status = remediationProposalStatusFailed
-				statusDetail = c.processorErr.Error()
+				statusDetail = "failed to generate remediation proposal"
 			}
 			if c.wantProcessorCall {
 				aiClient.On("UpdateRemediationProposalStatus", mock.Anything, mock.MatchedBy(func(req *ai.UpdateRemediationProposalStatusRequest) bool {
@@ -82,6 +82,28 @@ func TestHandleMessage(t *testing.T) {
 			}
 			if c.wantProcessorCall && processor.msg.RemediationProposalID != 1001 {
 				t.Fatalf("unexpected remediation_proposal_id: got=%d", processor.msg.RemediationProposalID)
+			}
+		})
+	}
+}
+
+func TestRemediationProposalStatusDetail(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{name: "finding", err: errors.New("failed to get finding: account_id=123"), want: "failed to get finding"},
+		{name: "assume role", err: errors.New("failed to assume role: arn=secret"), want: "failed to assume role"},
+		{name: "mcp proxy", err: errors.New("failed to start AWS MCP proxy: command=secret"), want: "failed to start MCP proxy"},
+		{name: "provider", err: errors.New("unsupported finding provider: provider=secret"), want: "unsupported finding provider"},
+		{name: "provider target", err: errors.New("invalid finding provider target: account_id=123"), want: "invalid finding provider target"},
+		{name: "unknown", err: errors.New("internal error: secret"), want: "failed to generate remediation proposal"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := remediationProposalStatusDetail(c.err); got != c.want {
+				t.Fatalf("unexpected status detail: got=%q, want=%q", got, c.want)
 			}
 		})
 	}
