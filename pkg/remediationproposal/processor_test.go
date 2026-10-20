@@ -11,6 +11,7 @@ import (
 	"github.com/ca-risken/common/pkg/logging"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	corefinding "github.com/ca-risken/core/proto/finding"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/grpc"
 )
 
@@ -51,10 +52,12 @@ func (m *mockCredentialProvider) AssumeRole(ctx context.Context, region, roleARN
 }
 
 type mockMCPProxyRunner struct {
-	region  string
-	creds   aws.Credentials
-	err     error
-	process *mockMCPProxyProcess
+	region     string
+	creds      aws.Credentials
+	err        error
+	process    *mockMCPProxyProcess
+	listErr    error
+	emptyTools bool
 }
 
 func (m *mockMCPProxyRunner) StartProxy(ctx context.Context, creds aws.Credentials, region string) (MCPProxyProcess, error) {
@@ -63,12 +66,30 @@ func (m *mockMCPProxyRunner) StartProxy(ctx context.Context, creds aws.Credentia
 	if m.err != nil {
 		return nil, m.err
 	}
-	m.process = &mockMCPProxyProcess{}
+	m.process = &mockMCPProxyProcess{listErr: m.listErr, emptyTools: m.emptyTools}
 	return m.process, nil
 }
 
 type mockMCPProxyProcess struct {
-	stopped bool
+	stopped    bool
+	listErr    error
+	emptyTools bool
+	listed     bool
+}
+
+func (m *mockMCPProxyProcess) ListTools(ctx context.Context) ([]*mcp.Tool, error) {
+	m.listed = true
+	if m.listErr != nil {
+		return nil, m.listErr
+	}
+	if m.emptyTools {
+		return nil, nil
+	}
+	return []*mcp.Tool{{Name: "call_aws"}}, nil
+}
+
+func (m *mockMCPProxyProcess) CallTool(ctx context.Context, name string, arguments map[string]any) (*mcp.CallToolResult, error) {
+	return &mcp.CallToolResult{}, nil
 }
 
 func (m *mockMCPProxyProcess) Stop() error {
@@ -95,12 +116,22 @@ func TestRemediationProcessorProcess(t *testing.T) {
 		proxyErr       error
 		wantErr        bool
 		wantStopped    bool
+		listErr        error
+		emptyTools     bool
 	}{
 		{
 			name:           "OK",
 			provider:       "aws",
 			providerTarget: "123456789012",
 			wantStopped:    true,
+		},
+		{
+			name: "NG list tools", provider: "aws", providerTarget: "123456789012",
+			listErr: errors.New("list tools error"), wantErr: true, wantStopped: true,
+		},
+		{
+			name: "NG no tools", provider: "aws", providerTarget: "123456789012",
+			emptyTools: true, wantErr: true, wantStopped: true,
 		},
 		{
 			name:           "NG assume role error",
@@ -128,7 +159,7 @@ func TestRemediationProcessorProcess(t *testing.T) {
 				ProviderTarget: c.providerTarget,
 			}}}
 			credentialProvider := &mockCredentialProvider{err: c.credentialErr}
-			proxyRunner := &mockMCPProxyRunner{err: c.proxyErr}
+			proxyRunner := &mockMCPProxyRunner{err: c.proxyErr, listErr: c.listErr, emptyTools: c.emptyTools}
 			processor := NewRemediationProcessor("ap-northeast-1", "us-east-1", findingClient, credentialProvider, proxyRunner, logging.NewLogger())
 
 			err := processor.Process(context.Background(), msg, "request-id")
@@ -155,6 +186,9 @@ func TestRemediationProcessorProcess(t *testing.T) {
 			}
 			if proxyRunner.process != nil && proxyRunner.process.stopped != c.wantStopped {
 				t.Fatalf("unexpected proxy stop: want=%t, got=%t", c.wantStopped, proxyRunner.process.stopped)
+			}
+			if proxyRunner.process != nil && !proxyRunner.process.listed {
+				t.Fatal("expected MCP tools to be listed")
 			}
 		})
 	}
@@ -214,6 +248,11 @@ func TestRemediationProcessorProcessReturnsNonRetryableForPermanentErrors(t *tes
 
 func TestBuildMCPProxyEnv(t *testing.T) {
 	t.Setenv("AWS_ACCESS_KEY_ID", "parent-access-key")
+	t.Setenv("OPENAI_API_KEY", "parent-openai-key")
+	t.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", "/parent-token")
+	t.Setenv("PATH", "/test/bin")
+	t.Setenv("HOME", "/test/home")
+	t.Setenv("UV_CACHE_DIR", "/test/cache")
 	creds := aws.Credentials{
 		AccessKeyID:     "access-key",
 		SecretAccessKey: "secret-key",
@@ -228,6 +267,9 @@ func TestBuildMCPProxyEnv(t *testing.T) {
 		"AWS_SESSION_TOKEN=session-token",
 		"AWS_REGION=us-east-1",
 		"AWS_DEFAULT_REGION=us-east-1",
+		"PATH=/test/bin",
+		"HOME=/test/home",
+		"UV_CACHE_DIR=/test/cache",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected env to contain %s, got=%v", want, env)
@@ -235,6 +277,11 @@ func TestBuildMCPProxyEnv(t *testing.T) {
 	}
 	if strings.Contains(got, "parent-access-key") {
 		t.Fatalf("parent AWS credential leaked to MCP proxy env: %v", env)
+	}
+	for _, blocked := range []string{"OPENAI_API_KEY=", "AWS_WEB_IDENTITY_TOKEN_FILE="} {
+		if strings.Contains(got, blocked) {
+			t.Fatalf("unexpected parent environment variable: %s", blocked)
+		}
 	}
 }
 
