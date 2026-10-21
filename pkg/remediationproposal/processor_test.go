@@ -246,9 +246,6 @@ func TestBuildMCPProxyEnv(t *testing.T) {
 	t.Setenv("AWS_ACCESS_KEY_ID", "parent-access-key")
 	t.Setenv("OPENAI_API_KEY", "parent-openai-key")
 	t.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", "/parent-token")
-	t.Setenv("PATH", "/test/bin")
-	t.Setenv("HOME", "/test/home")
-	t.Setenv("UV_CACHE_DIR", "/test/cache")
 	creds := aws.Credentials{
 		AccessKeyID:     "access-key",
 		SecretAccessKey: "secret-key",
@@ -263,9 +260,6 @@ func TestBuildMCPProxyEnv(t *testing.T) {
 		"AWS_SESSION_TOKEN=session-token",
 		"AWS_REGION=us-east-1",
 		"AWS_DEFAULT_REGION=us-east-1",
-		"PATH=/test/bin",
-		"HOME=/test/home",
-		"UV_CACHE_DIR=/test/cache",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected env to contain %s, got=%v", want, env)

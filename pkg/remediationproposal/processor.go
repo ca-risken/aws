@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -215,7 +214,7 @@ func (r *AWSMCPProxyRunner) StartProxy(ctx context.Context, creds aws.Credential
 	cmd.Env = buildMCPProxyEnv(creds, region)
 	cmd.Stderr = io.Discard
 	client := mcp.NewClient(&mcp.Implementation{Name: "risken-remediation-proposal", Version: "1.0.0"}, nil)
-	initializeCtx, initializeCancel := context.WithTimeout(ctx, mcpRequestTimeout)
+	initializeCtx, initializeCancel := context.WithTimeout(ctx, mcpInitializeTimeout)
 	defer initializeCancel()
 	session, err := client.Connect(initializeCtx, &mcp.CommandTransport{Command: cmd, TerminateDuration: time.Second}, nil)
 	if err != nil {
@@ -228,7 +227,10 @@ func (r *AWSMCPProxyRunner) StartProxy(ctx context.Context, creds aws.Credential
 	return &mcpProxyProcess{session: session, cancel: cancel}, nil
 }
 
-const mcpRequestTimeout = time.Minute
+const (
+	mcpInitializeTimeout = 10 * time.Second
+	mcpRequestTimeout    = time.Minute
+)
 
 type mcpProxyProcess struct {
 	session  *mcp.ClientSession
@@ -259,17 +261,11 @@ func (p *mcpProxyProcess) Stop() error {
 }
 
 func buildMCPProxyEnv(creds aws.Credentials, region string) []string {
-	env := []string{
+	return []string{
 		"AWS_ACCESS_KEY_ID=" + creds.AccessKeyID,
 		"AWS_SECRET_ACCESS_KEY=" + creds.SecretAccessKey,
 		"AWS_SESSION_TOKEN=" + creds.SessionToken,
 		"AWS_REGION=" + region,
 		"AWS_DEFAULT_REGION=" + region,
 	}
-	for _, name := range []string{"PATH", "HOME", "TMPDIR", "UV_CACHE_DIR", "SSL_CERT_FILE", "SSL_CERT_DIR"} {
-		if value, ok := os.LookupEnv(name); ok {
-			env = append(env, name+"="+value)
-		}
-	}
-	return env
 }
