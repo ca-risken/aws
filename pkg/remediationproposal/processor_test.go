@@ -88,10 +88,6 @@ func (m *mockMCPProxyProcess) ListTools(ctx context.Context) ([]*mcp.Tool, error
 	return []*mcp.Tool{{Name: "call_aws"}}, nil
 }
 
-func (m *mockMCPProxyProcess) CallTool(ctx context.Context, name string, arguments map[string]any) (*mcp.CallToolResult, error) {
-	return &mcp.CallToolResult{}, nil
-}
-
 func (m *mockMCPProxyProcess) Stop() error {
 	m.stopped = true
 	return nil

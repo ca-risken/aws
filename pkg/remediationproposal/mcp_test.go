@@ -2,7 +2,6 @@ package remediationproposal
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -37,24 +36,7 @@ func TestMCPProxyHelperProcess(t *testing.T) {
 		Name: "call_aws", Description: "Test AWS tool",
 		InputSchema: map[string]any{"type": "object", "properties": map[string]any{"cli_command": map[string]any{"type": "string"}}, "required": []string{"cli_command"}},
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		if scenario == "call-block" {
-			<-ctx.Done()
-			return nil, ctx.Err()
-		}
-		if scenario == "exit" {
-			os.Exit(0)
-		}
-		if scenario == "tool-error" {
-			return &mcp.CallToolResult{IsError: true, Content: []mcp.Content{&mcp.TextContent{Text: "private upstream details"}}}, nil
-		}
-		var arguments map[string]string
-		if err := json.Unmarshal(req.Params.Arguments, &arguments); err != nil {
-			return nil, err
-		}
-		if arguments["cli_command"] != "aws sts get-caller-identity" {
-			return nil, errors.New("unexpected tool arguments")
-		}
-		return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: `{"Account":"123456789012"}`}}}, nil
+		return nil, errors.New("tool execution is not supported in this test")
 	})
 	server.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
@@ -95,7 +77,7 @@ func startTestMCPProxy(t *testing.T, scenario string) MCPProxyProcess {
 	t.Setenv("OPENAI_API_KEY", "must-not-be-forwarded")
 	t.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", "/must-not-be-forwarded")
 	t.Setenv("AWS_PROFILE", "must-not-be-forwarded")
-	runner := newAWSMCPProxyRunner(os.Args[0], "-test.run=^TestMCPProxyHelperProcess$", "--risken-mcp-test="+scenario)
+	runner := newAWSMCPProxyRunner(os.Args[0], "-test.run=^TestMCPProxyHelperProcess$", "--", "--risken-mcp-test="+scenario)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 	proxy, err := runner.StartProxy(ctx, aws.Credentials{AccessKeyID: "test-access", SecretAccessKey: "test-secret", SessionToken: "test-session"}, "us-east-1")
@@ -132,41 +114,10 @@ func TestMCPProxyListTools(t *testing.T) {
 	}
 }
 
-func TestMCPProxyCallTool(t *testing.T) {
-	for _, scenario := range []string{"normal", "tool-error", "unknown-tool", "empty-name", "exit", "call-block"} {
-		t.Run(scenario, func(t *testing.T) {
-			proxy := startTestMCPProxy(t, scenario)
-			name := "call_aws"
-			if scenario == "unknown-tool" {
-				name = "unknown"
-			} else if scenario == "empty-name" {
-				name = ""
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-			defer cancel()
-			result, err := proxy.CallTool(ctx, name, map[string]any{"cli_command": "aws sts get-caller-identity"})
-			if scenario == "normal" {
-				require.NoError(t, err)
-				require.Len(t, result.Content, 1)
-				require.Equal(t, `{"Account":"123456789012"}`, result.Content[0].(*mcp.TextContent).Text)
-			} else {
-				require.Error(t, err)
-				if scenario == "tool-error" {
-					require.True(t, result.IsError)
-					require.NotContains(t, err.Error(), "private upstream details")
-				}
-				if scenario == "call-block" {
-					require.ErrorIs(t, err, context.DeadlineExceeded)
-				}
-			}
-		})
-	}
-}
-
 func TestMCPProxyInitializationFailure(t *testing.T) {
 	for _, scenario := range []string{"initialize-error", "unsupported-version", "silent", "missing-command"} {
 		t.Run(scenario, func(t *testing.T) {
-			runner := newAWSMCPProxyRunner(os.Args[0], "-test.run=^TestMCPProxyHelperProcess$", "--risken-mcp-test="+scenario)
+			runner := newAWSMCPProxyRunner(os.Args[0], "-test.run=^TestMCPProxyHelperProcess$", "--", "--risken-mcp-test="+scenario)
 			if scenario == "missing-command" {
 				runner.command = "/risken-test-nonexistent/mcp"
 			}

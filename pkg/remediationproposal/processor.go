@@ -37,7 +37,6 @@ type MCPProxyRunner interface {
 
 type MCPProxyProcess interface {
 	ListTools(ctx context.Context) ([]*mcp.Tool, error)
-	CallTool(ctx context.Context, name string, arguments map[string]any) (*mcp.CallToolResult, error)
 	Stop() error
 }
 
@@ -249,22 +248,6 @@ func (p *mcpProxyProcess) ListTools(ctx context.Context) ([]*mcp.Tool, error) {
 		tools = append(tools, tool)
 	}
 	return tools, nil
-}
-
-func (p *mcpProxyProcess) CallTool(ctx context.Context, name string, arguments map[string]any) (*mcp.CallToolResult, error) {
-	if name == "" {
-		return nil, errors.New("MCP tool name is required")
-	}
-	ctx, cancel := context.WithTimeout(ctx, mcpRequestTimeout)
-	defer cancel()
-	result, err := p.session.CallTool(ctx, &mcp.CallToolParams{Name: name, Arguments: arguments})
-	if err != nil {
-		return nil, fmt.Errorf("failed to call MCP tool %s: %w", name, err)
-	}
-	if result.IsError {
-		return result, fmt.Errorf("MCP tool %s returned an error", name)
-	}
-	return result, nil
 }
 
 func (p *mcpProxyProcess) Stop() error {
