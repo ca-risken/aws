@@ -7,7 +7,6 @@ import (
 	"io"
 	"os/exec"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -233,10 +232,8 @@ const (
 )
 
 type mcpProxyProcess struct {
-	session  *mcp.ClientSession
-	cancel   context.CancelFunc
-	stopOnce sync.Once
-	stopErr  error
+	session *mcp.ClientSession
+	cancel  context.CancelFunc
 }
 
 func (p *mcpProxyProcess) ListTools(ctx context.Context) ([]*mcp.Tool, error) {
@@ -253,11 +250,8 @@ func (p *mcpProxyProcess) ListTools(ctx context.Context) ([]*mcp.Tool, error) {
 }
 
 func (p *mcpProxyProcess) Stop() error {
-	p.stopOnce.Do(func() {
-		defer p.cancel()
-		p.stopErr = p.session.Close()
-	})
-	return p.stopErr
+	defer p.cancel()
+	return p.session.Close()
 }
 
 func buildMCPProxyEnv(creds aws.Credentials, region string) []string {
