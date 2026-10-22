@@ -34,6 +34,7 @@ require (
 	github.com/gassara-kys/envconfig v1.4.4
 	github.com/google/go-cmp v0.7.0
 	github.com/modelcontextprotocol/go-sdk v1.4.0
+	github.com/openai/openai-go v1.8.3
 	github.com/stretchr/testify v1.9.0
 	github.com/vikyd/zero v0.0.0-20190921142904-0f738d0bc858
 	golang.org/x/sync v0.19.0
@@ -95,6 +96,10 @@ require (
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/tidwall/gjson v1.14.4 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/tinylib/msgp v1.1.6 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.uber.org/atomic v1.10.0 // indirect

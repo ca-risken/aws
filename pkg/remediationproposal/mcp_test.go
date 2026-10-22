@@ -43,7 +43,10 @@ func TestMCPProxyHelperProcess(t *testing.T) {
 		Name: "call_aws", Description: "Test AWS tool",
 		InputSchema: map[string]any{"type": "object", "properties": map[string]any{"cli_command": map[string]any{"type": "string"}}, "required": []string{"cli_command"}},
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		return nil, errors.New("tool execution is not supported in this test")
+		if scenario == "call-error" {
+			return nil, errors.New("tool execution failed")
+		}
+		return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: string(req.Params.Arguments)}}}, nil
 	})
 	server.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
@@ -191,6 +194,27 @@ func TestMCPProxyInitializationFailure(t *testing.T) {
 			if scenario == "silent" {
 				require.ErrorIs(t, err, context.DeadlineExceeded)
 			}
+		})
+	}
+}
+
+func TestMCPProxyCallTool(t *testing.T) {
+	for _, scenario := range []string{"normal", "call-error"} {
+		t.Run(scenario, func(t *testing.T) {
+			proxy := startTestMCPProxy(t, scenario)
+			result, err := proxy.CallTool(context.Background(), "call_aws", map[string]any{"cli_command": "aws s3api list-buckets"})
+			if scenario == "call-error" {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.False(t, result.IsError)
+			require.Len(t, result.Content, 1)
+			require.Contains(t, result.Content[0].(*mcp.TextContent).Text, "aws s3api list-buckets")
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			_, err = proxy.CallTool(ctx, "call_aws", map[string]any{})
+			require.Error(t, err)
 		})
 	}
 }

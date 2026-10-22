@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -36,6 +35,7 @@ type MCPProxyRunner interface {
 
 type MCPProxyProcess interface {
 	ListTools(ctx context.Context) ([]*mcp.Tool, error)
+	CallTool(ctx context.Context, name string, arguments map[string]any) (*mcp.CallToolResult, error)
 	Stop() error
 }
 
@@ -50,9 +50,10 @@ type RemediationProcessor struct {
 	credentialProvider CredentialProvider
 	mcpProxyRunner     MCPProxyRunner
 	logger             logging.Logger
+	generator          ProposalGenerator
 }
 
-func NewRemediationProcessor(awsRegion, mcpRegion string, findingClient FindingClient, credentialProvider CredentialProvider, mcpProxyRunner MCPProxyRunner, logger logging.Logger) *RemediationProcessor {
+func NewRemediationProcessor(awsRegion, mcpRegion string, findingClient FindingClient, credentialProvider CredentialProvider, mcpProxyRunner MCPProxyRunner, logger logging.Logger, generator ProposalGenerator) *RemediationProcessor {
 	return &RemediationProcessor{
 		awsRegion:          awsRegion,
 		mcpRegion:          mcpRegion,
@@ -60,29 +61,32 @@ func NewRemediationProcessor(awsRegion, mcpRegion string, findingClient FindingC
 		credentialProvider: credentialProvider,
 		mcpProxyRunner:     mcpProxyRunner,
 		logger:             logger,
+		generator:          generator,
 	}
 }
 
-func (p *RemediationProcessor) Process(ctx context.Context, msg *QueueMessage, requestID string) error {
+func (p *RemediationProcessor) Process(ctx context.Context, msg *QueueMessage, requestID string) (*RemediationPlan, error) {
+	ctx, cancel := context.WithTimeout(ctx, 150*time.Second)
+	defer cancel()
 	finding, err := p.getFinding(ctx, msg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if finding.Provider != "aws" {
-		return mimosasqs.WrapNonRetryable(fmt.Errorf("unsupported finding provider: finding_id=%d, provider=%s", msg.FindingID, finding.Provider))
+		return nil, mimosasqs.WrapNonRetryable(fmt.Errorf("unsupported finding provider: finding_id=%d, provider=%s", msg.FindingID, finding.Provider))
 	}
 	if err := validateProviderTarget(finding.ProviderTarget, msg.AssumeRoleArn); err != nil {
-		return mimosasqs.WrapNonRetryable(fmt.Errorf("invalid finding provider target: finding_id=%d, err=%w", msg.FindingID, err))
+		return nil, mimosasqs.WrapNonRetryable(fmt.Errorf("invalid finding provider target: finding_id=%d, err=%w", msg.FindingID, err))
 	}
 
 	sessionName := buildRoleSessionName(requestID)
 	creds, err := p.credentialProvider.AssumeRole(ctx, p.awsRegion, msg.AssumeRoleArn, msg.ExternalID, sessionName)
 	if err != nil {
-		return fmt.Errorf("failed to assume role for remediation proposal: remediation_proposal_id=%d, err=%w", msg.RemediationProposalID, err)
+		return nil, fmt.Errorf("failed to assume role for remediation proposal: remediation_proposal_id=%d, err=%w", msg.RemediationProposalID, err)
 	}
 	proxy, err := p.mcpProxyRunner.StartProxy(ctx, creds, p.mcpRegion)
 	if err != nil {
-		return fmt.Errorf("failed to start AWS MCP proxy: remediation_proposal_id=%d, err=%w", msg.RemediationProposalID, err)
+		return nil, fmt.Errorf("failed to start AWS MCP proxy: remediation_proposal_id=%d, err=%w", msg.RemediationProposalID, err)
 	}
 	defer func() {
 		if err := proxy.Stop(); err != nil {
@@ -91,13 +95,16 @@ func (p *RemediationProcessor) Process(ctx context.Context, msg *QueueMessage, r
 	}()
 	tools, err := proxy.ListTools(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list AWS MCP tools: remediation_proposal_id=%d, err=%w", msg.RemediationProposalID, err)
+		return nil, fmt.Errorf("failed to list AWS MCP tools: remediation_proposal_id=%d, err=%w", msg.RemediationProposalID, err)
 	}
 	if len(tools) == 0 {
-		return errors.New("AWS MCP server returned no tools")
+		return nil, errors.New("AWS MCP server returned no tools")
 	}
 	p.logger.Infof(ctx, "initialized AWS MCP session, remediation_proposal_id=%d, tool_count=%d", msg.RemediationProposalID, len(tools))
-	return nil
+	if p.generator == nil {
+		return nil, errors.New("remediation proposal generator is required")
+	}
+	return p.generator.Generate(ctx, finding, proxy, tools)
 }
 
 func (p *RemediationProcessor) getFinding(ctx context.Context, msg *QueueMessage) (*corefinding.Finding, error) {
@@ -267,23 +274,18 @@ func (p *mcpProxyProcess) Stop() error {
 	return p.session.Close()
 }
 
+func (p *mcpProxyProcess) CallTool(ctx context.Context, name string, arguments map[string]any) (*mcp.CallToolResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, mcpRequestTimeout)
+	defer cancel()
+	return p.session.CallTool(ctx, &mcp.CallToolParams{Name: name, Arguments: arguments})
+}
+
 func buildMCPProxyEnv(creds aws.Credentials, region string) []string {
-	env := []string{
+	return []string{
 		"AWS_ACCESS_KEY_ID=" + creds.AccessKeyID,
 		"AWS_SECRET_ACCESS_KEY=" + creds.SecretAccessKey,
 		"AWS_SESSION_TOKEN=" + creds.SessionToken,
 		"AWS_REGION=" + region,
 		"AWS_DEFAULT_REGION=" + region,
 	}
-	for _, name := range []string{
-		"PATH", "HOME", "TMPDIR", "XDG_CACHE_HOME", "UV_CACHE_DIR",
-		"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
-		"http_proxy", "https_proxy", "all_proxy", "no_proxy",
-		"SSL_CERT_FILE", "SSL_CERT_DIR", "AWS_CA_BUNDLE",
-	} {
-		if value, ok := os.LookupEnv(name); ok {
-			env = append(env, name+"="+value)
-		}
-	}
-	return env
 }

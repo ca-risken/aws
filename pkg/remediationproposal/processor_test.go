@@ -93,6 +93,16 @@ func (m *mockMCPProxyProcess) Stop() error {
 	return nil
 }
 
+func (m *mockMCPProxyProcess) CallTool(ctx context.Context, name string, arguments map[string]any) (*mcp.CallToolResult, error) {
+	return &mcp.CallToolResult{}, nil
+}
+
+type mockProposalGenerator struct{ err error }
+
+func (m *mockProposalGenerator) Generate(ctx context.Context, finding *corefinding.Finding, proxy MCPProxyProcess, tools []*mcp.Tool) (*RemediationPlan, error) {
+	return &RemediationPlan{FindingID: finding.FindingId, Plan: PlanContent{Summary: "test", CurrentState: []string{"verified"}, Steps: []RemediationStep{}, Metadata: PlanMetadata{GeneratedAt: 1, Model: "test-model"}}}, m.err
+}
+
 func TestRemediationProcessorProcess(t *testing.T) {
 	errAssumeRole := errors.New("assume role error")
 	errStartProxy := errors.New("start proxy error")
@@ -114,6 +124,7 @@ func TestRemediationProcessorProcess(t *testing.T) {
 		wantStopped    bool
 		listErr        error
 		emptyTools     bool
+		generatorErr   error
 	}{
 		{
 			name:           "OK",
@@ -128,6 +139,10 @@ func TestRemediationProcessorProcess(t *testing.T) {
 		{
 			name: "NG no tools", provider: "aws", providerTarget: "123456789012",
 			emptyTools: true, wantErr: true, wantStopped: true,
+		},
+		{
+			name: "NG generation", provider: "aws", providerTarget: "123456789012",
+			generatorErr: errors.New("generation failed"), wantErr: true, wantStopped: true,
 		},
 		{
 			name:           "NG assume role error",
@@ -156,9 +171,9 @@ func TestRemediationProcessorProcess(t *testing.T) {
 			}}}
 			credentialProvider := &mockCredentialProvider{err: c.credentialErr}
 			proxyRunner := &mockMCPProxyRunner{err: c.proxyErr, listErr: c.listErr, emptyTools: c.emptyTools}
-			processor := NewRemediationProcessor("ap-northeast-1", "us-east-1", findingClient, credentialProvider, proxyRunner, logging.NewLogger())
+			processor := NewRemediationProcessor("ap-northeast-1", "us-east-1", findingClient, credentialProvider, proxyRunner, logging.NewLogger(), &mockProposalGenerator{err: c.generatorErr})
 
-			err := processor.Process(context.Background(), msg, "request-id")
+			_, err := processor.Process(context.Background(), msg, "request-id")
 			if (err != nil) != c.wantErr {
 				t.Fatalf("unexpected error: wantErr=%t, err=%+v", c.wantErr, err)
 			}
@@ -231,9 +246,10 @@ func TestRemediationProcessorProcessReturnsNonRetryableForPermanentErrors(t *tes
 				&mockCredentialProvider{},
 				&mockMCPProxyRunner{},
 				logging.NewLogger(),
+				&mockProposalGenerator{},
 			)
 
-			err := processor.Process(context.Background(), msg, "request-id")
+			_, err := processor.Process(context.Background(), msg, "request-id")
 			var nonRetryableErr mimosasqs.NonRetryableError
 			if !errors.As(err, &nonRetryableErr) {
 				t.Fatalf("expected non-retryable error, got=%+v", err)
@@ -246,21 +262,6 @@ func TestBuildMCPProxyEnv(t *testing.T) {
 	t.Setenv("AWS_ACCESS_KEY_ID", "parent-access-key")
 	t.Setenv("OPENAI_API_KEY", "parent-openai-key")
 	t.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", "/parent-token")
-	t.Setenv("AWS_ROLE_ARN", "parent-role")
-	t.Setenv("AWS_PROFILE", "parent-profile")
-	t.Setenv("UNRELATED_SECRET", "must-not-be-forwarded")
-	runtimeEnv := map[string]string{
-		"PATH": "/test/bin", "HOME": "/test/home", "TMPDIR": "/test/tmp",
-		"XDG_CACHE_HOME": "/test/xdg-cache", "UV_CACHE_DIR": "/test/uv-cache",
-		"HTTP_PROXY": "http://proxy.test:8080", "HTTPS_PROXY": "http://proxy.test:8080",
-		"ALL_PROXY": "http://proxy.test:8080", "NO_PROXY": "localhost",
-		"http_proxy": "http://proxy.test:8080", "https_proxy": "http://proxy.test:8080",
-		"all_proxy": "http://proxy.test:8080", "no_proxy": "localhost",
-		"SSL_CERT_FILE": "/test/ca.pem", "SSL_CERT_DIR": "/test/certs", "AWS_CA_BUNDLE": "/test/aws-ca.pem",
-	}
-	for name, value := range runtimeEnv {
-		t.Setenv(name, value)
-	}
 	creds := aws.Credentials{
 		AccessKeyID:     "access-key",
 		SecretAccessKey: "secret-key",
@@ -283,19 +284,10 @@ func TestBuildMCPProxyEnv(t *testing.T) {
 	if strings.Contains(got, "parent-access-key") {
 		t.Fatalf("parent AWS credential leaked to MCP proxy env: %v", env)
 	}
-	for name, value := range runtimeEnv {
-		found := false
-		for _, entry := range env {
-			if entry == name+"="+value {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Fatalf("runtime environment variable was not preserved: %s", name)
-		}
+	if len(env) != 5 {
+		t.Fatalf("expected only AWS credentials and regions, got=%v", env)
 	}
-	for _, blocked := range []string{"OPENAI_API_KEY=", "AWS_WEB_IDENTITY_TOKEN_FILE=", "AWS_ROLE_ARN=", "AWS_PROFILE=", "UNRELATED_SECRET="} {
+	for _, blocked := range []string{"OPENAI_API_KEY=", "AWS_WEB_IDENTITY_TOKEN_FILE="} {
 		if strings.Contains(got, blocked) {
 			t.Fatalf("unexpected parent environment variable: %s", blocked)
 		}
