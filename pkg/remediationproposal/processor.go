@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -215,15 +216,27 @@ func (r *AWSMCPProxyRunner) StartProxy(ctx context.Context, creds aws.Credential
 	client := mcp.NewClient(&mcp.Implementation{Name: "risken-remediation-proposal", Version: "1.0.0"}, nil)
 	initializeCtx, initializeCancel := context.WithTimeout(ctx, mcpInitializeTimeout)
 	defer initializeCancel()
-	session, err := client.Connect(initializeCtx, &mcp.CommandTransport{Command: cmd, TerminateDuration: time.Second}, nil)
+	transport := &mcpProxyTransport{CommandTransport: mcp.CommandTransport{Command: cmd}}
+	session, err := client.Connect(initializeCtx, transport, nil)
 	if err != nil {
-		cancel()
-		if cmd.Process != nil && cmd.ProcessState == nil {
-			_ = cmd.Wait()
+		if transport.connection != nil {
+			_ = transport.connection.Close()
 		}
+		cancel()
 		return nil, fmt.Errorf("failed to initialize MCP session: %w", err)
 	}
 	return &mcpProxyProcess{session: session, cancel: cancel}, nil
+}
+
+type mcpProxyTransport struct {
+	mcp.CommandTransport
+	connection mcp.Connection
+}
+
+func (t *mcpProxyTransport) Connect(ctx context.Context) (mcp.Connection, error) {
+	connection, err := t.CommandTransport.Connect(ctx)
+	t.connection = connection
+	return connection, err
 }
 
 const (
@@ -255,11 +268,22 @@ func (p *mcpProxyProcess) Stop() error {
 }
 
 func buildMCPProxyEnv(creds aws.Credentials, region string) []string {
-	return []string{
+	env := []string{
 		"AWS_ACCESS_KEY_ID=" + creds.AccessKeyID,
 		"AWS_SECRET_ACCESS_KEY=" + creds.SecretAccessKey,
 		"AWS_SESSION_TOKEN=" + creds.SessionToken,
 		"AWS_REGION=" + region,
 		"AWS_DEFAULT_REGION=" + region,
 	}
+	for _, name := range []string{
+		"PATH", "HOME", "TMPDIR", "XDG_CACHE_HOME", "UV_CACHE_DIR",
+		"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+		"http_proxy", "https_proxy", "all_proxy", "no_proxy",
+		"SSL_CERT_FILE", "SSL_CERT_DIR", "AWS_CA_BUNDLE",
+	} {
+		if value, ok := os.LookupEnv(name); ok {
+			env = append(env, name+"="+value)
+		}
+	}
+	return env
 }
