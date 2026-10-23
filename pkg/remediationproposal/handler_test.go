@@ -2,6 +2,7 @@ package remediationproposal
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -18,13 +19,17 @@ type mockProcessor struct {
 	requestID string
 	msg       *QueueMessage
 	err       error
+	nilPlan   bool
 }
 
-func (m *mockProcessor) Process(ctx context.Context, msg *QueueMessage, requestID string) error {
+func (m *mockProcessor) Process(ctx context.Context, msg *QueueMessage, requestID string) (*RemediationPlan, error) {
 	m.called = true
 	m.requestID = requestID
 	m.msg = msg
-	return m.err
+	if m.nilPlan {
+		return nil, m.err
+	}
+	return &RemediationPlan{FindingID: msg.FindingID, Plan: PlanContent{Summary: "test", CurrentState: []string{"verified"}, Steps: []RemediationStep{}, Metadata: PlanMetadata{GeneratedAt: 1, Model: "test-model"}}}, m.err
 }
 
 func TestHandleMessage(t *testing.T) {
@@ -66,7 +71,13 @@ func TestHandleMessage(t *testing.T) {
 			}
 			if c.wantProcessorCall {
 				aiClient.On("UpdateRemediationProposalStatus", mock.Anything, mock.MatchedBy(func(req *ai.UpdateRemediationProposalStatusRequest) bool {
-					return req.ProjectId == 1001 && req.RemediationProposalId == 1001 && req.Status == status && req.StatusDetail == statusDetail
+					if status == remediationProposalStatusSucceeded {
+						var plan RemediationPlan
+						if json.Unmarshal([]byte(req.RemediationPlan), &plan) != nil || plan.FindingID != 2001 || plan.Plan.Metadata.Model != "test-model" {
+							return false
+						}
+					}
+					return req.ProjectId == 1001 && req.RemediationProposalId == 1001 && req.Status == status && req.StatusDetail == statusDetail && ((status == remediationProposalStatusSucceeded && req.RemediationPlan != "" && req.GeneratedAt == 1) || (status == remediationProposalStatusFailed && req.RemediationPlan == "" && req.GeneratedAt == 0))
 				})).Return(&ai.UpdateRemediationProposalStatusResponse{}, nil).Once()
 			}
 			handler := NewSqsHandler(logging.NewLogger(), processor, aiClient)
@@ -117,5 +128,32 @@ func TestHandleMessageWithoutProcessor(t *testing.T) {
 	}
 	if err.Error() != "remediation proposal processor is required" {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestHandleMessageResultFailures(t *testing.T) {
+	for _, tt := range []struct {
+		name                 string
+		nilPlan, updateError bool
+	}{
+		{name: "missing plan", nilPlan: true}, {name: "core failure", updateError: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			client := coreaimocks.NewAIServiceClient(t)
+			status := remediationProposalStatusSucceeded
+			if tt.nilPlan {
+				status = remediationProposalStatusFailed
+			}
+			var updateErr error
+			if tt.updateError {
+				updateErr = errors.New("core unavailable")
+			}
+			client.On("UpdateRemediationProposalStatus", mock.Anything, mock.MatchedBy(func(req *ai.UpdateRemediationProposalStatusRequest) bool { return req.Status == status })).Return(&ai.UpdateRemediationProposalStatusResponse{}, updateErr).Once()
+			handler := NewSqsHandler(logging.NewLogger(), &mockProcessor{nilPlan: tt.nilPlan}, client)
+			err := handler.HandleMessage(context.Background(), &types.Message{Body: aws.String(`{"remediation_proposal_id":1001,"finding_id":2001,"project_id":1001,"assume_role_arn":"arn:aws:iam::123456789012:role/test","external_id":"external"}`)})
+			if err == nil {
+				t.Fatal("expected failure")
+			}
+		})
 	}
 }

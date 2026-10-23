@@ -33,11 +33,13 @@ type AppConfig struct {
 	ProfileTypes    []string `split_words:"true"`
 	TraceDebug      bool     `split_words:"true" default:"false"`
 
-	Debug       string `default:"false"`
-	AWSRegion   string `envconfig:"aws_region" default:"ap-northeast-1"`
-	SQSEndpoint string `envconfig:"sqs_endpoint" default:"http://queue.middleware.svc.cluster.local:9324"`
-	CoreSvcAddr string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
-	MCPRegion   string `split_words:"true" default:"us-east-1"`
+	Debug        string `default:"false"`
+	AWSRegion    string `envconfig:"aws_region" default:"ap-northeast-1"`
+	SQSEndpoint  string `envconfig:"sqs_endpoint" default:"http://queue.middleware.svc.cluster.local:9324"`
+	CoreSvcAddr  string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
+	MCPRegion    string `split_words:"true" default:"us-east-1"`
+	OpenAIToken  string `split_words:"true" required:"true"`
+	ChatGPTModel string `split_words:"true" required:"true"`
 
 	RemediationProposalQueueURL string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-remediation-proposal"`
 	WaitTimeSecond              int32  `split_words:"true" default:"20"`
@@ -97,6 +99,10 @@ func main() {
 		appLogger.Fatalf(ctx, "Failed to create AI client, err=%+v", err)
 	}
 
+	agent, err := remediationproposal.NewOpenAIAgent(conf.OpenAIToken, conf.ChatGPTModel)
+	if err != nil {
+		appLogger.Fatal(ctx, err.Error())
+	}
 	processor := remediationproposal.NewRemediationProcessor(
 		conf.AWSRegion,
 		conf.MCPRegion,
@@ -104,6 +110,7 @@ func main() {
 		remediationproposal.NewSTSCredentialProvider(),
 		remediationproposal.NewAWSMCPProxyRunner(conf.MCPProxyCommand, conf.MCPProxyPackage, conf.MCPProxyEndpoint, conf.MCPRegion),
 		appLogger,
+		agent,
 	)
 	handler := remediationproposal.NewSqsHandler(appLogger, processor, aiClient)
 	appLogger.Info(ctx, "Start the AWS remediation proposal job...")
