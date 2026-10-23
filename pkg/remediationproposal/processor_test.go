@@ -243,24 +243,14 @@ func TestRemediationProcessorProcessReturnsNonRetryableForPermanentErrors(t *tes
 }
 
 func TestBuildMCPProxyEnv(t *testing.T) {
+	t.Setenv("PATH", "/test/bin")
+	t.Setenv("HOME", "/test/home")
 	t.Setenv("AWS_ACCESS_KEY_ID", "parent-access-key")
 	t.Setenv("OPENAI_API_KEY", "parent-openai-key")
 	t.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", "/parent-token")
 	t.Setenv("AWS_ROLE_ARN", "parent-role")
 	t.Setenv("AWS_PROFILE", "parent-profile")
 	t.Setenv("UNRELATED_SECRET", "must-not-be-forwarded")
-	runtimeEnv := map[string]string{
-		"PATH": "/test/bin", "HOME": "/test/home", "TMPDIR": "/test/tmp",
-		"XDG_CACHE_HOME": "/test/xdg-cache", "UV_CACHE_DIR": "/test/uv-cache",
-		"HTTP_PROXY": "http://proxy.test:8080", "HTTPS_PROXY": "http://proxy.test:8080",
-		"ALL_PROXY": "http://proxy.test:8080", "NO_PROXY": "localhost",
-		"http_proxy": "http://proxy.test:8080", "https_proxy": "http://proxy.test:8080",
-		"all_proxy": "http://proxy.test:8080", "no_proxy": "localhost",
-		"SSL_CERT_FILE": "/test/ca.pem", "SSL_CERT_DIR": "/test/certs", "AWS_CA_BUNDLE": "/test/aws-ca.pem",
-	}
-	for name, value := range runtimeEnv {
-		t.Setenv(name, value)
-	}
 	creds := aws.Credentials{
 		AccessKeyID:     "access-key",
 		SecretAccessKey: "secret-key",
@@ -275,27 +265,14 @@ func TestBuildMCPProxyEnv(t *testing.T) {
 		"AWS_SESSION_TOKEN=session-token",
 		"AWS_REGION=us-east-1",
 		"AWS_DEFAULT_REGION=us-east-1",
+		"PATH=/test/bin",
+		"HOME=/test/home",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected env to contain %s, got=%v", want, env)
 		}
 	}
-	if strings.Contains(got, "parent-access-key") {
-		t.Fatalf("parent AWS credential leaked to MCP proxy env: %v", env)
-	}
-	for name, value := range runtimeEnv {
-		found := false
-		for _, entry := range env {
-			if entry == name+"="+value {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Fatalf("runtime environment variable was not preserved: %s", name)
-		}
-	}
-	for _, blocked := range []string{"OPENAI_API_KEY=", "AWS_WEB_IDENTITY_TOKEN_FILE=", "AWS_ROLE_ARN=", "AWS_PROFILE=", "UNRELATED_SECRET="} {
+	for _, blocked := range []string{"parent-access-key", "OPENAI_API_KEY=", "AWS_WEB_IDENTITY_TOKEN_FILE=", "AWS_ROLE_ARN=", "AWS_PROFILE=", "UNRELATED_SECRET=", "HTTP_PROXY="} {
 		if strings.Contains(got, blocked) {
 			t.Fatalf("unexpected parent environment variable: %s", blocked)
 		}

@@ -274,16 +274,8 @@ func buildMCPProxyEnv(creds aws.Credentials, region string) []string {
 		"AWS_SESSION_TOKEN=" + creds.SessionToken,
 		"AWS_REGION=" + region,
 		"AWS_DEFAULT_REGION=" + region,
-	}
-	for _, name := range []string{
-		"PATH", "HOME", "TMPDIR", "XDG_CACHE_HOME", "UV_CACHE_DIR",
-		"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
-		"http_proxy", "https_proxy", "all_proxy", "no_proxy",
-		"SSL_CERT_FILE", "SSL_CERT_DIR", "AWS_CA_BUNDLE",
-	} {
-		if value, ok := os.LookupEnv(name); ok {
-			env = append(env, name+"="+value)
-		}
+		"PATH=" + os.Getenv("PATH"),
+		"HOME=" + os.Getenv("HOME"),
 	}
 	return env
 }
