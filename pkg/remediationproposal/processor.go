@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -223,27 +224,13 @@ func (r *AWSMCPProxyRunner) StartProxy(ctx context.Context, creds aws.Credential
 	client := mcp.NewClient(&mcp.Implementation{Name: "risken-remediation-proposal", Version: "1.0.0"}, nil)
 	initializeCtx, initializeCancel := context.WithTimeout(ctx, mcpInitializeTimeout)
 	defer initializeCancel()
-	transport := &mcpProxyTransport{CommandTransport: mcp.CommandTransport{Command: cmd}}
+	transport := &mcp.CommandTransport{Command: cmd}
 	session, err := client.Connect(initializeCtx, transport, nil)
 	if err != nil {
-		if transport.connection != nil {
-			_ = transport.connection.Close()
-		}
 		cancel()
 		return nil, fmt.Errorf("failed to initialize MCP session: %w", err)
 	}
 	return &mcpProxyProcess{session: session, cancel: cancel}, nil
-}
-
-type mcpProxyTransport struct {
-	mcp.CommandTransport
-	connection mcp.Connection
-}
-
-func (t *mcpProxyTransport) Connect(ctx context.Context) (mcp.Connection, error) {
-	connection, err := t.CommandTransport.Connect(ctx)
-	t.connection = connection
-	return connection, err
 }
 
 const (
@@ -287,5 +274,7 @@ func buildMCPProxyEnv(creds aws.Credentials, region string) []string {
 		"AWS_SESSION_TOKEN=" + creds.SessionToken,
 		"AWS_REGION=" + region,
 		"AWS_DEFAULT_REGION=" + region,
+		"PATH=" + os.Getenv("PATH"),
+		"HOME=" + os.Getenv("HOME"),
 	}
 }

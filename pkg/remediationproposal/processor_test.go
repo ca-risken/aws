@@ -259,9 +259,14 @@ func TestRemediationProcessorProcessReturnsNonRetryableForPermanentErrors(t *tes
 }
 
 func TestBuildMCPProxyEnv(t *testing.T) {
+	t.Setenv("PATH", "/test/bin")
+	t.Setenv("HOME", "/test/home")
 	t.Setenv("AWS_ACCESS_KEY_ID", "parent-access-key")
 	t.Setenv("OPENAI_API_KEY", "parent-openai-key")
 	t.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", "/parent-token")
+	t.Setenv("AWS_ROLE_ARN", "parent-role")
+	t.Setenv("AWS_PROFILE", "parent-profile")
+	t.Setenv("UNRELATED_SECRET", "must-not-be-forwarded")
 	creds := aws.Credentials{
 		AccessKeyID:     "access-key",
 		SecretAccessKey: "secret-key",
@@ -276,18 +281,14 @@ func TestBuildMCPProxyEnv(t *testing.T) {
 		"AWS_SESSION_TOKEN=session-token",
 		"AWS_REGION=us-east-1",
 		"AWS_DEFAULT_REGION=us-east-1",
+		"PATH=/test/bin",
+		"HOME=/test/home",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected env to contain %s, got=%v", want, env)
 		}
 	}
-	if strings.Contains(got, "parent-access-key") {
-		t.Fatalf("parent AWS credential leaked to MCP proxy env: %v", env)
-	}
-	if len(env) != 5 {
-		t.Fatalf("expected only AWS credentials and regions, got=%v", env)
-	}
-	for _, blocked := range []string{"OPENAI_API_KEY=", "AWS_WEB_IDENTITY_TOKEN_FILE="} {
+	for _, blocked := range []string{"parent-access-key", "OPENAI_API_KEY=", "AWS_WEB_IDENTITY_TOKEN_FILE=", "AWS_ROLE_ARN=", "AWS_PROFILE=", "UNRELATED_SECRET=", "HTTP_PROXY="} {
 		if strings.Contains(got, blocked) {
 			t.Fatalf("unexpected parent environment variable: %s", blocked)
 		}
