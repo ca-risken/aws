@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
@@ -16,6 +18,7 @@ import (
 	"github.com/ca-risken/common/pkg/logging"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	corefinding "github.com/ca-risken/core/proto/finding"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/grpc"
 )
 
@@ -32,6 +35,7 @@ type MCPProxyRunner interface {
 }
 
 type MCPProxyProcess interface {
+	ListTools(ctx context.Context) ([]*mcp.Tool, error)
 	Stop() error
 }
 
@@ -85,7 +89,14 @@ func (p *RemediationProcessor) Process(ctx context.Context, msg *QueueMessage, r
 			p.logger.Warnf(ctx, "Failed to stop AWS MCP proxy: remediation_proposal_id=%d, err=%+v", msg.RemediationProposalID, err)
 		}
 	}()
-	p.logger.Infof(ctx, "started AWS MCP proxy, remediation_proposal_id=%d", msg.RemediationProposalID)
+	tools, err := proxy.ListTools(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list AWS MCP tools: remediation_proposal_id=%d, err=%w", msg.RemediationProposalID, err)
+	}
+	if len(tools) == 0 {
+		return errors.New("AWS MCP server returned no tools")
+	}
+	p.logger.Infof(ctx, "initialized AWS MCP session, remediation_proposal_id=%d, tool_count=%d", msg.RemediationProposalID, len(tools))
 	return nil
 }
 
@@ -198,37 +209,59 @@ func (r *AWSMCPProxyRunner) StartProxy(ctx context.Context, creds aws.Credential
 	if creds.AccessKeyID == "" || creds.SecretAccessKey == "" || creds.SessionToken == "" {
 		return nil, errors.New("AWS temporary credentials are required")
 	}
-	cmd := exec.CommandContext(ctx, r.command, r.args...)
+	processCtx, cancel := context.WithCancel(ctx)
+	cmd := exec.CommandContext(processCtx, r.command, r.args...)
 	cmd.Env = buildMCPProxyEnv(creds, region)
-	cmd.Stdout = io.Discard
 	cmd.Stderr = io.Discard
-	if err := cmd.Start(); err != nil {
-		return nil, err
+	client := mcp.NewClient(&mcp.Implementation{Name: "risken-remediation-proposal", Version: "1.0.0"}, nil)
+	initializeCtx, initializeCancel := context.WithTimeout(ctx, mcpInitializeTimeout)
+	defer initializeCancel()
+	transport := &mcp.CommandTransport{Command: cmd}
+	session, err := client.Connect(initializeCtx, transport, nil)
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to initialize MCP session: %w", err)
 	}
-	return &mcpProxyProcess{cmd: cmd}, nil
+	return &mcpProxyProcess{session: session, cancel: cancel}, nil
 }
 
+const (
+	mcpInitializeTimeout = 10 * time.Second
+	mcpRequestTimeout    = time.Minute
+)
+
 type mcpProxyProcess struct {
-	cmd *exec.Cmd
+	session *mcp.ClientSession
+	cancel  context.CancelFunc
+}
+
+func (p *mcpProxyProcess) ListTools(ctx context.Context) ([]*mcp.Tool, error) {
+	ctx, cancel := context.WithTimeout(ctx, mcpRequestTimeout)
+	defer cancel()
+	var tools []*mcp.Tool
+	for tool, err := range p.session.Tools(ctx, nil) {
+		if err != nil {
+			return nil, fmt.Errorf("failed to list MCP tools: %w", err)
+		}
+		tools = append(tools, tool)
+	}
+	return tools, nil
 }
 
 func (p *mcpProxyProcess) Stop() error {
-	if p.cmd == nil || p.cmd.Process == nil {
-		return nil
-	}
-	if err := p.cmd.Process.Kill(); err != nil {
-		return err
-	}
-	_ = p.cmd.Wait()
-	return nil
+	defer p.cancel()
+	return p.session.Close()
 }
 
 func buildMCPProxyEnv(creds aws.Credentials, region string) []string {
-	return []string{
+	env := []string{
 		"AWS_ACCESS_KEY_ID=" + creds.AccessKeyID,
 		"AWS_SECRET_ACCESS_KEY=" + creds.SecretAccessKey,
 		"AWS_SESSION_TOKEN=" + creds.SessionToken,
 		"AWS_REGION=" + region,
 		"AWS_DEFAULT_REGION=" + region,
+		"PATH=" + os.Getenv("PATH"),
+		"HOME=" + os.Getenv("HOME"),
 	}
+	return env
 }
