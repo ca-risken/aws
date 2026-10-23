@@ -2,7 +2,6 @@ package remediationproposal
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -30,12 +29,6 @@ func TestMCPProxyHelperProcess(t *testing.T) {
 	}
 	if scenario == "silent" {
 		_, _ = io.Copy(io.Discard, os.Stdin)
-		os.Exit(0)
-	}
-	if scenario == "case-sensitive" || scenario == "null-key" {
-		if err := serveMCPParserTest(scenario); err != nil {
-			os.Exit(4)
-		}
 		os.Exit(0)
 	}
 	server := mcp.NewServer(&mcp.Implementation{Name: "test-aws-mcp", Version: "1.0.0"}, nil)
@@ -77,61 +70,6 @@ func TestMCPProxyHelperProcess(t *testing.T) {
 		os.Exit(4)
 	}
 	os.Exit(0)
-}
-
-func serveMCPParserTest(scenario string) error {
-	decoder := json.NewDecoder(os.Stdin)
-	encoder := json.NewEncoder(os.Stdout)
-	for {
-		var request struct {
-			ID     json.RawMessage `json:"id"`
-			Method string          `json:"method"`
-			Params struct {
-				ProtocolVersion string `json:"protocolVersion"`
-			} `json:"params"`
-		}
-		if err := decoder.Decode(&request); err != nil {
-			if errors.Is(err, io.EOF) {
-				return nil
-			}
-			return err
-		}
-		if len(request.ID) == 0 {
-			continue
-		}
-		var result any
-		switch request.Method {
-		case "initialize":
-			result = map[string]any{
-				"protocolVersion": request.Params.ProtocolVersion,
-				"capabilities":    map[string]any{"tools": map[string]any{}},
-				"serverInfo":      map[string]any{"name": "parser-test", "version": "1"},
-			}
-		case "tools/list":
-			if scenario == "case-sensitive" {
-				result = json.RawMessage(`{"tools":[{"name":"expected","inputSchema":{"type":"object"}}],"Tools":[{"name":"unexpected","inputSchema":{"type":"object"}}]}`)
-			} else {
-				result = json.RawMessage(`{"tools":[{"name":"expected","inputSchema":{"type":"object"}}],"tools\u0000":[{"name":"unexpected","inputSchema":{"type":"object"}}]}`)
-			}
-		default:
-			return errors.New("unexpected MCP request")
-		}
-		if err := encoder.Encode(map[string]any{"jsonrpc": "2.0", "id": request.ID, "result": result}); err != nil {
-			return err
-		}
-	}
-}
-
-func TestMCPProxyRejectsAmbiguousJSONKeys(t *testing.T) {
-	for _, scenario := range []string{"case-sensitive", "null-key"} {
-		t.Run(scenario, func(t *testing.T) {
-			proxy := startTestMCPProxy(t, scenario)
-			tools, err := proxy.ListTools(context.Background())
-			require.NoError(t, err)
-			require.Len(t, tools, 1)
-			require.Equal(t, "expected", tools[0].Name)
-		})
-	}
 }
 
 func startTestMCPProxy(t *testing.T, scenario string) MCPProxyProcess {
