@@ -92,7 +92,12 @@ func (a *OpenAIAgent) Generate(ctx context.Context, finding *corefinding.Finding
 		if calls+len(pending) > maxAgentToolCalls {
 			return nil, errors.New("MCP tool call limit exceeded")
 		}
-		outputs, awsChecked, err := handleFunctionCalls(ctx, proxy, pending, allowed)
+		for _, call := range pending {
+			if !allowed[call.Name] {
+				return nil, errors.New("unapproved MCP tool requested")
+			}
+		}
+		outputs, awsChecked, err := handleFunctionCalls(ctx, proxy, pending)
 		if err != nil {
 			return nil, err
 		}

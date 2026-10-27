@@ -70,10 +70,13 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 		callErr                                                      error
 		wantErr                                                      bool
 		finalAfter                                                   int
+		unapprovedSecond                                             bool
 	}{
 		{name: "success", firstTool: "call_aws"},
 		{name: "no verification", skipTool: true, wantErr: true},
 		{name: "run script blocked", firstTool: "run_script", wantErr: true},
+		{name: "unpublished tool blocked", firstTool: "read_documentation", wantErr: true},
+		{name: "unapproved second call blocks whole batch", firstTool: "call_aws", unapprovedSecond: true, wantErr: true},
 		{name: "tool failure", firstTool: "call_aws", toolError: true, wantErr: true},
 		{name: "transport failure", firstTool: "call_aws", callErr: errors.New("transport"), wantErr: true},
 		{name: "API failure", apiError: true, wantErr: true},
@@ -114,6 +117,9 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 						map[string]any{"type": "reasoning", "id": "rs_test", "summary": []any{}, "encrypted_content": "encrypted-reasoning"},
 						map[string]any{"type": "function_call", "name": tt.firstTool, "arguments": `{"cli_command":"aws s3api get-public-access-block --bucket example"}`, "call_id": "call_test", "id": "fc_test"},
 					}}
+					if tt.unapprovedSecond {
+						output["output"] = append(output["output"].([]any), map[string]any{"type": "function_call", "name": "run_script", "arguments": "{}", "call_id": "call_blocked", "id": "fc_blocked"})
+					}
 					_ = json.NewEncoder(w).Encode(output)
 					return
 				}
@@ -143,6 +149,9 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 				require.Contains(t, proxy.arguments["cli_command"], "get-public-access-block")
 			}
 			require.LessOrEqual(t, proxy.callCount, maxAgentToolCalls)
+			if tt.firstTool == "run_script" || tt.firstTool == "read_documentation" || tt.unapprovedSecond {
+				require.Zero(t, proxy.callCount)
+			}
 			if tt.finalAfter > 0 {
 				require.Equal(t, tt.finalAfter, proxy.callCount)
 				require.Equal(t, tt.finalAfter+1, requests)
@@ -212,7 +221,7 @@ func TestHandleFunctionCalls(t *testing.T) {
 			for _, name := range tt.tools {
 				calls = append(calls, responses.ResponseFunctionToolCall{Name: name, CallID: name, Arguments: `{}`})
 			}
-			outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, map[string]bool{"call_aws": true, "read_documentation": true})
+			outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls)
 			require.NoError(t, err)
 			require.Equal(t, tt.verified, verified)
 			require.Equal(t, len(calls), proxy.callCount)

@@ -60,11 +60,11 @@ func appendResponseOutput(input responses.ResponseInputParam, output []responses
 	return input, nil
 }
 
-func handleFunctionCalls(ctx context.Context, proxy MCPProxyProcess, calls []responses.ResponseFunctionToolCall, allowed map[string]bool) (responses.ResponseInputParam, bool, error) {
+func handleFunctionCalls(ctx context.Context, proxy MCPProxyProcess, calls []responses.ResponseFunctionToolCall) (responses.ResponseInputParam, bool, error) {
 	var outputs responses.ResponseInputParam
 	verified := false
 	for _, call := range calls {
-		result, err := executeFunctionCall(ctx, proxy, call, allowed)
+		result, err := executeFunctionCall(ctx, proxy, call)
 		if err != nil {
 			return nil, false, err
 		}
@@ -74,10 +74,7 @@ func handleFunctionCalls(ctx context.Context, proxy MCPProxyProcess, calls []res
 	return outputs, verified, nil
 }
 
-func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call responses.ResponseFunctionToolCall, allowed map[string]bool) (string, error) {
-	if !allowed[call.Name] {
-		return "", errors.New("unapproved MCP tool requested")
-	}
+func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call responses.ResponseFunctionToolCall) (string, error) {
 	var arguments map[string]any
 	if err := json.Unmarshal([]byte(call.Arguments), &arguments); err != nil || arguments == nil {
 		return "", errors.New("invalid MCP tool arguments")
