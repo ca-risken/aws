@@ -54,25 +54,9 @@ func (a *OpenAIAgent) Generate(ctx context.Context, finding *corefinding.Finding
 	if finding == nil || proxy == nil {
 		return nil, errors.New("finding and MCP proxy are required")
 	}
-	allowed := map[string]bool{}
-	var functions []responses.ToolUnionParam
-	for _, tool := range tools {
-		if tool == nil || (tool.Name != "call_aws" && tool.Name != "search_documentation" && tool.Name != "read_documentation") {
-			continue
-		}
-		schema, err := json.Marshal(tool.InputSchema)
-		if err != nil {
-			return nil, fmt.Errorf("invalid MCP input schema: %w", err)
-		}
-		var parameters map[string]any
-		if err := json.Unmarshal(schema, &parameters); err != nil || parameters == nil {
-			return nil, errors.New("invalid MCP input schema")
-		}
-		functions = append(functions, responses.ToolUnionParam{OfFunction: &responses.FunctionToolParam{Name: tool.Name, Description: openai.String(tool.Description), Parameters: parameters, Strict: openai.Bool(false)}})
-		allowed[tool.Name] = true
-	}
-	if !allowed["call_aws"] {
-		return nil, errors.New("AWS verification tool is unavailable")
+	functions, allowed, err := buildAgentTools(tools)
+	if err != nil {
+		return nil, err
 	}
 	data, err := json.Marshal(finding)
 	if err != nil {
@@ -85,34 +69,15 @@ func (a *OpenAIAgent) Generate(ctx context.Context, finding *corefinding.Finding
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		resp, err := a.client.New(ctx, responses.ResponseNewParams{
-			Model: a.model, Instructions: openai.String(remediationInstructions),
-			Input: responses.ResponseNewParamsInputUnion{OfInputItemList: input}, Tools: functions,
-			ParallelToolCalls: openai.Bool(false), MaxOutputTokens: openai.Int(8000), Store: openai.Bool(false),
-			Include: []responses.ResponseIncludable{"reasoning.encrypted_content"},
-			Text:    responses.ResponseTextConfigParam{Format: responses.ResponseFormatTextConfigUnionParam{OfJSONSchema: &responses.ResponseFormatTextJSONSchemaConfigParam{Name: "remediation_plan", Schema: planSchema(), Strict: openai.Bool(true)}}},
-		})
+		resp, err := a.callResponsesAPI(ctx, input, functions)
 		if err != nil {
-			return nil, fmt.Errorf("failed to generate remediation proposal: %w", err)
+			return nil, err
 		}
-		if resp == nil || resp.Status != responses.ResponseStatusCompleted {
-			return nil, errors.New("incomplete OpenAI response")
+		input, err = appendResponseOutput(input, resp.Output)
+		if err != nil {
+			return nil, err
 		}
-		var pending []responses.ResponseFunctionToolCall
-		for _, item := range resp.Output {
-			encoded, err := json.Marshal(item)
-			if err != nil {
-				return nil, err
-			}
-			var previous responses.ResponseInputItemUnionParam
-			if err := json.Unmarshal(encoded, &previous); err != nil {
-				return nil, err
-			}
-			input = append(input, previous)
-			if item.Type == "function_call" {
-				pending = append(pending, item.AsFunctionCall())
-			}
-		}
+		pending := extractFunctionCalls(resp.Output)
 		if len(pending) == 0 {
 			if !verified {
 				return nil, errors.New("AWS resource state has not been verified")
@@ -127,34 +92,30 @@ func (a *OpenAIAgent) Generate(ctx context.Context, finding *corefinding.Finding
 		if calls+len(pending) > maxAgentToolCalls {
 			return nil, errors.New("MCP tool call limit exceeded")
 		}
-		for _, call := range pending {
-			if !allowed[call.Name] {
-				return nil, errors.New("unapproved MCP tool requested")
-			}
-			var arguments map[string]any
-			if err := json.Unmarshal([]byte(call.Arguments), &arguments); err != nil || arguments == nil {
-				return nil, errors.New("invalid MCP tool arguments")
-			}
-			result, err := proxy.CallTool(ctx, call.Name, arguments)
-			if err != nil {
-				return nil, fmt.Errorf("failed to call MCP tool: %w", err)
-			}
-			if result == nil || result.IsError {
-				return nil, errors.New("MCP tool returned an error")
-			}
-			encoded, err := json.Marshal(result)
-			if err != nil {
-				return nil, err
-			}
-			if len(encoded) > 256*1024 {
-				return nil, errors.New("MCP tool result exceeds size limit")
-			}
-			if call.Name == "call_aws" {
-				verified = true
-			}
-			input = append(input, responses.ResponseInputItemParamOfFunctionCallOutput(call.CallID, string(encoded)))
-			calls++
+		outputs, awsChecked, err := handleFunctionCalls(ctx, proxy, pending, allowed)
+		if err != nil {
+			return nil, err
 		}
+		input = append(input, outputs...)
+		verified = verified || awsChecked
+		calls += len(pending)
 	}
 	return nil, errors.New("agent iteration limit exceeded")
+}
+
+func (a *OpenAIAgent) callResponsesAPI(ctx context.Context, input responses.ResponseInputParam, tools []responses.ToolUnionParam) (*responses.Response, error) {
+	resp, err := a.client.New(ctx, responses.ResponseNewParams{
+		Model: a.model, Instructions: openai.String(remediationInstructions),
+		Input: responses.ResponseNewParamsInputUnion{OfInputItemList: input}, Tools: tools,
+		ParallelToolCalls: openai.Bool(false), MaxOutputTokens: openai.Int(8000), Store: openai.Bool(false),
+		Include: []responses.ResponseIncludable{"reasoning.encrypted_content"},
+		Text:    responses.ResponseTextConfigParam{Format: responses.ResponseFormatTextConfigUnionParam{OfJSONSchema: &responses.ResponseFormatTextJSONSchemaConfigParam{Name: "remediation_plan", Schema: planSchema(), Strict: openai.Bool(true)}}},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate remediation proposal: %w", err)
+	}
+	if resp == nil || resp.Status != responses.ResponseStatusCompleted {
+		return nil, errors.New("incomplete OpenAI response")
+	}
+	return resp, nil
 }

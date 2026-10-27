@@ -14,6 +14,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/responses"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,6 +69,7 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 		skipTool, toolError, apiError, incomplete, invalidPlan, loop bool
 		callErr                                                      error
 		wantErr                                                      bool
+		finalAfter                                                   int
 	}{
 		{name: "success", firstTool: "call_aws"},
 		{name: "no verification", skipTool: true, wantErr: true},
@@ -78,6 +80,7 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 		{name: "incomplete", incomplete: true, wantErr: true},
 		{name: "invalid plan", firstTool: "call_aws", invalidPlan: true, wantErr: true},
 		{name: "call limit", firstTool: "call_aws", loop: true, wantErr: true},
+		{name: "final answer after last allowed call", firstTool: "call_aws", finalAfter: maxAgentToolCalls},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			requests := 0
@@ -95,6 +98,7 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 					require.Contains(t, string(body), "function_call_output")
 					require.Contains(t, string(body), "resource is public")
 					require.Contains(t, string(body), "reasoning")
+					require.Contains(t, string(body), "encrypted-reasoning")
 				}
 				if tt.apiError {
 					w.WriteHeader(http.StatusBadRequest)
@@ -105,9 +109,9 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 					_, _ = w.Write([]byte(`{"status":"incomplete","output":[]}`))
 					return
 				}
-				if (requests == 1 && !tt.skipTool) || tt.loop {
+				if (requests == 1 && !tt.skipTool) || tt.loop || requests <= tt.finalAfter {
 					output := map[string]any{"status": "completed", "output": []any{
-						map[string]any{"type": "reasoning", "id": "rs_test", "summary": []any{}},
+						map[string]any{"type": "reasoning", "id": "rs_test", "summary": []any{}, "encrypted_content": "encrypted-reasoning"},
 						map[string]any{"type": "function_call", "name": tt.firstTool, "arguments": `{"cli_command":"aws s3api get-public-access-block --bucket example"}`, "call_id": "call_test", "id": "fc_test"},
 					}}
 					_ = json.NewEncoder(w).Encode(output)
@@ -139,6 +143,88 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 				require.Contains(t, proxy.arguments["cli_command"], "get-public-access-block")
 			}
 			require.LessOrEqual(t, proxy.callCount, maxAgentToolCalls)
+			if tt.finalAfter > 0 {
+				require.Equal(t, tt.finalAfter, proxy.callCount)
+				require.Equal(t, tt.finalAfter+1, requests)
+			}
+		})
+	}
+}
+
+func TestAppendResponseOutput(t *testing.T) {
+	var response responses.Response
+	require.NoError(t, json.Unmarshal([]byte(`{"output":[{"type":"reasoning","id":"rs_test","summary":[],"encrypted_content":"encrypted-reasoning"},{"type":"function_call","id":"fc_test","call_id":"call_test","name":"call_aws","arguments":"{}"}]}`), &response))
+	input := responses.ResponseInputParam{responses.ResponseInputItemParamOfMessage("finding", responses.EasyInputMessageRoleUser)}
+	updated, err := appendResponseOutput(input, response.Output)
+	require.NoError(t, err)
+	encoded, err := json.Marshal(updated)
+	require.NoError(t, err)
+	var items []map[string]any
+	require.NoError(t, json.Unmarshal(encoded, &items))
+	require.Len(t, items, 3)
+	require.Equal(t, "finding", items[0]["content"])
+	require.Equal(t, "reasoning", items[1]["type"])
+	require.Equal(t, "encrypted-reasoning", items[1]["encrypted_content"])
+	require.Equal(t, "function_call", items[2]["type"])
+	require.Equal(t, "call_test", items[2]["call_id"])
+	calls := extractFunctionCalls(response.Output)
+	require.Len(t, calls, 1)
+	require.Equal(t, "call_test", calls[0].CallID)
+}
+
+func TestBuildAgentTools(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		schema  any
+		wantErr bool
+	}{
+		{name: "valid", schema: map[string]any{"type": "object"}},
+		{name: "nil schema", wantErr: true},
+		{name: "invalid schema", schema: "not an object", wantErr: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tools, allowed, err := buildAgentTools([]*mcp.Tool{nil, {Name: "run_script"}, {Name: "call_aws", InputSchema: tt.schema}, {Name: "search_documentation", InputSchema: map[string]any{"type": "object"}}})
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, tools, 2)
+			require.True(t, allowed["call_aws"])
+			require.True(t, allowed["search_documentation"])
+			require.False(t, allowed["run_script"])
+		})
+	}
+}
+
+func TestHandleFunctionCalls(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		tools    []string
+		verified bool
+	}{
+		{name: "documentation only", tools: []string{"read_documentation"}},
+		{name: "AWS and documentation", tools: []string{"call_aws", "read_documentation"}, verified: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			proxy := &agentProxy{}
+			var calls []responses.ResponseFunctionToolCall
+			for _, name := range tt.tools {
+				calls = append(calls, responses.ResponseFunctionToolCall{Name: name, CallID: name, Arguments: `{}`})
+			}
+			outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, map[string]bool{"call_aws": true, "read_documentation": true})
+			require.NoError(t, err)
+			require.Equal(t, tt.verified, verified)
+			require.Equal(t, len(calls), proxy.callCount)
+			require.Len(t, outputs, len(calls))
+			encoded, err := json.Marshal(outputs)
+			require.NoError(t, err)
+			var items []map[string]any
+			require.NoError(t, json.Unmarshal(encoded, &items))
+			for i, item := range items {
+				require.Equal(t, calls[i].CallID, item["call_id"])
+				require.Equal(t, "function_call_output", item["type"])
+			}
 		})
 	}
 }

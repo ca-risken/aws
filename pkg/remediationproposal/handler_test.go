@@ -72,8 +72,12 @@ func TestHandleMessage(t *testing.T) {
 			if c.wantProcessorCall {
 				aiClient.On("UpdateRemediationProposalStatus", mock.Anything, mock.MatchedBy(func(req *ai.UpdateRemediationProposalStatusRequest) bool {
 					if status == remediationProposalStatusSucceeded {
-						var plan RemediationPlan
-						if json.Unmarshal([]byte(req.RemediationPlan), &plan) != nil || plan.FindingID != 2001 || plan.Plan.Metadata.Model != "test-model" {
+						var plan PlanContent
+						if json.Unmarshal([]byte(req.RemediationPlan), &plan) != nil || plan.Summary != "test" || plan.Metadata.Model != "test-model" {
+							return false
+						}
+						var fields map[string]json.RawMessage
+						if json.Unmarshal([]byte(req.RemediationPlan), &fields) != nil || len(fields) != 4 || fields["finding_id"] != nil || fields["remediation_plan"] != nil {
 							return false
 						}
 					}

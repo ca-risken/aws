@@ -75,7 +75,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	}
 	var encoded []byte
 	if err == nil {
-		encoded, err = json.Marshal(plan)
+		encoded, err = json.Marshal(plan.Plan)
 	}
 	if err != nil {
 		if statusErr := s.updateRemediationProposalStatus(ctx, msg, remediationProposalStatusFailed, remediationProposalStatusDetail(err), "", 0); statusErr != nil {
