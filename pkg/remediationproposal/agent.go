@@ -80,21 +80,21 @@ func (a *OpenAIAgent) Generate(ctx context.Context, finding *corefinding.Finding
 		pending := extractFunctionCalls(resp.Output)
 		if len(pending) == 0 {
 			if !verified {
-				return nil, errors.New("AWS resource state has not been verified")
+				return nil, wrapAgentNonRetryable(errors.New("AWS resource state has not been verified"))
 			}
 			plan, err := parsePlan(resp.OutputText())
 			if err != nil {
-				return nil, err
+				return nil, wrapAgentNonRetryable(err)
 			}
 			plan.Metadata = PlanMetadata{GeneratedAt: time.Now().UTC().Unix(), Model: a.model}
 			return &RemediationPlan{FindingID: finding.FindingId, Plan: *plan}, nil
 		}
 		if calls+len(pending) > maxAgentToolCalls {
-			return nil, errors.New("MCP tool call limit exceeded")
+			return nil, wrapAgentNonRetryable(errors.New("MCP tool call limit exceeded"))
 		}
 		for _, call := range pending {
 			if !allowed[call.Name] {
-				return nil, errors.New("unapproved MCP tool requested")
+				return nil, wrapAgentNonRetryable(errors.New("unapproved MCP tool requested"))
 			}
 		}
 		outputs, awsChecked, err := handleFunctionCalls(ctx, proxy, pending)
@@ -106,6 +106,14 @@ func (a *OpenAIAgent) Generate(ctx context.Context, finding *corefinding.Finding
 		calls += len(pending)
 	}
 	return nil, errors.New("agent iteration limit exceeded")
+}
+
+type agentNonRetryableError struct {
+	error
+}
+
+func wrapAgentNonRetryable(err error) error {
+	return agentNonRetryableError{error: err}
 }
 
 func (a *OpenAIAgent) callResponsesAPI(ctx context.Context, input responses.ResponseInputParam, tools []responses.ToolUnionParam) (*responses.Response, error) {

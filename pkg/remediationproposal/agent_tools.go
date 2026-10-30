@@ -33,6 +33,21 @@ var readOnlyAWSOperations = map[string]bool{
 	"lookup":   true,
 }
 
+var sensitiveAWSOperations = map[string]bool{
+	"ecr:get-login-password":                true,
+	"lambda:get-function":                   true,
+	"s3api:get-object":                      true,
+	"s3api:get-object-attributes":           true,
+	"secretsmanager:get-secret-value":       true,
+	"secretsmanager:batch-get-secret-value": true,
+	"ssm:get-parameter":                     true,
+	"ssm:get-parameters":                    true,
+	"ssm:get-parameters-by-path":            true,
+	"sts:get-access-key-info":               true,
+	"sts:get-federation-token":              true,
+	"sts:get-session-token":                 true,
+}
+
 func callAWSToolSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
@@ -40,8 +55,7 @@ func callAWSToolSchema() map[string]any {
 		"required":             []string{"cli_command"},
 		"properties": map[string]any{
 			"cli_command": map[string]any{
-				"type":      "string",
-				"minLength": 1,
+				"type": "string",
 			},
 		},
 	}
@@ -124,10 +138,10 @@ func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call respon
 	if call.Name == "call_aws" {
 		params, err := decodeCallAWSArguments(call.Arguments)
 		if err != nil {
-			return "", err
+			return "", wrapAgentNonRetryable(err)
 		}
 		if err := validateReadOnlyAWSCommand(params.CLICommand); err != nil {
-			return "", err
+			return "", wrapAgentNonRetryable(err)
 		}
 	}
 	result, err := proxy.CallTool(ctx, call.Name, arguments)
@@ -171,26 +185,84 @@ func decodeCallAWSArguments(raw string) (callAWSArguments, error) {
 }
 
 func validateReadOnlyAWSCommand(command string) error {
+	service, operation, err := parseAWSCLICommand(command)
+	if err != nil {
+		return err
+	}
+	if sensitiveAWSOperations[service+":"+operation] {
+		return fmt.Errorf("AWS operation may return sensitive data: %s %s", service, operation)
+	}
+	if !isReadOnlyAWSOperation(operation) {
+		return fmt.Errorf("AWS operation is not read-only: %s", operation)
+	}
+	return nil
+}
+
+func validateAWSCommand(command string) error {
+	if _, _, err := parseAWSCLICommand(command); err != nil {
+		return err
+	}
+	return nil
+}
+
+func isReadOnlyAWSOperation(operation string) bool {
+	for prefix := range readOnlyAWSOperations {
+		if operation == prefix || strings.HasPrefix(operation, prefix+"-") {
+			return true
+		}
+	}
+	return false
+}
+
+func parseAWSCLICommand(command string) (string, string, error) {
 	trimmed := strings.TrimSpace(command)
 	if trimmed == "" {
-		return errors.New("AWS CLI command is required")
+		return "", "", errors.New("AWS CLI command is required")
 	}
 	for _, token := range []string{"|", ";", "&&", "||", "&", ">", "<", "`", "$(", "${", "\n", "\r"} {
 		if strings.Contains(trimmed, token) {
-			return fmt.Errorf("AWS CLI command contains forbidden shell token: %q", token)
+			return "", "", fmt.Errorf("AWS CLI command contains forbidden shell token: %q", token)
 		}
 	}
 	parts := strings.Fields(trimmed)
 	if len(parts) < 3 || parts[0] != "aws" {
-		return errors.New("AWS CLI command must start with aws and include a service operation")
+		return "", "", errors.New("AWS CLI command must start with aws and include a service operation")
 	}
-	operation := strings.ToLower(parts[2])
-	for prefix := range readOnlyAWSOperations {
-		if operation == prefix || strings.HasPrefix(operation, prefix+"-") {
-			return nil
+	globalOptionsWithValue := map[string]bool{
+		"--color": true, "--max-items": true, "--output": true,
+		"--page-size": true, "--query": true, "--region": true,
+		"--starting-token": true,
+	}
+	globalOptionsWithoutValue := map[string]bool{
+		"--no-cli-pager": true, "--no-paginate": true,
+	}
+	index := 1
+	for index < len(parts) && strings.HasPrefix(parts[index], "--") {
+		option := parts[index]
+		name := option
+		if separator := strings.IndexByte(option, '='); separator >= 0 {
+			name = option[:separator]
 		}
+		if globalOptionsWithValue[name] {
+			if !strings.Contains(option, "=") {
+				if index+1 >= len(parts) {
+					return "", "", fmt.Errorf("AWS global option requires a value: %s", name)
+				}
+				index++
+			}
+			index++
+			continue
+		}
+		if globalOptionsWithoutValue[name] && !strings.Contains(option, "=") {
+			index++
+			continue
+		}
+		return "", "", fmt.Errorf("AWS global option is not allowed: %s", name)
 	}
-	return fmt.Errorf("AWS operation is not read-only: %s", operation)
+	if len(parts) <= index+1 {
+		return "", "", errors.New("AWS CLI command must include a service operation")
+	}
+	return strings.ToLower(parts[index]), strings.ToLower(parts[index+1]), nil
 }
 
 func marshalCallAWSResult(command string, result *mcp.CallToolResult) (string, error) {

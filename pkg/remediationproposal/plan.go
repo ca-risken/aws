@@ -54,6 +54,12 @@ func parsePlan(output string) (*PlanContent, error) {
 		if step.Order != i+1 || strings.TrimSpace(step.Title) == "" || strings.TrimSpace(step.Command) == "" || strings.TrimSpace(step.VerificationCommand) == "" {
 			return nil, errors.New("invalid remediation step")
 		}
+		if err := validateAWSCommand(step.Command); err != nil {
+			return nil, fmt.Errorf("invalid remediation command: %w", err)
+		}
+		if err := validateReadOnlyAWSCommand(step.VerificationCommand); err != nil {
+			return nil, fmt.Errorf("invalid verification command: %w", err)
+		}
 	}
 	return &plan, nil
 }

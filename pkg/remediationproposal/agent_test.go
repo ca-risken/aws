@@ -250,8 +250,13 @@ func TestValidateReadOnlyAWSCommand(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "get", command: "aws s3api get-public-access-block --bucket example"},
+		{name: "global region option", command: "aws --region us-east-1 ec2 describe-instances"},
+		{name: "global query option", command: "aws --query list s3api delete-bucket --bucket example", wantErr: true},
 		{name: "describe", command: "aws ec2 describe-instances"},
 		{name: "list", command: "aws iam list-roles"},
+		{name: "secret value blocked", command: "aws secretsmanager get-secret-value --secret-id example", wantErr: true},
+		{name: "parameter blocked", command: "aws ssm get-parameter --name example --with-decryption", wantErr: true},
+		{name: "login password blocked", command: "aws ecr get-login-password", wantErr: true},
 		{name: "update blocked", command: "aws s3api put-bucket-policy --bucket example", wantErr: true},
 		{name: "pipeline blocked", command: "aws s3api get-bucket-acl --bucket example | cat", wantErr: true},
 		{name: "semicolon blocked", command: "aws s3api get-bucket-acl --bucket example; aws s3api delete-bucket --bucket example", wantErr: true},
@@ -308,6 +313,8 @@ func TestParsePlan(t *testing.T) {
 		{"unknown field", strings.Replace(validPlanJSON, `"summary":`, `"unknown":1,"summary":`, 1), true},
 		{"trailing data", validPlanJSON + " {}", true},
 		{"empty verification", strings.Replace(validPlanJSON, `aws s3api get-public-access-block --bucket {bucket_name}`, "", 1), true},
+		{"unsafe verification", strings.Replace(validPlanJSON, `aws s3api get-public-access-block --bucket {bucket_name}`, `aws s3api put-bucket-policy --bucket {bucket_name}`, 1), true},
+		{"shell remediation command", strings.Replace(validPlanJSON, `aws s3api put-public-access-block --bucket {bucket_name}`, `aws s3api put-public-access-block --bucket {bucket_name} | cat`, 1), true},
 		{"wrong order", strings.Replace(validPlanJSON, `"order":1`, `"order":2`, 1), true},
 		{"resolved", `{"summary":"解決済み","current_state":["非公開を確認"],"steps":[]}`, false},
 	} {

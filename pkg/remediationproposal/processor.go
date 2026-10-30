@@ -105,7 +105,15 @@ func (p *RemediationProcessor) Process(ctx context.Context, msg *QueueMessage, r
 	if p.generator == nil {
 		return nil, errors.New("remediation proposal generator is required")
 	}
-	return p.generator.Generate(ctx, finding, proxy, tools)
+	plan, err := p.generator.Generate(ctx, finding, proxy, tools)
+	if err != nil {
+		var nonRetryable agentNonRetryableError
+		if errors.As(err, &nonRetryable) {
+			return nil, mimosasqs.WrapNonRetryable(err)
+		}
+		return nil, err
+	}
+	return plan, nil
 }
 
 func (p *RemediationProcessor) getFinding(ctx context.Context, msg *QueueMessage) (*corefinding.Finding, error) {
