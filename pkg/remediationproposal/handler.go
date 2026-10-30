@@ -2,6 +2,7 @@ package remediationproposal
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -30,7 +31,7 @@ type SqsHandler struct {
 }
 
 type Processor interface {
-	Process(ctx context.Context, msg *QueueMessage, requestID string) error
+	Process(ctx context.Context, msg *QueueMessage, requestID string) (*RemediationPlan, error)
 }
 
 func NewSqsHandler(l logging.Logger, processor Processor, ai remediationProposalUpdater) *SqsHandler {
@@ -68,13 +69,21 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *types.Message) e
 	}
 
 	s.logger.Infof(ctx, "start remediation proposal, RequestID=%s", requestID)
-	if err := s.processor.Process(ctx, msg, requestID); err != nil {
-		if statusErr := s.updateRemediationProposalStatus(ctx, msg, remediationProposalStatusFailed, remediationProposalStatusDetail(err)); statusErr != nil {
+	plan, err := s.processor.Process(ctx, msg, requestID)
+	if err == nil && (plan == nil || plan.FindingID != msg.FindingID || plan.Plan.Metadata.GeneratedAt <= 0 || plan.Plan.Metadata.Model == "") {
+		err = errors.New("invalid generated remediation plan")
+	}
+	var encoded []byte
+	if err == nil {
+		encoded, err = json.Marshal(plan.Plan)
+	}
+	if err != nil {
+		if statusErr := s.updateRemediationProposalStatus(ctx, msg, remediationProposalStatusFailed, remediationProposalStatusDetail(err), "", 0); statusErr != nil {
 			return fmt.Errorf("failed to update remediation proposal status: process_err=%v: %w", err, statusErr)
 		}
 		return err
 	}
-	if err := s.updateRemediationProposalStatus(ctx, msg, remediationProposalStatusSucceeded, ""); err != nil {
+	if err := s.updateRemediationProposalStatus(ctx, msg, remediationProposalStatusSucceeded, "", string(encoded), plan.Plan.Metadata.GeneratedAt); err != nil {
 		return err
 	}
 	s.logger.Infof(ctx, "end remediation proposal, RequestID=%s", requestID)
@@ -99,7 +108,7 @@ func remediationProposalStatusDetail(err error) string {
 	}
 }
 
-func (s *SqsHandler) updateRemediationProposalStatus(ctx context.Context, msg *QueueMessage, status, statusDetail string) error {
+func (s *SqsHandler) updateRemediationProposalStatus(ctx context.Context, msg *QueueMessage, status, statusDetail, plan string, generatedAt int64) error {
 	if s.ai == nil {
 		return errors.New("remediation proposal AI client is required")
 	}
@@ -108,6 +117,8 @@ func (s *SqsHandler) updateRemediationProposalStatus(ctx context.Context, msg *Q
 		RemediationProposalId: msg.RemediationProposalID,
 		Status:                status,
 		StatusDetail:          statusDetail,
+		RemediationPlan:       plan,
+		GeneratedAt:           generatedAt,
 	}); err != nil {
 		return fmt.Errorf("failed to update remediation proposal status: remediation_proposal_id=%d, status=%s, err=%w", msg.RemediationProposalID, status, err)
 	}

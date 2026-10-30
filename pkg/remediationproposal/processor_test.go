@@ -93,6 +93,16 @@ func (m *mockMCPProxyProcess) Stop() error {
 	return nil
 }
 
+func (m *mockMCPProxyProcess) CallTool(ctx context.Context, name string, arguments map[string]any) (*mcp.CallToolResult, error) {
+	return &mcp.CallToolResult{}, nil
+}
+
+type mockProposalGenerator struct{ err error }
+
+func (m *mockProposalGenerator) Generate(ctx context.Context, finding *corefinding.Finding, proxy MCPProxyProcess, tools []*mcp.Tool) (*RemediationPlan, error) {
+	return &RemediationPlan{FindingID: finding.FindingId, Plan: PlanContent{Summary: "test", CurrentState: []string{"verified"}, Steps: []RemediationStep{}, Metadata: PlanMetadata{GeneratedAt: 1, Model: "test-model"}}}, m.err
+}
+
 func TestRemediationProcessorProcess(t *testing.T) {
 	errAssumeRole := errors.New("assume role error")
 	errStartProxy := errors.New("start proxy error")
@@ -114,6 +124,7 @@ func TestRemediationProcessorProcess(t *testing.T) {
 		wantStopped    bool
 		listErr        error
 		emptyTools     bool
+		generatorErr   error
 	}{
 		{
 			name:           "OK",
@@ -128,6 +139,10 @@ func TestRemediationProcessorProcess(t *testing.T) {
 		{
 			name: "NG no tools", provider: "aws", providerTarget: "123456789012",
 			emptyTools: true, wantErr: true, wantStopped: true,
+		},
+		{
+			name: "NG generation", provider: "aws", providerTarget: "123456789012",
+			generatorErr: errors.New("generation failed"), wantErr: true, wantStopped: true,
 		},
 		{
 			name:           "NG assume role error",
@@ -156,9 +171,9 @@ func TestRemediationProcessorProcess(t *testing.T) {
 			}}}
 			credentialProvider := &mockCredentialProvider{err: c.credentialErr}
 			proxyRunner := &mockMCPProxyRunner{err: c.proxyErr, listErr: c.listErr, emptyTools: c.emptyTools}
-			processor := NewRemediationProcessor("ap-northeast-1", "us-east-1", findingClient, credentialProvider, proxyRunner, logging.NewLogger())
+			processor := NewRemediationProcessor("ap-northeast-1", "us-east-1", findingClient, credentialProvider, proxyRunner, logging.NewLogger(), &mockProposalGenerator{err: c.generatorErr})
 
-			err := processor.Process(context.Background(), msg, "request-id")
+			_, err := processor.Process(context.Background(), msg, "request-id")
 			if (err != nil) != c.wantErr {
 				t.Fatalf("unexpected error: wantErr=%t, err=%+v", c.wantErr, err)
 			}
@@ -231,9 +246,10 @@ func TestRemediationProcessorProcessReturnsNonRetryableForPermanentErrors(t *tes
 				&mockCredentialProvider{},
 				&mockMCPProxyRunner{},
 				logging.NewLogger(),
+				&mockProposalGenerator{},
 			)
 
-			err := processor.Process(context.Background(), msg, "request-id")
+			_, err := processor.Process(context.Background(), msg, "request-id")
 			var nonRetryableErr mimosasqs.NonRetryableError
 			if !errors.As(err, &nonRetryableErr) {
 				t.Fatalf("expected non-retryable error, got=%+v", err)
