@@ -32,6 +32,7 @@ require (
 	github.com/ca-risken/datasource-api v0.16.1-0.20251002083517-92a4ac71dc6e
 	github.com/ca-risken/go-sqs-poller/worker/v5 v5.0.0-20220525093235-9148d33b6aee
 	github.com/gassara-kys/envconfig v1.4.4
+	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/google/go-cmp v0.7.0
 	github.com/modelcontextprotocol/go-sdk v1.3.1
 	github.com/openai/openai-go v1.8.3

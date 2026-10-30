@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/kballard/go-shellquote"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/responses"
@@ -22,6 +23,7 @@ type callAWSResult struct {
 	CLICommand     string              `json:"cli_command"`
 	ReadOnly       bool                `json:"read_only"`
 	PolicyDecision string              `json:"policy_decision"`
+	ResultStatus   string              `json:"result_status"`
 	Result         *mcp.CallToolResult `json:"result"`
 }
 
@@ -35,7 +37,9 @@ var readOnlyAWSOperations = map[string]bool{
 
 var sensitiveAWSOperations = map[string]bool{
 	"ecr:get-login-password":                true,
+	"ecr:get-authorization-token":           true,
 	"lambda:get-function":                   true,
+	"lambda:get-function-configuration":     true,
 	"s3api:get-object":                      true,
 	"s3api:get-object-attributes":           true,
 	"secretsmanager:get-secret-value":       true,
@@ -43,9 +47,12 @@ var sensitiveAWSOperations = map[string]bool{
 	"ssm:get-parameter":                     true,
 	"ssm:get-parameters":                    true,
 	"ssm:get-parameters-by-path":            true,
+	"ssm:get-parameter-history":             true,
 	"sts:get-access-key-info":               true,
 	"sts:get-federation-token":              true,
 	"sts:get-session-token":                 true,
+	"dynamodb:get-item":                     true,
+	"logs:get-log-events":                   true,
 }
 
 func callAWSToolSchema() map[string]any {
@@ -120,52 +127,53 @@ func handleFunctionCalls(ctx context.Context, proxy MCPProxyProcess, calls []res
 	var outputs responses.ResponseInputParam
 	verified := false
 	for _, call := range calls {
-		result, err := executeFunctionCall(ctx, proxy, call)
+		result, callVerified, err := executeFunctionCall(ctx, proxy, call)
 		if err != nil {
 			return nil, false, err
 		}
 		outputs = append(outputs, responses.ResponseInputItemParamOfFunctionCallOutput(call.CallID, result))
-		verified = verified || call.Name == "call_aws"
+		verified = verified || callVerified
 	}
 	return outputs, verified, nil
 }
 
-func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call responses.ResponseFunctionToolCall) (string, error) {
+func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call responses.ResponseFunctionToolCall) (string, bool, error) {
 	var arguments map[string]any
 	if err := json.Unmarshal([]byte(call.Arguments), &arguments); err != nil || arguments == nil {
-		return "", errors.New("invalid MCP tool arguments")
+		return "", false, wrapAgentNonRetryable(errors.New("invalid MCP tool arguments"))
 	}
 	if call.Name == "call_aws" {
 		params, err := decodeCallAWSArguments(call.Arguments)
 		if err != nil {
-			return "", wrapAgentNonRetryable(err)
+			return "", false, wrapAgentNonRetryable(err)
 		}
 		if err := validateReadOnlyAWSCommand(params.CLICommand); err != nil {
-			return "", wrapAgentNonRetryable(err)
+			return "", false, wrapAgentNonRetryable(err)
 		}
 	}
 	result, err := proxy.CallTool(ctx, call.Name, arguments)
 	if err != nil {
-		return "", fmt.Errorf("failed to call MCP tool: %w", err)
+		return "", false, fmt.Errorf("failed to call MCP tool: %w", err)
 	}
-	if result == nil || result.IsError {
-		return "", errors.New("MCP tool returned an error")
+	if result == nil {
+		return "", false, wrapAgentNonRetryable(errors.New("MCP tool returned an empty result"))
 	}
 	encoded, err := json.Marshal(result)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	if len(encoded) > 256*1024 {
-		return "", errors.New("MCP tool result exceeds size limit")
+		return "", false, wrapAgentNonRetryable(errors.New("MCP tool result exceeds size limit"))
 	}
 	if call.Name != "call_aws" {
-		return string(encoded), nil
+		return string(encoded), false, nil
 	}
 	params, err := decodeCallAWSArguments(call.Arguments)
 	if err != nil {
-		return "", err
+		return "", false, wrapAgentNonRetryable(err)
 	}
-	return marshalCallAWSResult(params.CLICommand, result)
+	output, err := marshalCallAWSResult(params.CLICommand, result)
+	return output, !result.IsError && err == nil, err
 }
 
 func decodeCallAWSArguments(raw string) (callAWSArguments, error) {
@@ -224,7 +232,10 @@ func parseAWSCLICommand(command string) (string, string, error) {
 			return "", "", fmt.Errorf("AWS CLI command contains forbidden shell token: %q", token)
 		}
 	}
-	parts := strings.Fields(trimmed)
+	parts, err := shellquote.Split(trimmed)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid AWS CLI quoting: %w", err)
+	}
 	if len(parts) < 3 || parts[0] != "aws" {
 		return "", "", errors.New("AWS CLI command must start with aws and include a service operation")
 	}
@@ -266,11 +277,16 @@ func parseAWSCLICommand(command string) (string, string, error) {
 }
 
 func marshalCallAWSResult(command string, result *mcp.CallToolResult) (string, error) {
+	status := "success"
+	if result.IsError {
+		status = "error"
+	}
 	encoded, err := json.Marshal(callAWSResult{
 		ToolName:       "call_aws",
 		CLICommand:     command,
 		ReadOnly:       true,
 		PolicyDecision: "allowed",
+		ResultStatus:   status,
 		Result:         result,
 	})
 	if err != nil {

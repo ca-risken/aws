@@ -243,6 +243,22 @@ func TestHandleFunctionCalls(t *testing.T) {
 	}
 }
 
+func TestHandleFunctionCallsReturnsMCPErrorToModel(t *testing.T) {
+	proxy := &agentProxy{toolError: true}
+	calls := []responses.ResponseFunctionToolCall{{
+		Name:      "call_aws",
+		CallID:    "call_aws",
+		Arguments: `{"cli_command":"aws s3api get-public-access-block --bucket example"}`,
+	}}
+	outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls)
+	require.NoError(t, err)
+	require.False(t, verified)
+	require.Len(t, outputs, 1)
+	encoded, err := json.Marshal(outputs)
+	require.NoError(t, err)
+	require.Contains(t, string(encoded), `\"result_status\":\"error\"`)
+}
+
 func TestValidateReadOnlyAWSCommand(t *testing.T) {
 	for _, tt := range []struct {
 		name    string
@@ -252,11 +268,18 @@ func TestValidateReadOnlyAWSCommand(t *testing.T) {
 		{name: "get", command: "aws s3api get-public-access-block --bucket example"},
 		{name: "global region option", command: "aws --region us-east-1 ec2 describe-instances"},
 		{name: "global query option", command: "aws --query list s3api delete-bucket --bucket example", wantErr: true},
+		{name: "quoted global option", command: "aws '--query' list s3api delete-bucket --bucket example", wantErr: true},
 		{name: "describe", command: "aws ec2 describe-instances"},
 		{name: "list", command: "aws iam list-roles"},
 		{name: "secret value blocked", command: "aws secretsmanager get-secret-value --secret-id example", wantErr: true},
+		{name: "quoted sensitive service blocked", command: "aws \"secretsmanager\" get-secret-value --secret-id example", wantErr: true},
 		{name: "parameter blocked", command: "aws ssm get-parameter --name example --with-decryption", wantErr: true},
+		{name: "parameter history blocked", command: "aws ssm get-parameter-history --name example --with-decryption", wantErr: true},
 		{name: "login password blocked", command: "aws ecr get-login-password", wantErr: true},
+		{name: "authorization token blocked", command: "aws ecr get-authorization-token", wantErr: true},
+		{name: "lambda configuration blocked", command: "aws lambda get-function-configuration --function-name example", wantErr: true},
+		{name: "dynamodb item blocked", command: "aws dynamodb get-item --table-name example --key '{}'", wantErr: true},
+		{name: "log events blocked", command: "aws logs get-log-events --log-group-name example --log-stream-name example", wantErr: true},
 		{name: "update blocked", command: "aws s3api put-bucket-policy --bucket example", wantErr: true},
 		{name: "pipeline blocked", command: "aws s3api get-bucket-acl --bucket example | cat", wantErr: true},
 		{name: "semicolon blocked", command: "aws s3api get-bucket-acl --bucket example; aws s3api delete-bucket --bucket example", wantErr: true},
