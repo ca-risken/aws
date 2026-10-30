@@ -188,8 +188,8 @@ func TestBuildAgentTools(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "valid", schema: map[string]any{"type": "object"}},
-		{name: "nil schema", wantErr: true},
-		{name: "invalid schema", schema: "not an object", wantErr: true},
+		{name: "nil schema"},
+		{name: "invalid schema"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			tools, allowed, err := buildAgentTools([]*mcp.Tool{nil, {Name: "run_script"}, {Name: "call_aws", InputSchema: tt.schema}, {Name: "search_documentation", InputSchema: map[string]any{"type": "object"}}})
@@ -221,6 +221,11 @@ func TestHandleFunctionCalls(t *testing.T) {
 			for _, name := range tt.tools {
 				calls = append(calls, responses.ResponseFunctionToolCall{Name: name, CallID: name, Arguments: `{}`})
 			}
+			for i := range calls {
+				if calls[i].Name == "call_aws" {
+					calls[i].Arguments = `{"cli_command":"aws s3api get-public-access-block --bucket example"}`
+				}
+			}
 			outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls)
 			require.NoError(t, err)
 			require.Equal(t, tt.verified, verified)
@@ -236,6 +241,45 @@ func TestHandleFunctionCalls(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateReadOnlyAWSCommand(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		command string
+		wantErr bool
+	}{
+		{name: "get", command: "aws s3api get-public-access-block --bucket example"},
+		{name: "describe", command: "aws ec2 describe-instances"},
+		{name: "list", command: "aws iam list-roles"},
+		{name: "update blocked", command: "aws s3api put-bucket-policy --bucket example", wantErr: true},
+		{name: "pipeline blocked", command: "aws s3api get-bucket-acl --bucket example | cat", wantErr: true},
+		{name: "semicolon blocked", command: "aws s3api get-bucket-acl --bucket example; aws s3api delete-bucket --bucket example", wantErr: true},
+		{name: "not aws", command: "sh -c whoami", wantErr: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateReadOnlyAWSCommand(tt.command)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCallAWSToolSchema(t *testing.T) {
+	schema := callAWSToolSchema()
+	require.Equal(t, false, schema["additionalProperties"] == true)
+	require.Equal(t, []string{"cli_command"}, schema["required"])
+}
+
+func TestDecodeCallAWSArguments(t *testing.T) {
+	_, err := decodeCallAWSArguments(`{"cli_command":"aws s3api get-bucket-acl --bucket example","extra":"blocked"}`)
+	require.Error(t, err)
+
+	_, err = decodeCallAWSArguments(`{"cli_command":"aws s3api get-bucket-acl --bucket example"} trailing`)
+	require.Error(t, err)
 }
 
 func TestOpenAIAgentGenerateMissingInputs(t *testing.T) {
