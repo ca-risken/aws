@@ -35,24 +35,20 @@ var readOnlyAWSOperations = map[string]bool{
 	"lookup":   true,
 }
 
-var sensitiveAWSOperations = map[string]bool{
-	"ecr:get-login-password":                true,
-	"ecr:get-authorization-token":           true,
-	"lambda:get-function":                   true,
-	"lambda:get-function-configuration":     true,
-	"s3api:get-object":                      true,
-	"s3api:get-object-attributes":           true,
-	"secretsmanager:get-secret-value":       true,
-	"secretsmanager:batch-get-secret-value": true,
-	"ssm:get-parameter":                     true,
-	"ssm:get-parameters":                    true,
-	"ssm:get-parameters-by-path":            true,
-	"ssm:get-parameter-history":             true,
-	"sts:get-access-key-info":               true,
-	"sts:get-federation-token":              true,
-	"sts:get-session-token":                 true,
-	"dynamodb:get-item":                     true,
-	"logs:get-log-events":                   true,
+var allowedAWSReadOnlyServices = map[string]bool{
+	"accessanalyzer": true,
+	"ec2":            true,
+	"elbv2":          true,
+	"iam":            true,
+	"lambda":         true,
+	"rds":            true,
+	"s3api":          true,
+}
+
+var blockedAWSOperations = map[string]bool{
+	"lambda:get-function":         true,
+	"s3api:get-object":            true,
+	"s3api:get-object-attributes": true,
 }
 
 func callAWSToolSchema() map[string]any {
@@ -197,8 +193,11 @@ func validateReadOnlyAWSCommand(command string) error {
 	if err != nil {
 		return err
 	}
-	if sensitiveAWSOperations[service+":"+operation] {
-		return fmt.Errorf("AWS operation may return sensitive data: %s %s", service, operation)
+	if !allowedAWSReadOnlyServices[service] {
+		return fmt.Errorf("AWS service is not allowed for verification: %s", service)
+	}
+	if blockedAWSOperations[service+":"+operation] {
+		return fmt.Errorf("AWS operation is blocked: %s %s", service, operation)
 	}
 	if !isReadOnlyAWSOperation(operation) {
 		return fmt.Errorf("AWS operation is not read-only: %s", operation)
