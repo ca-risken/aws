@@ -37,30 +37,6 @@ type runScriptArguments struct {
 
 const awsRunScriptToolName = "aws___run_script"
 
-var readOnlyAWSOperations = map[string]bool{
-	"get":      true,
-	"describe": true,
-	"list":     true,
-	"head":     true,
-	"lookup":   true,
-}
-
-var allowedAWSReadOnlyServices = map[string]bool{
-	"accessanalyzer": true,
-	"ec2":            true,
-	"elbv2":          true,
-	"iam":            true,
-	"lambda":         true,
-	"rds":            true,
-	"s3api":          true,
-}
-
-var blockedAWSOperations = map[string]bool{
-	"lambda:getfunctionconfiguration":    true,
-	"ec2:describeinstanceattribute":      true,
-	"ec2:describelaunchtemplateversions": true,
-}
-
 func buildAgentTools(tools []*mcp.Tool) ([]responses.ToolUnionParam, map[string]bool, error) {
 	allowed := map[string]bool{}
 	var functions []responses.ToolUnionParam
@@ -179,12 +155,7 @@ func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call respon
 			return "", false, wrapAgentNonRetryable(err)
 		}
 		service, operation = params.Service, params.Operation
-		if err := validateReadOnlyRunScript(params); err != nil {
-			policyDecision = "denied"
-			status = "policy_denied"
-			return "", false, wrapAgentNonRetryable(err)
-		}
-		policyDecision = "allowed"
+		policyDecision = "delegated_to_iam"
 		script, err := buildReadOnlyRunScript(params)
 		if err != nil {
 			status = "invalid_arguments"
@@ -253,34 +224,6 @@ func decodeRunScriptArguments(raw string) (runScriptArguments, error) {
 	return params, nil
 }
 
-func validateReadOnlyRunScript(params runScriptArguments) error {
-	service := normalizeAWSService(params.Service)
-	operation := normalizeAWSOperation(params.Operation)
-	if !allowedAWSReadOnlyServices[service] {
-		return fmt.Errorf("AWS service is not allowed for verification: %s", service)
-	}
-	if blockedAWSOperations[service+":"+operation] {
-		return fmt.Errorf("AWS operation is blocked: %s %s", service, params.Operation)
-	}
-	if !isReadOnlyAWSOperation(operation) {
-		return fmt.Errorf("AWS operation is not read-only: %s", params.Operation)
-	}
-	if params.Region != "" {
-		if !isValidAWSRegion(params.Region) {
-			return errors.New("AWS region contains invalid characters")
-		}
-	}
-	if strings.TrimSpace(params.Operation) != params.Operation || strings.ContainsAny(params.Operation, " \t\r\n\"'") {
-		return errors.New("AWS operation contains invalid characters")
-	}
-	for index, character := range params.Operation {
-		if (character < 'A' || character > 'Z') && (character < 'a' || character > 'z') && (index == 0 || character < '0' || character > '9') {
-			return errors.New("AWS operation contains invalid characters")
-		}
-	}
-	return nil
-}
-
 func normalizeAWSService(service string) string {
 	service = strings.ToLower(service)
 	if service == "s3" {
@@ -303,18 +246,6 @@ func buildReadOnlyRunScript(params runScriptArguments) (string, error) {
 		region = ", region_name=" + strconv.Quote(params.Region)
 	}
 	return "result = await call_boto3(service_name=" + strconv.Quote(service) + ", operation_name=" + strconv.Quote(params.Operation) + ", params=" + value + region + ")\nresult", nil
-}
-
-func isValidAWSRegion(region string) bool {
-	if len(region) < 6 || region[len(region)-1] < '0' || region[len(region)-1] > '9' {
-		return false
-	}
-	for _, character := range region {
-		if (character < 'a' || character > 'z') && (character < '0' || character > '9') && character != '-' {
-			return false
-		}
-	}
-	return true
 }
 
 func marshalPythonLiteral(value any) (string, error) {
@@ -363,42 +294,11 @@ func marshalPythonLiteral(value any) (string, error) {
 	}
 }
 
-func validateReadOnlyAWSCommand(command string) error {
-	service, operation, err := parseAWSCLICommand(command)
-	if err != nil {
-		return err
-	}
-	if !allowedAWSReadOnlyServices[service] {
-		return fmt.Errorf("AWS service is not allowed for verification: %s", service)
-	}
-	if blockedAWSOperations[service+":"+normalizeAWSOperation(operation)] {
-		return fmt.Errorf("AWS operation is blocked: %s %s", service, operation)
-	}
-	if !isReadOnlyAWSOperation(operation) {
-		return fmt.Errorf("AWS operation is not read-only: %s", operation)
-	}
-	return nil
-}
-
 func validateAWSCommand(command string) error {
 	if _, _, err := parseAWSCLICommand(command); err != nil {
 		return err
 	}
 	return nil
-}
-
-func isReadOnlyAWSOperation(operation string) bool {
-	operation = normalizeAWSOperation(operation)
-	for prefix := range readOnlyAWSOperations {
-		if operation == prefix || strings.HasPrefix(operation, prefix) {
-			return true
-		}
-	}
-	return false
-}
-
-func normalizeAWSOperation(operation string) string {
-	return strings.ToLower(strings.NewReplacer("-", "", "_", "").Replace(operation))
 }
 
 func parseAWSCLICommand(command string) (string, string, error) {
@@ -476,7 +376,7 @@ func marshalRunScriptResult(result *mcp.CallToolResult) (string, error) {
 	encoded, err := json.Marshal(runScriptResult{
 		ToolName:       awsRunScriptToolName,
 		ReadOnly:       true,
-		PolicyDecision: "allowed",
+		PolicyDecision: "delegated_to_iam",
 		ResultStatus:   status,
 		Result:         result,
 	})

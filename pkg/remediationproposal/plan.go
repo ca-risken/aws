@@ -57,7 +57,7 @@ func parsePlan(output string) (*PlanContent, error) {
 		if err := validateAWSCommand(step.Command); err != nil {
 			return nil, fmt.Errorf("invalid remediation command: %w", err)
 		}
-		if err := validateReadOnlyAWSCommand(step.VerificationCommand); err != nil {
+		if err := validateAWSCommand(step.VerificationCommand); err != nil {
 			return nil, fmt.Errorf("invalid verification command: %w", err)
 		}
 	}

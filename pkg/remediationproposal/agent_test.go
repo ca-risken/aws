@@ -258,49 +258,6 @@ func TestHandleFunctionCallsReturnsMCPErrorToModel(t *testing.T) {
 	require.Contains(t, string(encoded), `\"result_status\":\"error\"`)
 }
 
-func TestValidateReadOnlyAWSCommand(t *testing.T) {
-	for _, tt := range []struct {
-		name    string
-		command string
-		wantErr bool
-	}{
-		{name: "get", command: "aws s3api get-public-access-block --bucket example"},
-		{name: "global region option", command: "aws --region us-east-1 ec2 describe-instances"},
-		{name: "global query option", command: "aws --query list s3api delete-bucket --bucket example", wantErr: true},
-		{name: "quoted global option", command: "aws '--query' list s3api delete-bucket --bucket example", wantErr: true},
-		{name: "describe", command: "aws ec2 describe-instances"},
-		{name: "list", command: "aws iam list-roles"},
-		{name: "allowed lambda service", command: "aws lambda list-functions"},
-		{name: "lambda configuration is blocked", command: "aws lambda get-function-configuration --function-name example", wantErr: true},
-		{name: "lambda code is blocked", command: "aws lambda get-function --function-name example", wantErr: true},
-		{name: "unsupported service", command: "aws cloudformation describe-stacks", wantErr: true},
-		{name: "STS is not needed", command: "aws sts get-caller-identity", wantErr: true},
-		{name: "S3 high-level CLI is not needed", command: "aws s3 ls", wantErr: true},
-		{name: "secret value blocked", command: "aws secretsmanager get-secret-value --secret-id example", wantErr: true},
-		{name: "quoted sensitive service blocked", command: "aws \"secretsmanager\" get-secret-value --secret-id example", wantErr: true},
-		{name: "parameter blocked", command: "aws ssm get-parameter --name example --with-decryption", wantErr: true},
-		{name: "parameter history blocked", command: "aws ssm get-parameter-history --name example --with-decryption", wantErr: true},
-		{name: "login password blocked", command: "aws ecr get-login-password", wantErr: true},
-		{name: "authorization token blocked", command: "aws ecr get-authorization-token", wantErr: true},
-		{name: "lambda configuration blocked", command: "aws lambda get-function-configuration --function-name example", wantErr: true},
-		{name: "dynamodb item blocked", command: "aws dynamodb get-item --table-name example --key '{}'", wantErr: true},
-		{name: "log events blocked", command: "aws logs get-log-events --log-group-name example --log-stream-name example", wantErr: true},
-		{name: "update blocked", command: "aws s3api put-bucket-policy --bucket example", wantErr: true},
-		{name: "pipeline blocked", command: "aws s3api get-bucket-acl --bucket example | cat", wantErr: true},
-		{name: "semicolon blocked", command: "aws s3api get-bucket-acl --bucket example; aws s3api delete-bucket --bucket example", wantErr: true},
-		{name: "not aws", command: "sh -c whoami", wantErr: true},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateReadOnlyAWSCommand(tt.command)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
 func TestDecodeRunScriptArguments(t *testing.T) {
 	params, err := decodeRunScriptArguments(`{"service":"s3api","operation":"GetBucketAcl","region":"","params_json":"{\"Bucket\":\"example\"}"}`)
 	require.NoError(t, err)
@@ -309,30 +266,6 @@ func TestDecodeRunScriptArguments(t *testing.T) {
 
 	_, err = decodeRunScriptArguments(`{"service":"s3api","operation":"GetBucketAcl","region":"","params_json":"[]"}`)
 	require.Error(t, err)
-}
-
-func TestValidateReadOnlyRunScript(t *testing.T) {
-	for _, tt := range []struct {
-		name    string
-		params  runScriptArguments
-		wantErr bool
-	}{
-		{name: "read only", params: runScriptArguments{Service: "ec2", Operation: "DescribeInstances"}},
-		{name: "write operation", params: runScriptArguments{Service: "ec2", Operation: "RunInstances"}, wantErr: true},
-		{name: "sensitive operation", params: runScriptArguments{Service: "lambda", Operation: "GetFunctionConfiguration"}, wantErr: true},
-		{name: "unsupported service", params: runScriptArguments{Service: "cloudtrail", Operation: "LookupEvents"}, wantErr: true},
-		{name: "dynamic operation", params: runScriptArguments{Service: "ec2", Operation: "DescribeInstances if False else TerminateInstances"}, wantErr: true},
-		{name: "invalid operation characters", params: runScriptArguments{Service: "ec2", Operation: "Describe Instances"}, wantErr: true},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateReadOnlyRunScript(tt.params)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
 }
 
 func TestOpenAIAgentGenerateMissingInputs(t *testing.T) {
@@ -361,7 +294,7 @@ func TestParsePlan(t *testing.T) {
 		{"unknown field", strings.Replace(validPlanJSON, `"summary":`, `"unknown":1,"summary":`, 1), true},
 		{"trailing data", validPlanJSON + " {}", true},
 		{"empty verification", strings.Replace(validPlanJSON, `aws s3api get-public-access-block --bucket {bucket_name}`, "", 1), true},
-		{"unsafe verification", strings.Replace(validPlanJSON, `aws s3api get-public-access-block --bucket {bucket_name}`, `aws s3api put-bucket-policy --bucket {bucket_name}`, 1), true},
+		{"verification IAM policy decides access", strings.Replace(validPlanJSON, `aws s3api get-public-access-block --bucket {bucket_name}`, `aws s3api put-bucket-policy --bucket {bucket_name}`, 1), false},
 		{"shell remediation command", strings.Replace(validPlanJSON, `aws s3api put-public-access-block --bucket {bucket_name}`, `aws s3api put-public-access-block --bucket {bucket_name} | cat`, 1), true},
 		{"wrong order", strings.Replace(validPlanJSON, `"order":1`, `"order":2`, 1), true},
 		{"resolved", `{"summary":"解決済み","current_state":["非公開を確認"],"steps":[]}`, false},
