@@ -115,7 +115,7 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 				if (requests == 1 && !tt.skipTool) || tt.loop || requests <= tt.finalAfter {
 					output := map[string]any{"status": "completed", "output": []any{
 						map[string]any{"type": "reasoning", "id": "rs_test", "summary": []any{}, "encrypted_content": "encrypted-reasoning"},
-						map[string]any{"type": "function_call", "name": tt.firstTool, "arguments": `{"script":"result = await call_boto3(service_name='s3api', operation_name='GetBucketAcl', params={'Bucket': 'example'})\nresult"}`, "call_id": "call_test", "id": "fc_test"},
+						map[string]any{"type": "function_call", "name": tt.firstTool, "arguments": `{"service":"s3api","operation":"GetBucketAcl","params_json":"{\"Bucket\":\"example\"}"}`, "call_id": "call_test", "id": "fc_test"},
 					}}
 					if tt.unapprovedSecond {
 						output["output"] = append(output["output"].([]any), map[string]any{"type": "function_call", "name": "aws___unknown", "arguments": "{}", "call_id": "call_blocked", "id": "fc_blocked"})
@@ -133,7 +133,7 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 			agent := &OpenAIAgent{client: &client.Responses, model: "test-model"}
 			proxy := &agentProxy{callErr: tt.callErr, toolError: tt.toolError}
 			tools := []*mcp.Tool{
-				{Name: awsRunScriptToolName, InputSchema: map[string]any{"type": "object", "properties": map[string]any{"script": map[string]any{"type": "string"}}}},
+				{Name: awsRunScriptToolName, InputSchema: map[string]any{"type": "object"}},
 			}
 			plan, err := agent.Generate(context.Background(), &corefinding.Finding{FindingId: 123, ProviderTarget: "123456789012"}, proxy, tools)
 			if tt.wantErr {
@@ -187,8 +187,8 @@ func TestBuildAgentTools(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "valid", schema: map[string]any{"type": "object"}},
-		{name: "nil schema", wantErr: true},
-		{name: "invalid schema", schema: "invalid", wantErr: true},
+		{name: "nil schema"},
+		{name: "invalid schema", schema: "invalid"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			tools, allowed, err := buildAgentTools([]*mcp.Tool{nil, {Name: awsRunScriptToolName, InputSchema: tt.schema}, {Name: "aws___search_documentation", InputSchema: map[string]any{"type": "object"}}})
@@ -222,7 +222,7 @@ func TestHandleFunctionCalls(t *testing.T) {
 			}
 			for i := range calls {
 				if calls[i].Name == awsRunScriptToolName {
-					calls[i].Arguments = `{"script":"result = await call_boto3(service_name='s3api', operation_name='GetBucketAcl', params={'Bucket': 'example'})\nresult"}`
+					calls[i].Arguments = `{"service":"s3api","operation":"GetBucketAcl","params_json":"{\"Bucket\":\"example\"}"}`
 				}
 			}
 			outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, nil, nil)
@@ -247,7 +247,7 @@ func TestHandleFunctionCallsReturnsMCPErrorToModel(t *testing.T) {
 	calls := []responses.ResponseFunctionToolCall{{
 		Name:      awsRunScriptToolName,
 		CallID:    awsRunScriptToolName,
-		Arguments: `{"script":"result = await call_boto3(service_name='s3api', operation_name='GetBucketAcl', params={'Bucket': 'example'})\nresult"}`,
+		Arguments: `{"service":"s3api","operation":"GetBucketAcl","params_json":"{\"Bucket\":\"example\"}"}`,
 	}}
 	outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, nil, nil)
 	require.NoError(t, err)
@@ -302,31 +302,30 @@ func TestValidateReadOnlyAWSCommand(t *testing.T) {
 }
 
 func TestDecodeRunScriptArguments(t *testing.T) {
-	script, err := decodeRunScriptArguments(`{"script":"result = await call_boto3(service_name='s3api', operation_name='GetBucketAcl')"}`)
+	params, err := decodeRunScriptArguments(`{"service":"s3api","operation":"GetBucketAcl","params_json":"{\"Bucket\":\"example\"}"}`)
 	require.NoError(t, err)
-	require.Contains(t, script, "GetBucketAcl")
+	require.Equal(t, "s3api", params.Service)
+	require.Equal(t, "GetBucketAcl", params.Operation)
 
-	_, err = decodeRunScriptArguments(`{"script":""}`)
+	_, err = decodeRunScriptArguments(`{"service":"s3api","operation":"GetBucketAcl","params_json":"[]"}`)
 	require.Error(t, err)
 }
 
 func TestValidateReadOnlyRunScript(t *testing.T) {
 	for _, tt := range []struct {
 		name    string
-		script  string
+		params  runScriptArguments
 		wantErr bool
 	}{
-		{name: "read only", script: `result = await call_boto3(service_name="ec2", operation_name="DescribeInstances")`},
-		{name: "write operation", script: `result = await call_boto3(service_name="ec2", operation_name="RunInstances")`, wantErr: true},
-		{name: "sensitive operation", script: `result = await call_boto3(service_name="lambda", operation_name="GetFunctionConfiguration")`, wantErr: true},
-		{name: "unsupported service", script: `result = await call_boto3(service_name="cloudtrail", operation_name="LookupEvents")`, wantErr: true},
-		{name: "dynamic operation", script: `operation = "RunInstances"
-result = await call_boto3(service_name="ec2", operation_name=operation)`, wantErr: true},
-		{name: "import", script: `import os
-result = await call_boto3(service_name="ec2", operation_name="DescribeInstances")`, wantErr: true},
+		{name: "read only", params: runScriptArguments{Service: "ec2", Operation: "DescribeInstances"}},
+		{name: "write operation", params: runScriptArguments{Service: "ec2", Operation: "RunInstances"}, wantErr: true},
+		{name: "sensitive operation", params: runScriptArguments{Service: "lambda", Operation: "GetFunctionConfiguration"}, wantErr: true},
+		{name: "unsupported service", params: runScriptArguments{Service: "cloudtrail", Operation: "LookupEvents"}, wantErr: true},
+		{name: "dynamic operation", params: runScriptArguments{Service: "ec2", Operation: "DescribeInstances if False else TerminateInstances"}, wantErr: true},
+		{name: "invalid operation characters", params: runScriptArguments{Service: "ec2", Operation: "Describe Instances"}, wantErr: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateReadOnlyRunScript(tt.script)
+			err := validateReadOnlyRunScript(tt.params)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

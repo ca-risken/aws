@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
+	"io"
+	"math"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +25,13 @@ type runScriptResult struct {
 	PolicyDecision string              `json:"policy_decision"`
 	ResultStatus   string              `json:"result_status"`
 	Result         *mcp.CallToolResult `json:"result"`
+}
+
+type runScriptArguments struct {
+	Service    string         `json:"service"`
+	Operation  string         `json:"operation"`
+	ParamsJSON string         `json:"params_json"`
+	Params     map[string]any `json:"-"`
 }
 
 const awsRunScriptToolName = "aws___run_script"
@@ -66,6 +76,10 @@ func buildAgentTools(tools []*mcp.Tool) ([]responses.ToolUnionParam, map[string]
 		}
 		rawParameters := tool.InputSchema
 		strict := false
+		if tool.Name == awsRunScriptToolName {
+			rawParameters = runScriptToolSchema()
+			strict = true
+		}
 		schema, err := json.Marshal(rawParameters)
 		if err != nil {
 			return nil, nil, fmt.Errorf("invalid MCP input schema: %w", err)
@@ -81,6 +95,19 @@ func buildAgentTools(tools []*mcp.Tool) ([]responses.ToolUnionParam, map[string]
 		return nil, nil, errors.New("AWS verification tool is unavailable")
 	}
 	return functions, allowed, nil
+}
+
+func runScriptToolSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"service", "operation", "params_json"},
+		"properties": map[string]any{
+			"service":     map[string]any{"type": "string", "description": "boto3 service name"},
+			"operation":   map[string]any{"type": "string", "description": "PascalCase boto3 operation name"},
+			"params_json": map[string]any{"type": "string", "description": "JSON object containing the AWS API parameters"},
+		},
+	}
 }
 
 func isAllowedAgentTool(name string) bool {
@@ -151,18 +178,24 @@ func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call respon
 		return "", false, wrapAgentNonRetryable(errors.New("invalid MCP tool arguments"))
 	}
 	if call.Name == awsRunScriptToolName {
-		script, err := decodeRunScriptArguments(call.Arguments)
+		params, err := decodeRunScriptArguments(call.Arguments)
 		if err != nil {
 			status = "invalid_arguments"
 			return "", false, wrapAgentNonRetryable(err)
 		}
-		service, operation = firstRunScriptOperation(script)
-		if err := validateReadOnlyRunScript(script); err != nil {
+		service, operation = params.Service, params.Operation
+		if err := validateReadOnlyRunScript(params); err != nil {
 			policyDecision = "denied"
 			status = "policy_denied"
 			return "", false, wrapAgentNonRetryable(err)
 		}
 		policyDecision = "allowed"
+		script, err := buildReadOnlyRunScript(params)
+		if err != nil {
+			status = "invalid_arguments"
+			return "", false, wrapAgentNonRetryable(err)
+		}
+		arguments = map[string]any{"script": script}
 	}
 	result, err := proxy.CallTool(ctx, call.Name, arguments)
 	if err != nil {
@@ -204,57 +237,102 @@ func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call respon
 	return output, !result.IsError && err == nil, err
 }
 
-func decodeRunScriptArguments(raw string) (string, error) {
-	var arguments map[string]any
+func decodeRunScriptArguments(raw string) (runScriptArguments, error) {
+	var params runScriptArguments
 	decoder := json.NewDecoder(strings.NewReader(raw))
-	if err := decoder.Decode(&arguments); err != nil || arguments == nil {
-		return "", errors.New("invalid AWS run_script arguments")
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&params); err != nil {
+		return runScriptArguments{}, errors.New("invalid AWS run_script arguments")
 	}
-	for _, key := range []string{"script", "code"} {
-		if value, ok := arguments[key].(string); ok && strings.TrimSpace(value) != "" {
-			return value, nil
-		}
+	if strings.TrimSpace(params.Service) == "" || strings.TrimSpace(params.Operation) == "" || strings.TrimSpace(params.ParamsJSON) == "" {
+		return runScriptArguments{}, errors.New("AWS run_script service, operation and params_json are required")
 	}
-	return "", errors.New("AWS run_script script is required")
+	paramsDecoder := json.NewDecoder(strings.NewReader(params.ParamsJSON))
+	paramsDecoder.UseNumber()
+	if err := paramsDecoder.Decode(&params.Params); err != nil || params.Params == nil {
+		return runScriptArguments{}, errors.New("AWS run_script params_json must be a JSON object")
+	}
+	if err := paramsDecoder.Decode(new(any)); err != io.EOF {
+		return runScriptArguments{}, errors.New("AWS run_script params_json contains trailing data")
+	}
+	return params, nil
 }
 
-var runScriptBoto3CallPattern = regexp.MustCompile(`(?m)call_boto3\s*\(\s*service_name\s*=\s*["']([a-z0-9-]+)["']\s*,\s*operation_name\s*=\s*["']([A-Za-z0-9]+)["']`)
-
-func validateReadOnlyRunScript(script string) error {
-	if len(script) > 32*1024 {
-		return errors.New("AWS run_script script exceeds size limit")
+func validateReadOnlyRunScript(params runScriptArguments) error {
+	service := strings.ToLower(params.Service)
+	operation := normalizeAWSOperation(params.Operation)
+	if !allowedAWSReadOnlyServices[service] {
+		return fmt.Errorf("AWS service is not allowed for verification: %s", service)
 	}
-	for _, token := range []string{"import ", "from ", "__", "open(", "exec(", "eval(", "compile(", "os.", "sys.", "subprocess", "socket", "requests", "urllib", "pathlib"} {
-		if strings.Contains(strings.ToLower(script), strings.ToLower(token)) {
-			return fmt.Errorf("AWS run_script contains forbidden expression: %q", token)
-		}
+	if blockedAWSOperations[service+":"+operation] {
+		return fmt.Errorf("AWS operation is blocked: %s %s", service, params.Operation)
 	}
-	calls := runScriptBoto3CallPattern.FindAllStringSubmatch(script, -1)
-	if len(calls) == 0 || strings.Count(script, "call_boto3") != len(calls) {
-		return errors.New("AWS run_script must call call_boto3 with literal service and operation")
+	if !isReadOnlyAWSOperation(operation) {
+		return fmt.Errorf("AWS operation is not read-only: %s", params.Operation)
 	}
-	for _, call := range calls {
-		service := strings.ToLower(call[1])
-		operation := normalizeAWSOperation(call[2])
-		if !allowedAWSReadOnlyServices[service] {
-			return fmt.Errorf("AWS service is not allowed for verification: %s", service)
-		}
-		if blockedAWSOperations[service+":"+operation] {
-			return fmt.Errorf("AWS operation is blocked: %s %s", service, call[2])
-		}
-		if !isReadOnlyAWSOperation(operation) {
-			return fmt.Errorf("AWS operation is not read-only: %s", call[2])
+	if strings.TrimSpace(params.Operation) != params.Operation || strings.ContainsAny(params.Operation, " \t\r\n\"'") {
+		return errors.New("AWS operation contains invalid characters")
+	}
+	for index, character := range params.Operation {
+		if (character < 'A' || character > 'Z') && (character < 'a' || character > 'z') && (index == 0 || character < '0' || character > '9') {
+			return errors.New("AWS operation contains invalid characters")
 		}
 	}
 	return nil
 }
 
-func firstRunScriptOperation(script string) (string, string) {
-	calls := runScriptBoto3CallPattern.FindStringSubmatch(script)
-	if len(calls) < 3 {
-		return "", ""
+func buildReadOnlyRunScript(params runScriptArguments) (string, error) {
+	value, err := marshalPythonLiteral(params.Params)
+	if err != nil {
+		return "", err
 	}
-	return strings.ToLower(calls[1]), calls[2]
+	return "result = await call_boto3(service_name=" + strconv.Quote(strings.ToLower(params.Service)) + ", operation_name=" + strconv.Quote(params.Operation) + ", params=" + value + ")\nresult", nil
+}
+
+func marshalPythonLiteral(value any) (string, error) {
+	switch value := value.(type) {
+	case nil:
+		return "None", nil
+	case bool:
+		if value {
+			return "True", nil
+		}
+		return "False", nil
+	case string:
+		return strconv.Quote(value), nil
+	case json.Number:
+		if number, err := strconv.ParseFloat(string(value), 64); err != nil || math.IsNaN(number) || math.IsInf(number, 0) {
+			return "", errors.New("invalid JSON number")
+		}
+		return string(value), nil
+	case []any:
+		parts := make([]string, len(value))
+		for i, item := range value {
+			encoded, err := marshalPythonLiteral(item)
+			if err != nil {
+				return "", err
+			}
+			parts[i] = encoded
+		}
+		return "[" + strings.Join(parts, ",") + "]", nil
+	case map[string]any:
+		keys := make([]string, 0, len(value))
+		for key := range value {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		parts := make([]string, 0, len(keys))
+		for _, key := range keys {
+			encoded, err := marshalPythonLiteral(value[key])
+			if err != nil {
+				return "", err
+			}
+			parts = append(parts, strconv.Quote(key)+":"+encoded)
+		}
+		return "{" + strings.Join(parts, ",") + "}", nil
+	default:
+		return "", fmt.Errorf("unsupported JSON value: %T", value)
+	}
 }
 
 func validateReadOnlyAWSCommand(command string) error {
