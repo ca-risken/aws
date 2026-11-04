@@ -39,7 +39,7 @@ type AppConfig struct {
 	CoreSvcAddr  string `required:"true" split_words:"true" default:"core.core.svc.cluster.local:8080"`
 	MCPRegion    string `split_words:"true" default:"us-east-1"`
 	OpenAIToken  string `split_words:"true" required:"true"`
-	ChatGPTModel string `split_words:"true" required:"true"`
+	ChatGPTModel string `split_words:"true" default:"gpt-6-luna"`
 
 	RemediationProposalQueueURL string `split_words:"true" default:"http://queue.middleware.svc.cluster.local:9324/queue/aws-remediation-proposal"`
 	WaitTimeSecond              int32  `split_words:"true" default:"20"`

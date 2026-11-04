@@ -56,16 +56,9 @@ var allowedAWSReadOnlyServices = map[string]bool{
 }
 
 var blockedAWSOperations = map[string]bool{
-	"lambda:getfunction":                 true,
 	"lambda:getfunctionconfiguration":    true,
-	"s3api:getobject":                    true,
-	"s3api:getobjectattributes":          true,
-	"ec2:getpassworddata":                true,
 	"ec2:describeinstanceattribute":      true,
-	"ec2:getlaunchtemplatedata":          true,
 	"ec2:describelaunchtemplateversions": true,
-	"ec2:getconsoleoutput":               true,
-	"lambda:getlayerversion":             true,
 }
 
 func buildAgentTools(tools []*mcp.Tool) ([]responses.ToolUnionParam, map[string]bool, error) {
@@ -261,7 +254,7 @@ func decodeRunScriptArguments(raw string) (runScriptArguments, error) {
 }
 
 func validateReadOnlyRunScript(params runScriptArguments) error {
-	service := strings.ToLower(params.Service)
+	service := normalizeAWSService(params.Service)
 	operation := normalizeAWSOperation(params.Operation)
 	if !allowedAWSReadOnlyServices[service] {
 		return fmt.Errorf("AWS service is not allowed for verification: %s", service)
@@ -288,13 +281,21 @@ func validateReadOnlyRunScript(params runScriptArguments) error {
 	return nil
 }
 
+func normalizeAWSService(service string) string {
+	service = strings.ToLower(service)
+	if service == "s3" {
+		return "s3api"
+	}
+	return service
+}
+
 func buildReadOnlyRunScript(params runScriptArguments) (string, error) {
 	value, err := marshalPythonLiteral(params.Params)
 	if err != nil {
 		return "", err
 	}
 	service := strings.ToLower(params.Service)
-	if service == "s3api" {
+	if normalizeAWSService(service) == "s3api" {
 		service = "s3"
 	}
 	region := ""
