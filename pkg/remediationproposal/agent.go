@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ca-risken/common/pkg/logging"
 	corefinding "github.com/ca-risken/core/proto/finding"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/openai/openai-go"
@@ -40,14 +41,19 @@ type responseClient interface {
 type OpenAIAgent struct {
 	client responseClient
 	model  string
+	logger logging.Logger
 }
 
-func NewOpenAIAgent(token, model string) (*OpenAIAgent, error) {
+func NewOpenAIAgent(token, model string, loggers ...logging.Logger) (*OpenAIAgent, error) {
 	if token == "" || model == "" {
 		return nil, errors.New("OpenAI token and model are required")
 	}
 	client := openai.NewClient(option.WithAPIKey(token), option.WithMaxRetries(2))
-	return &OpenAIAgent{client: &client.Responses, model: model}, nil
+	var logger logging.Logger
+	if len(loggers) > 0 {
+		logger = loggers[0]
+	}
+	return &OpenAIAgent{client: &client.Responses, model: model, logger: logger}, nil
 }
 
 func (a *OpenAIAgent) Generate(ctx context.Context, finding *corefinding.Finding, proxy MCPProxyProcess, tools []*mcp.Tool) (*RemediationPlan, error) {
@@ -69,10 +75,28 @@ func (a *OpenAIAgent) Generate(ctx context.Context, finding *corefinding.Finding
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
+		openAIFields := map[string]interface{}{
+			"event":            "openai_api_call",
+			"finding_id":       finding.FindingId,
+			"project_id":       finding.ProjectId,
+			"aws_account_id":   finding.ProviderTarget,
+			"model":            a.model,
+			"round":            round,
+			"input_item_count": len(input),
+		}
+		a.auditLog(ctx, logging.InfoLevel, openAIFields, "OpenAI API call started")
+		started := time.Now()
 		resp, err := a.callResponsesAPI(ctx, input, functions)
+		openAIFields["duration_ms"] = time.Since(started).Milliseconds()
 		if err != nil {
+			openAIFields["result_status"] = "error"
+			a.auditLog(ctx, logging.WarnLevel, openAIFields, "OpenAI API call finished")
 			return nil, err
 		}
+		openAIFields["result_status"] = "success"
+		openAIFields["response_status"] = string(resp.Status)
+		openAIFields["output_item_count"] = len(resp.Output)
+		a.auditLog(ctx, logging.InfoLevel, openAIFields, "OpenAI API call finished")
 		input, err = appendResponseOutput(input, resp.Output)
 		if err != nil {
 			return nil, err
@@ -97,7 +121,12 @@ func (a *OpenAIAgent) Generate(ctx context.Context, finding *corefinding.Finding
 				return nil, wrapAgentNonRetryable(errors.New("unapproved MCP tool requested"))
 			}
 		}
-		outputs, awsChecked, err := handleFunctionCalls(ctx, proxy, pending)
+		toolFields := map[string]interface{}{
+			"finding_id":     finding.FindingId,
+			"project_id":     finding.ProjectId,
+			"aws_account_id": finding.ProviderTarget,
+		}
+		outputs, awsChecked, err := handleFunctionCalls(ctx, proxy, pending, a.logger, toolFields)
 		if err != nil {
 			return nil, err
 		}
@@ -106,6 +135,13 @@ func (a *OpenAIAgent) Generate(ctx context.Context, finding *corefinding.Finding
 		calls += len(pending)
 	}
 	return nil, errors.New("agent iteration limit exceeded")
+}
+
+func (a *OpenAIAgent) auditLog(ctx context.Context, level logging.Level, fields map[string]interface{}, message string) {
+	if a.logger == nil {
+		return
+	}
+	a.logger.WithItems(ctx, level, fields, message)
 }
 
 type agentNonRetryableError struct {

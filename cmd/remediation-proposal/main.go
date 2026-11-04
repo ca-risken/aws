@@ -99,7 +99,7 @@ func main() {
 		appLogger.Fatalf(ctx, "Failed to create AI client, err=%+v", err)
 	}
 
-	agent, err := remediationproposal.NewOpenAIAgent(conf.OpenAIToken, conf.ChatGPTModel)
+	agent, err := remediationproposal.NewOpenAIAgent(conf.OpenAIToken, conf.ChatGPTModel, appLogger)
 	if err != nil {
 		appLogger.Fatal(ctx, err.Error())
 	}

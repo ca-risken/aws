@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
+	"github.com/ca-risken/common/pkg/logging"
 	"github.com/kballard/go-shellquote"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/openai/openai-go"
@@ -119,11 +121,11 @@ func appendResponseOutput(input responses.ResponseInputParam, output []responses
 	return input, nil
 }
 
-func handleFunctionCalls(ctx context.Context, proxy MCPProxyProcess, calls []responses.ResponseFunctionToolCall) (responses.ResponseInputParam, bool, error) {
+func handleFunctionCalls(ctx context.Context, proxy MCPProxyProcess, calls []responses.ResponseFunctionToolCall, logger logging.Logger, auditFields map[string]interface{}) (responses.ResponseInputParam, bool, error) {
 	var outputs responses.ResponseInputParam
 	verified := false
 	for _, call := range calls {
-		result, callVerified, err := executeFunctionCall(ctx, proxy, call)
+		result, callVerified, err := executeFunctionCall(ctx, proxy, call, logger, auditFields)
 		if err != nil {
 			return nil, false, err
 		}
@@ -133,42 +135,84 @@ func handleFunctionCalls(ctx context.Context, proxy MCPProxyProcess, calls []res
 	return outputs, verified, nil
 }
 
-func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call responses.ResponseFunctionToolCall) (string, bool, error) {
+func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call responses.ResponseFunctionToolCall, logger logging.Logger, auditFields map[string]interface{}) (string, bool, error) {
+	fields := make(map[string]interface{}, len(auditFields)+3)
+	for key, value := range auditFields {
+		fields[key] = value
+	}
+	fields["event"] = "mcp_tool_call"
+	fields["tool_name"] = call.Name
+	fields["call_id"] = call.CallID
+	started := time.Now()
+	logFinished := func(status string, resultSize int) {
+		if logger == nil {
+			return
+		}
+		fields["result_status"] = status
+		fields["duration_ms"] = time.Since(started).Milliseconds()
+		if resultSize >= 0 {
+			fields["response_size"] = resultSize
+		}
+		logger.WithItems(ctx, logging.InfoLevel, fields, "MCP tool call finished")
+	}
+	if logger != nil {
+		logger.WithItems(ctx, logging.InfoLevel, fields, "MCP tool call started")
+	}
 	var arguments map[string]any
 	if err := json.Unmarshal([]byte(call.Arguments), &arguments); err != nil || arguments == nil {
+		logFinished("invalid_arguments", -1)
 		return "", false, wrapAgentNonRetryable(errors.New("invalid MCP tool arguments"))
 	}
 	if call.Name == "call_aws" {
 		params, err := decodeCallAWSArguments(call.Arguments)
 		if err != nil {
+			logFinished("invalid_arguments", -1)
 			return "", false, wrapAgentNonRetryable(err)
+		}
+		if service, operation, parseErr := parseAWSCLICommand(params.CLICommand); parseErr == nil {
+			fields["aws_service"] = service
+			fields["aws_operation"] = operation
 		}
 		if err := validateReadOnlyAWSCommand(params.CLICommand); err != nil {
+			fields["policy_decision"] = "denied"
+			logFinished("policy_denied", -1)
 			return "", false, wrapAgentNonRetryable(err)
 		}
+		fields["policy_decision"] = "allowed"
 	}
 	result, err := proxy.CallTool(ctx, call.Name, arguments)
 	if err != nil {
+		logFinished("transport_error", -1)
 		return "", false, fmt.Errorf("failed to call MCP tool: %w", err)
 	}
 	if result == nil {
+		logFinished("empty_result", -1)
 		return "", false, wrapAgentNonRetryable(errors.New("MCP tool returned an empty result"))
 	}
 	encoded, err := json.Marshal(result)
 	if err != nil {
+		logFinished("marshal_error", -1)
 		return "", false, err
 	}
 	if len(encoded) > 256*1024 {
+		logFinished("response_too_large", len(encoded))
 		return "", false, wrapAgentNonRetryable(errors.New("MCP tool result exceeds size limit"))
 	}
 	if call.Name != "call_aws" {
+		logFinished(map[bool]string{true: "error", false: "success"}[result.IsError], len(encoded))
 		return string(encoded), false, nil
 	}
 	params, err := decodeCallAWSArguments(call.Arguments)
 	if err != nil {
+		logFinished("invalid_arguments", len(encoded))
 		return "", false, wrapAgentNonRetryable(err)
 	}
 	output, err := marshalCallAWSResult(params.CLICommand, result)
+	if err != nil {
+		logFinished("marshal_error", len(encoded))
+		return output, false, err
+	}
+	logFinished(map[bool]string{true: "error", false: "success"}[result.IsError], len(encoded))
 	return output, !result.IsError && err == nil, err
 }
 

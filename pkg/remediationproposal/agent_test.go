@@ -226,7 +226,7 @@ func TestHandleFunctionCalls(t *testing.T) {
 					calls[i].Arguments = `{"cli_command":"aws s3api get-public-access-block --bucket example"}`
 				}
 			}
-			outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls)
+			outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, nil, nil)
 			require.NoError(t, err)
 			require.Equal(t, tt.verified, verified)
 			require.Equal(t, len(calls), proxy.callCount)
@@ -250,7 +250,7 @@ func TestHandleFunctionCallsReturnsMCPErrorToModel(t *testing.T) {
 		CallID:    "call_aws",
 		Arguments: `{"cli_command":"aws s3api get-public-access-block --bucket example"}`,
 	}}
-	outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls)
+	outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, nil, nil)
 	require.NoError(t, err)
 	require.False(t, verified)
 	require.Len(t, outputs, 1)
