@@ -101,7 +101,13 @@ func (p *RemediationProcessor) Process(ctx context.Context, msg *QueueMessage, r
 	if len(tools) == 0 {
 		return nil, errors.New("AWS MCP server returned no tools")
 	}
-	p.logger.Infof(ctx, "initialized AWS MCP session, remediation_proposal_id=%d, tool_count=%d", msg.RemediationProposalID, len(tools))
+	toolNames := make([]string, 0, len(tools))
+	for _, tool := range tools {
+		if tool != nil {
+			toolNames = append(toolNames, tool.Name)
+		}
+	}
+	p.logger.Infof(ctx, "initialized AWS MCP session, remediation_proposal_id=%d, tool_count=%d, tool_names=%s", msg.RemediationProposalID, len(tools), strings.Join(toolNames, ","))
 	if p.generator == nil {
 		return nil, errors.New("remediation proposal generator is required")
 	}
