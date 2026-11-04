@@ -30,6 +30,7 @@ type runScriptResult struct {
 type runScriptArguments struct {
 	Service    string         `json:"service"`
 	Operation  string         `json:"operation"`
+	Region     string         `json:"region"`
 	ParamsJSON string         `json:"params_json"`
 	Params     map[string]any `json:"-"`
 }
@@ -101,10 +102,11 @@ func runScriptToolSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
-		"required":             []string{"service", "operation", "params_json"},
+		"required":             []string{"service", "operation", "region", "params_json"},
 		"properties": map[string]any{
 			"service":     map[string]any{"type": "string", "description": "boto3 service name"},
 			"operation":   map[string]any{"type": "string", "description": "PascalCase boto3 operation name"},
+			"region":      map[string]any{"type": "string", "description": "AWS region of the resource; empty for global resources"},
 			"params_json": map[string]any{"type": "string", "description": "JSON object containing the AWS API parameters"},
 		},
 	}
@@ -244,8 +246,8 @@ func decodeRunScriptArguments(raw string) (runScriptArguments, error) {
 	if err := decoder.Decode(&params); err != nil {
 		return runScriptArguments{}, errors.New("invalid AWS run_script arguments")
 	}
-	if strings.TrimSpace(params.Service) == "" || strings.TrimSpace(params.Operation) == "" || strings.TrimSpace(params.ParamsJSON) == "" {
-		return runScriptArguments{}, errors.New("AWS run_script service, operation and params_json are required")
+	if strings.TrimSpace(params.Service) == "" || strings.TrimSpace(params.Operation) == "" || strings.TrimSpace(params.Region) != params.Region || strings.TrimSpace(params.ParamsJSON) == "" {
+		return runScriptArguments{}, errors.New("AWS run_script service, operation, region and params_json are required")
 	}
 	paramsDecoder := json.NewDecoder(strings.NewReader(params.ParamsJSON))
 	paramsDecoder.UseNumber()
@@ -270,6 +272,11 @@ func validateReadOnlyRunScript(params runScriptArguments) error {
 	if !isReadOnlyAWSOperation(operation) {
 		return fmt.Errorf("AWS operation is not read-only: %s", params.Operation)
 	}
+	if params.Region != "" {
+		if !isValidAWSRegion(params.Region) {
+			return errors.New("AWS region contains invalid characters")
+		}
+	}
 	if strings.TrimSpace(params.Operation) != params.Operation || strings.ContainsAny(params.Operation, " \t\r\n\"'") {
 		return errors.New("AWS operation contains invalid characters")
 	}
@@ -286,7 +293,27 @@ func buildReadOnlyRunScript(params runScriptArguments) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "result = await call_boto3(service_name=" + strconv.Quote(strings.ToLower(params.Service)) + ", operation_name=" + strconv.Quote(params.Operation) + ", params=" + value + ")\nresult", nil
+	service := strings.ToLower(params.Service)
+	if service == "s3api" {
+		service = "s3"
+	}
+	region := ""
+	if params.Region != "" {
+		region = ", region_name=" + strconv.Quote(params.Region)
+	}
+	return "result = await call_boto3(service_name=" + strconv.Quote(service) + ", operation_name=" + strconv.Quote(params.Operation) + ", params=" + value + region + ")\nresult", nil
+}
+
+func isValidAWSRegion(region string) bool {
+	if len(region) < 6 || region[len(region)-1] < '0' || region[len(region)-1] > '9' {
+		return false
+	}
+	for _, character := range region {
+		if (character < 'a' || character > 'z') && (character < '0' || character > '9') && character != '-' {
+			return false
+		}
+	}
+	return true
 }
 
 func marshalPythonLiteral(value any) (string, error) {
@@ -389,6 +416,19 @@ func parseAWSCLICommand(command string) (string, string, error) {
 	}
 	if len(parts) < 3 || parts[0] != "aws" {
 		return "", "", errors.New("AWS CLI command must start with aws and include a service operation")
+	}
+	blockedGlobalOptions := map[string]bool{
+		"--endpoint-url": true, "--no-verify-ssl": true,
+		"--no-sign-request": true, "--profile": true, "--ca-bundle": true,
+	}
+	for _, part := range parts[1:] {
+		name := part
+		if separator := strings.IndexByte(part, '='); separator >= 0 {
+			name = part[:separator]
+		}
+		if blockedGlobalOptions[name] {
+			return "", "", fmt.Errorf("AWS global option is not allowed: %s", name)
+		}
 	}
 	globalOptionsWithValue := map[string]bool{
 		"--color": true, "--max-items": true, "--output": true,

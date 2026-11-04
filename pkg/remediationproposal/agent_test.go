@@ -115,7 +115,7 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 				if (requests == 1 && !tt.skipTool) || tt.loop || requests <= tt.finalAfter {
 					output := map[string]any{"status": "completed", "output": []any{
 						map[string]any{"type": "reasoning", "id": "rs_test", "summary": []any{}, "encrypted_content": "encrypted-reasoning"},
-						map[string]any{"type": "function_call", "name": tt.firstTool, "arguments": `{"service":"s3api","operation":"GetBucketAcl","params_json":"{\"Bucket\":\"example\"}"}`, "call_id": "call_test", "id": "fc_test"},
+						map[string]any{"type": "function_call", "name": tt.firstTool, "arguments": `{"service":"s3api","operation":"GetBucketAcl","region":"","params_json":"{\"Bucket\":\"example\"}"}`, "call_id": "call_test", "id": "fc_test"},
 					}}
 					if tt.unapprovedSecond {
 						output["output"] = append(output["output"].([]any), map[string]any{"type": "function_call", "name": "aws___unknown", "arguments": "{}", "call_id": "call_blocked", "id": "fc_blocked"})
@@ -222,7 +222,7 @@ func TestHandleFunctionCalls(t *testing.T) {
 			}
 			for i := range calls {
 				if calls[i].Name == awsRunScriptToolName {
-					calls[i].Arguments = `{"service":"s3api","operation":"GetBucketAcl","params_json":"{\"Bucket\":\"example\"}"}`
+					calls[i].Arguments = `{"service":"s3api","operation":"GetBucketAcl","region":"","params_json":"{\"Bucket\":\"example\"}"}`
 				}
 			}
 			outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, nil, nil)
@@ -247,7 +247,7 @@ func TestHandleFunctionCallsReturnsMCPErrorToModel(t *testing.T) {
 	calls := []responses.ResponseFunctionToolCall{{
 		Name:      awsRunScriptToolName,
 		CallID:    awsRunScriptToolName,
-		Arguments: `{"service":"s3api","operation":"GetBucketAcl","params_json":"{\"Bucket\":\"example\"}"}`,
+		Arguments: `{"service":"s3api","operation":"GetBucketAcl","region":"","params_json":"{\"Bucket\":\"example\"}"}`,
 	}}
 	outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, nil, nil)
 	require.NoError(t, err)
@@ -302,12 +302,12 @@ func TestValidateReadOnlyAWSCommand(t *testing.T) {
 }
 
 func TestDecodeRunScriptArguments(t *testing.T) {
-	params, err := decodeRunScriptArguments(`{"service":"s3api","operation":"GetBucketAcl","params_json":"{\"Bucket\":\"example\"}"}`)
+	params, err := decodeRunScriptArguments(`{"service":"s3api","operation":"GetBucketAcl","region":"","params_json":"{\"Bucket\":\"example\"}"}`)
 	require.NoError(t, err)
 	require.Equal(t, "s3api", params.Service)
 	require.Equal(t, "GetBucketAcl", params.Operation)
 
-	_, err = decodeRunScriptArguments(`{"service":"s3api","operation":"GetBucketAcl","params_json":"[]"}`)
+	_, err = decodeRunScriptArguments(`{"service":"s3api","operation":"GetBucketAcl","region":"","params_json":"[]"}`)
 	require.Error(t, err)
 }
 
