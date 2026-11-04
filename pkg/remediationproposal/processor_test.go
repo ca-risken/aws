@@ -85,7 +85,7 @@ func (m *mockMCPProxyProcess) ListTools(ctx context.Context) ([]*mcp.Tool, error
 	if m.emptyTools {
 		return nil, nil
 	}
-	return []*mcp.Tool{{Name: "call_aws"}}, nil
+	return []*mcp.Tool{{Name: awsRunScriptToolName}}, nil
 }
 
 func (m *mockMCPProxyProcess) Stop() error {

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,18 +16,15 @@ import (
 	"github.com/openai/openai-go/responses"
 )
 
-type callAWSArguments struct {
-	CLICommand string `json:"cli_command"`
-}
-
-type callAWSResult struct {
+type runScriptResult struct {
 	ToolName       string              `json:"tool_name"`
-	CLICommand     string              `json:"cli_command"`
 	ReadOnly       bool                `json:"read_only"`
 	PolicyDecision string              `json:"policy_decision"`
 	ResultStatus   string              `json:"result_status"`
 	Result         *mcp.CallToolResult `json:"result"`
 }
+
+const awsRunScriptToolName = "aws___run_script"
 
 var readOnlyAWSOperations = map[string]bool{
 	"get":      true,
@@ -48,37 +45,27 @@ var allowedAWSReadOnlyServices = map[string]bool{
 }
 
 var blockedAWSOperations = map[string]bool{
-	"lambda:get-function":         true,
-	"s3api:get-object":            true,
-	"s3api:get-object-attributes": true,
-}
-
-func callAWSToolSchema() map[string]any {
-	return map[string]any{
-		"type":                 "object",
-		"additionalProperties": false,
-		"required":             []string{"cli_command"},
-		"properties": map[string]any{
-			"cli_command": map[string]any{
-				"type": "string",
-			},
-		},
-	}
+	"lambda:getfunction":                 true,
+	"lambda:getfunctionconfiguration":    true,
+	"s3api:getobject":                    true,
+	"s3api:getobjectattributes":          true,
+	"ec2:getpassworddata":                true,
+	"ec2:describeinstanceattribute":      true,
+	"ec2:getlaunchtemplatedata":          true,
+	"ec2:describelaunchtemplateversions": true,
+	"ec2:getconsoleoutput":               true,
+	"lambda:getlayerversion":             true,
 }
 
 func buildAgentTools(tools []*mcp.Tool) ([]responses.ToolUnionParam, map[string]bool, error) {
 	allowed := map[string]bool{}
 	var functions []responses.ToolUnionParam
 	for _, tool := range tools {
-		if tool == nil || (tool.Name != "call_aws" && tool.Name != "search_documentation" && tool.Name != "read_documentation") {
+		if tool == nil || !isAllowedAgentTool(tool.Name) {
 			continue
 		}
 		rawParameters := tool.InputSchema
 		strict := false
-		if tool.Name == "call_aws" {
-			rawParameters = callAWSToolSchema()
-			strict = true
-		}
 		schema, err := json.Marshal(rawParameters)
 		if err != nil {
 			return nil, nil, fmt.Errorf("invalid MCP input schema: %w", err)
@@ -90,10 +77,19 @@ func buildAgentTools(tools []*mcp.Tool) ([]responses.ToolUnionParam, map[string]
 		functions = append(functions, responses.ToolUnionParam{OfFunction: &responses.FunctionToolParam{Name: tool.Name, Description: openai.String(tool.Description), Parameters: parameters, Strict: openai.Bool(strict)}})
 		allowed[tool.Name] = true
 	}
-	if !allowed["call_aws"] {
+	if !allowed[awsRunScriptToolName] {
 		return nil, nil, errors.New("AWS verification tool is unavailable")
 	}
 	return functions, allowed, nil
+}
+
+func isAllowedAgentTool(name string) bool {
+	switch name {
+	case awsRunScriptToolName, "aws___search_documentation", "aws___read_documentation", "aws___retrieve_skill", "aws___list_regions", "aws___get_regional_availability":
+		return true
+	default:
+		return false
+	}
 }
 
 func extractFunctionCalls(output []responses.ResponseOutputItemUnion) []responses.ResponseFunctionToolCall {
@@ -154,14 +150,14 @@ func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call respon
 	if err := json.Unmarshal([]byte(call.Arguments), &arguments); err != nil || arguments == nil {
 		return "", false, wrapAgentNonRetryable(errors.New("invalid MCP tool arguments"))
 	}
-	if call.Name == "call_aws" {
-		params, err := decodeCallAWSArguments(call.Arguments)
+	if call.Name == awsRunScriptToolName {
+		script, err := decodeRunScriptArguments(call.Arguments)
 		if err != nil {
 			status = "invalid_arguments"
 			return "", false, wrapAgentNonRetryable(err)
 		}
-		service, operation, _ = parseAWSCLICommand(params.CLICommand)
-		if err := validateReadOnlyAWSCommand(params.CLICommand); err != nil {
+		service, operation = firstRunScriptOperation(script)
+		if err := validateReadOnlyRunScript(script); err != nil {
 			policyDecision = "denied"
 			status = "policy_denied"
 			return "", false, wrapAgentNonRetryable(err)
@@ -187,7 +183,7 @@ func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call respon
 		status = "response_too_large"
 		return "", false, wrapAgentNonRetryable(errors.New("MCP tool result exceeds size limit"))
 	}
-	if call.Name != "call_aws" {
+	if call.Name != awsRunScriptToolName {
 		if result.IsError {
 			status = "error"
 		} else {
@@ -195,12 +191,7 @@ func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call respon
 		}
 		return string(encoded), false, nil
 	}
-	params, err := decodeCallAWSArguments(call.Arguments)
-	if err != nil {
-		status = "invalid_arguments"
-		return "", false, wrapAgentNonRetryable(err)
-	}
-	output, err := marshalCallAWSResult(params.CLICommand, result)
+	output, err := marshalRunScriptResult(result)
 	if err != nil {
 		status = "marshal_error"
 		return output, false, err
@@ -213,20 +204,57 @@ func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call respon
 	return output, !result.IsError && err == nil, err
 }
 
-func decodeCallAWSArguments(raw string) (callAWSArguments, error) {
-	var params callAWSArguments
+func decodeRunScriptArguments(raw string) (string, error) {
+	var arguments map[string]any
 	decoder := json.NewDecoder(strings.NewReader(raw))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&params); err != nil {
-		return callAWSArguments{}, errors.New("invalid AWS tool arguments")
+	if err := decoder.Decode(&arguments); err != nil || arguments == nil {
+		return "", errors.New("invalid AWS run_script arguments")
 	}
-	if err := decoder.Decode(new(any)); err != io.EOF {
-		return callAWSArguments{}, errors.New("invalid AWS tool arguments")
+	for _, key := range []string{"script", "code"} {
+		if value, ok := arguments[key].(string); ok && strings.TrimSpace(value) != "" {
+			return value, nil
+		}
 	}
-	if strings.TrimSpace(params.CLICommand) == "" {
-		return callAWSArguments{}, errors.New("invalid AWS tool arguments")
+	return "", errors.New("AWS run_script script is required")
+}
+
+var runScriptBoto3CallPattern = regexp.MustCompile(`(?m)call_boto3\s*\(\s*service_name\s*=\s*["']([a-z0-9-]+)["']\s*,\s*operation_name\s*=\s*["']([A-Za-z0-9]+)["']`)
+
+func validateReadOnlyRunScript(script string) error {
+	if len(script) > 32*1024 {
+		return errors.New("AWS run_script script exceeds size limit")
 	}
-	return params, nil
+	for _, token := range []string{"import ", "from ", "__", "open(", "exec(", "eval(", "compile(", "os.", "sys.", "subprocess", "socket", "requests", "urllib", "pathlib"} {
+		if strings.Contains(strings.ToLower(script), strings.ToLower(token)) {
+			return fmt.Errorf("AWS run_script contains forbidden expression: %q", token)
+		}
+	}
+	calls := runScriptBoto3CallPattern.FindAllStringSubmatch(script, -1)
+	if len(calls) == 0 || strings.Count(script, "call_boto3") != len(calls) {
+		return errors.New("AWS run_script must call call_boto3 with literal service and operation")
+	}
+	for _, call := range calls {
+		service := strings.ToLower(call[1])
+		operation := normalizeAWSOperation(call[2])
+		if !allowedAWSReadOnlyServices[service] {
+			return fmt.Errorf("AWS service is not allowed for verification: %s", service)
+		}
+		if blockedAWSOperations[service+":"+operation] {
+			return fmt.Errorf("AWS operation is blocked: %s %s", service, call[2])
+		}
+		if !isReadOnlyAWSOperation(operation) {
+			return fmt.Errorf("AWS operation is not read-only: %s", call[2])
+		}
+	}
+	return nil
+}
+
+func firstRunScriptOperation(script string) (string, string) {
+	calls := runScriptBoto3CallPattern.FindStringSubmatch(script)
+	if len(calls) < 3 {
+		return "", ""
+	}
+	return strings.ToLower(calls[1]), calls[2]
 }
 
 func validateReadOnlyAWSCommand(command string) error {
@@ -237,7 +265,7 @@ func validateReadOnlyAWSCommand(command string) error {
 	if !allowedAWSReadOnlyServices[service] {
 		return fmt.Errorf("AWS service is not allowed for verification: %s", service)
 	}
-	if blockedAWSOperations[service+":"+operation] {
+	if blockedAWSOperations[service+":"+normalizeAWSOperation(operation)] {
 		return fmt.Errorf("AWS operation is blocked: %s %s", service, operation)
 	}
 	if !isReadOnlyAWSOperation(operation) {
@@ -254,12 +282,17 @@ func validateAWSCommand(command string) error {
 }
 
 func isReadOnlyAWSOperation(operation string) bool {
+	operation = normalizeAWSOperation(operation)
 	for prefix := range readOnlyAWSOperations {
-		if operation == prefix || strings.HasPrefix(operation, prefix+"-") {
+		if operation == prefix || strings.HasPrefix(operation, prefix) {
 			return true
 		}
 	}
 	return false
+}
+
+func normalizeAWSOperation(operation string) string {
+	return strings.ToLower(strings.NewReplacer("-", "", "_", "").Replace(operation))
 }
 
 func parseAWSCLICommand(command string) (string, string, error) {
@@ -316,14 +349,13 @@ func parseAWSCLICommand(command string) (string, string, error) {
 	return strings.ToLower(parts[index]), strings.ToLower(parts[index+1]), nil
 }
 
-func marshalCallAWSResult(command string, result *mcp.CallToolResult) (string, error) {
+func marshalRunScriptResult(result *mcp.CallToolResult) (string, error) {
 	status := "success"
 	if result.IsError {
 		status = "error"
 	}
-	encoded, err := json.Marshal(callAWSResult{
-		ToolName:       "call_aws",
-		CLICommand:     command,
+	encoded, err := json.Marshal(runScriptResult{
+		ToolName:       awsRunScriptToolName,
 		ReadOnly:       true,
 		PolicyDecision: "allowed",
 		ResultStatus:   status,

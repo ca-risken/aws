@@ -72,18 +72,18 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 		finalAfter                                                   int
 		unapprovedSecond                                             bool
 	}{
-		{name: "success", firstTool: "call_aws"},
+		{name: "success", firstTool: awsRunScriptToolName},
 		{name: "no verification", skipTool: true, wantErr: true},
-		{name: "run script blocked", firstTool: "run_script", wantErr: true},
+		{name: "run script", firstTool: awsRunScriptToolName},
 		{name: "unpublished tool blocked", firstTool: "read_documentation", wantErr: true},
-		{name: "unapproved second call blocks whole batch", firstTool: "call_aws", unapprovedSecond: true, wantErr: true},
-		{name: "tool failure", firstTool: "call_aws", toolError: true, wantErr: true},
-		{name: "transport failure", firstTool: "call_aws", callErr: errors.New("transport"), wantErr: true},
+		{name: "unapproved second call blocks whole batch", firstTool: awsRunScriptToolName, unapprovedSecond: true, wantErr: true},
+		{name: "tool failure", firstTool: awsRunScriptToolName, toolError: true, wantErr: true},
+		{name: "transport failure", firstTool: awsRunScriptToolName, callErr: errors.New("transport"), wantErr: true},
 		{name: "API failure", apiError: true, wantErr: true},
 		{name: "incomplete", incomplete: true, wantErr: true},
-		{name: "invalid plan", firstTool: "call_aws", invalidPlan: true, wantErr: true},
-		{name: "call limit", firstTool: "call_aws", loop: true, wantErr: true},
-		{name: "final answer after last allowed call", firstTool: "call_aws", finalAfter: maxAgentToolCalls},
+		{name: "invalid plan", firstTool: awsRunScriptToolName, invalidPlan: true, wantErr: true},
+		{name: "call limit", firstTool: awsRunScriptToolName, loop: true, wantErr: true},
+		{name: "final answer after last allowed call", firstTool: awsRunScriptToolName, finalAfter: maxAgentToolCalls},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			requests := 0
@@ -96,7 +96,7 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 				require.NoError(t, json.Unmarshal(body, &req))
 				require.Equal(t, false, req["store"])
 				require.Equal(t, false, req["parallel_tool_calls"])
-				require.NotContains(t, string(body), `"name":"run_script"`)
+				require.NotContains(t, string(body), `"name":"call_aws"`)
 				if requests > 1 {
 					require.Contains(t, string(body), "function_call_output")
 					require.Contains(t, string(body), "resource is public")
@@ -115,10 +115,10 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 				if (requests == 1 && !tt.skipTool) || tt.loop || requests <= tt.finalAfter {
 					output := map[string]any{"status": "completed", "output": []any{
 						map[string]any{"type": "reasoning", "id": "rs_test", "summary": []any{}, "encrypted_content": "encrypted-reasoning"},
-						map[string]any{"type": "function_call", "name": tt.firstTool, "arguments": `{"cli_command":"aws s3api get-public-access-block --bucket example"}`, "call_id": "call_test", "id": "fc_test"},
+						map[string]any{"type": "function_call", "name": tt.firstTool, "arguments": `{"script":"result = await call_boto3(service_name='s3api', operation_name='GetBucketAcl', params={'Bucket': 'example'})\nresult"}`, "call_id": "call_test", "id": "fc_test"},
 					}}
 					if tt.unapprovedSecond {
-						output["output"] = append(output["output"].([]any), map[string]any{"type": "function_call", "name": "run_script", "arguments": "{}", "call_id": "call_blocked", "id": "fc_blocked"})
+						output["output"] = append(output["output"].([]any), map[string]any{"type": "function_call", "name": "aws___unknown", "arguments": "{}", "call_id": "call_blocked", "id": "fc_blocked"})
 					}
 					_ = json.NewEncoder(w).Encode(output)
 					return
@@ -133,8 +133,7 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 			agent := &OpenAIAgent{client: &client.Responses, model: "test-model"}
 			proxy := &agentProxy{callErr: tt.callErr, toolError: tt.toolError}
 			tools := []*mcp.Tool{
-				{Name: "call_aws", InputSchema: map[string]any{"type": "object", "properties": map[string]any{"cli_command": map[string]any{"type": "string"}}}},
-				{Name: "run_script", InputSchema: map[string]any{"type": "object"}},
+				{Name: awsRunScriptToolName, InputSchema: map[string]any{"type": "object", "properties": map[string]any{"script": map[string]any{"type": "string"}}}},
 			}
 			plan, err := agent.Generate(context.Background(), &corefinding.Finding{FindingId: 123, ProviderTarget: "123456789012"}, proxy, tools)
 			if tt.wantErr {
@@ -145,11 +144,11 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 				require.Equal(t, uint64(123), plan.FindingID)
 				require.Equal(t, "test-model", plan.Plan.Metadata.Model)
 				require.Positive(t, plan.Plan.Metadata.GeneratedAt)
-				require.Equal(t, "call_aws", proxy.toolName)
-				require.Contains(t, proxy.arguments["cli_command"], "get-public-access-block")
+				require.Equal(t, awsRunScriptToolName, proxy.toolName)
+				require.Contains(t, proxy.arguments["script"], "GetBucketAcl")
 			}
 			require.LessOrEqual(t, proxy.callCount, maxAgentToolCalls)
-			if tt.firstTool == "run_script" || tt.firstTool == "read_documentation" || tt.unapprovedSecond {
+			if tt.firstTool == "read_documentation" || tt.unapprovedSecond {
 				require.Zero(t, proxy.callCount)
 			}
 			if tt.finalAfter > 0 {
@@ -188,19 +187,19 @@ func TestBuildAgentTools(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "valid", schema: map[string]any{"type": "object"}},
-		{name: "nil schema"},
-		{name: "invalid schema"},
+		{name: "nil schema", wantErr: true},
+		{name: "invalid schema", schema: "invalid", wantErr: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			tools, allowed, err := buildAgentTools([]*mcp.Tool{nil, {Name: "run_script"}, {Name: "call_aws", InputSchema: tt.schema}, {Name: "search_documentation", InputSchema: map[string]any{"type": "object"}}})
+			tools, allowed, err := buildAgentTools([]*mcp.Tool{nil, {Name: awsRunScriptToolName, InputSchema: tt.schema}, {Name: "aws___search_documentation", InputSchema: map[string]any{"type": "object"}}})
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
 			require.Len(t, tools, 2)
-			require.True(t, allowed["call_aws"])
-			require.True(t, allowed["search_documentation"])
+			require.True(t, allowed[awsRunScriptToolName])
+			require.True(t, allowed["aws___search_documentation"])
 			require.False(t, allowed["run_script"])
 		})
 	}
@@ -212,8 +211,8 @@ func TestHandleFunctionCalls(t *testing.T) {
 		tools    []string
 		verified bool
 	}{
-		{name: "documentation only", tools: []string{"read_documentation"}},
-		{name: "AWS and documentation", tools: []string{"call_aws", "read_documentation"}, verified: true},
+		{name: "documentation only", tools: []string{"aws___read_documentation"}},
+		{name: "AWS and documentation", tools: []string{awsRunScriptToolName, "aws___read_documentation"}, verified: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			proxy := &agentProxy{}
@@ -222,8 +221,8 @@ func TestHandleFunctionCalls(t *testing.T) {
 				calls = append(calls, responses.ResponseFunctionToolCall{Name: name, CallID: name, Arguments: `{}`})
 			}
 			for i := range calls {
-				if calls[i].Name == "call_aws" {
-					calls[i].Arguments = `{"cli_command":"aws s3api get-public-access-block --bucket example"}`
+				if calls[i].Name == awsRunScriptToolName {
+					calls[i].Arguments = `{"script":"result = await call_boto3(service_name='s3api', operation_name='GetBucketAcl', params={'Bucket': 'example'})\nresult"}`
 				}
 			}
 			outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, nil, nil)
@@ -246,9 +245,9 @@ func TestHandleFunctionCalls(t *testing.T) {
 func TestHandleFunctionCallsReturnsMCPErrorToModel(t *testing.T) {
 	proxy := &agentProxy{toolError: true}
 	calls := []responses.ResponseFunctionToolCall{{
-		Name:      "call_aws",
-		CallID:    "call_aws",
-		Arguments: `{"cli_command":"aws s3api get-public-access-block --bucket example"}`,
+		Name:      awsRunScriptToolName,
+		CallID:    awsRunScriptToolName,
+		Arguments: `{"script":"result = await call_boto3(service_name='s3api', operation_name='GetBucketAcl', params={'Bucket': 'example'})\nresult"}`,
 	}}
 	outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, nil, nil)
 	require.NoError(t, err)
@@ -272,7 +271,7 @@ func TestValidateReadOnlyAWSCommand(t *testing.T) {
 		{name: "describe", command: "aws ec2 describe-instances"},
 		{name: "list", command: "aws iam list-roles"},
 		{name: "allowed lambda service", command: "aws lambda list-functions"},
-		{name: "lambda configuration is allowed", command: "aws lambda get-function-configuration --function-name example"},
+		{name: "lambda configuration is blocked", command: "aws lambda get-function-configuration --function-name example", wantErr: true},
 		{name: "lambda code is blocked", command: "aws lambda get-function --function-name example", wantErr: true},
 		{name: "unsupported service", command: "aws cloudformation describe-stacks", wantErr: true},
 		{name: "STS is not needed", command: "aws sts get-caller-identity", wantErr: true},
@@ -283,7 +282,7 @@ func TestValidateReadOnlyAWSCommand(t *testing.T) {
 		{name: "parameter history blocked", command: "aws ssm get-parameter-history --name example --with-decryption", wantErr: true},
 		{name: "login password blocked", command: "aws ecr get-login-password", wantErr: true},
 		{name: "authorization token blocked", command: "aws ecr get-authorization-token", wantErr: true},
-		{name: "lambda configuration allowed", command: "aws lambda get-function-configuration --function-name example"},
+		{name: "lambda configuration blocked", command: "aws lambda get-function-configuration --function-name example", wantErr: true},
 		{name: "dynamodb item blocked", command: "aws dynamodb get-item --table-name example --key '{}'", wantErr: true},
 		{name: "log events blocked", command: "aws logs get-log-events --log-group-name example --log-stream-name example", wantErr: true},
 		{name: "update blocked", command: "aws s3api put-bucket-policy --bucket example", wantErr: true},
@@ -302,18 +301,39 @@ func TestValidateReadOnlyAWSCommand(t *testing.T) {
 	}
 }
 
-func TestCallAWSToolSchema(t *testing.T) {
-	schema := callAWSToolSchema()
-	require.Equal(t, false, schema["additionalProperties"] == true)
-	require.Equal(t, []string{"cli_command"}, schema["required"])
+func TestDecodeRunScriptArguments(t *testing.T) {
+	script, err := decodeRunScriptArguments(`{"script":"result = await call_boto3(service_name='s3api', operation_name='GetBucketAcl')"}`)
+	require.NoError(t, err)
+	require.Contains(t, script, "GetBucketAcl")
+
+	_, err = decodeRunScriptArguments(`{"script":""}`)
+	require.Error(t, err)
 }
 
-func TestDecodeCallAWSArguments(t *testing.T) {
-	_, err := decodeCallAWSArguments(`{"cli_command":"aws s3api get-bucket-acl --bucket example","extra":"blocked"}`)
-	require.Error(t, err)
-
-	_, err = decodeCallAWSArguments(`{"cli_command":"aws s3api get-bucket-acl --bucket example"} trailing`)
-	require.Error(t, err)
+func TestValidateReadOnlyRunScript(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		script  string
+		wantErr bool
+	}{
+		{name: "read only", script: `result = await call_boto3(service_name="ec2", operation_name="DescribeInstances")`},
+		{name: "write operation", script: `result = await call_boto3(service_name="ec2", operation_name="RunInstances")`, wantErr: true},
+		{name: "sensitive operation", script: `result = await call_boto3(service_name="lambda", operation_name="GetFunctionConfiguration")`, wantErr: true},
+		{name: "unsupported service", script: `result = await call_boto3(service_name="cloudtrail", operation_name="LookupEvents")`, wantErr: true},
+		{name: "dynamic operation", script: `operation = "RunInstances"
+result = await call_boto3(service_name="ec2", operation_name=operation)`, wantErr: true},
+		{name: "import", script: `import os
+result = await call_boto3(service_name="ec2", operation_name="DescribeInstances")`, wantErr: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateReadOnlyRunScript(tt.script)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 }
 
 func TestOpenAIAgentGenerateMissingInputs(t *testing.T) {
@@ -327,7 +347,7 @@ func TestOpenAIAgentGenerateMissingInputs(t *testing.T) {
 	require.ErrorContains(t, err, "verification tool")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err = agent.Generate(ctx, &corefinding.Finding{}, &agentProxy{}, []*mcp.Tool{{Name: "call_aws", InputSchema: map[string]any{"type": "object"}}})
+	_, err = agent.Generate(ctx, &corefinding.Finding{}, &agentProxy{}, []*mcp.Tool{{Name: awsRunScriptToolName, InputSchema: map[string]any{"type": "object"}}})
 	require.ErrorIs(t, err, context.Canceled)
 }
 
