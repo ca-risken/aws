@@ -295,7 +295,7 @@ func TestParsePlan(t *testing.T) {
 		{"trailing data", validPlanJSON + " {}", true},
 		{"empty verification", strings.Replace(validPlanJSON, `aws s3api get-public-access-block --bucket {bucket_name}`, "", 1), true},
 		{"verification IAM policy decides access", strings.Replace(validPlanJSON, `aws s3api get-public-access-block --bucket {bucket_name}`, `aws s3api put-bucket-policy --bucket {bucket_name}`, 1), false},
-		{"shell remediation command", strings.Replace(validPlanJSON, `aws s3api put-public-access-block --bucket {bucket_name}`, `aws s3api put-public-access-block --bucket {bucket_name} | cat`, 1), true},
+		{"shell command remains proposal text", strings.Replace(validPlanJSON, `aws s3api put-public-access-block --bucket {bucket_name}`, `aws s3api put-public-access-block --bucket {bucket_name} | cat`, 1), false},
 		{"wrong order", strings.Replace(validPlanJSON, `"order":1`, `"order":2`, 1), true},
 		{"resolved", `{"summary":"解決済み","current_state":["非公開を確認"],"steps":[]}`, false},
 	} {

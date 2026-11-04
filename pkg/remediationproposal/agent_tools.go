@@ -13,18 +13,15 @@ import (
 	"time"
 
 	"github.com/ca-risken/common/pkg/logging"
-	"github.com/kballard/go-shellquote"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/responses"
 )
 
 type runScriptResult struct {
-	ToolName       string              `json:"tool_name"`
-	ReadOnly       bool                `json:"read_only"`
-	PolicyDecision string              `json:"policy_decision"`
-	ResultStatus   string              `json:"result_status"`
-	Result         *mcp.CallToolResult `json:"result"`
+	ToolName     string              `json:"tool_name"`
+	ResultStatus string              `json:"result_status"`
+	Result       *mcp.CallToolResult `json:"result"`
 }
 
 type runScriptArguments struct {
@@ -134,14 +131,13 @@ func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call respon
 	projectID, _ := auditFields["project_id"].(uint32)
 	accountID, _ := auditFields["aws_account_id"].(string)
 	service, operation := "", ""
-	policyDecision := "not_applicable"
 	status := "error"
 	responseSize := -1
 	started := time.Now()
 	if logger != nil {
 		logger.Infof(ctx, "MCP tool call started: finding_id=%d, project_id=%d, account_id=%s, tool=%s, call_id=%s", findingID, projectID, accountID, call.Name, call.CallID)
 		defer func() {
-			logger.Infof(ctx, "MCP tool call finished: finding_id=%d, project_id=%d, account_id=%s, tool=%s, call_id=%s, service=%s, operation=%s, policy=%s, status=%s, response_size=%d, duration_ms=%d", findingID, projectID, accountID, call.Name, call.CallID, service, operation, policyDecision, status, responseSize, time.Since(started).Milliseconds())
+			logger.Infof(ctx, "MCP tool call finished: finding_id=%d, project_id=%d, account_id=%s, tool=%s, call_id=%s, service=%s, operation=%s, status=%s, response_size=%d, duration_ms=%d", findingID, projectID, accountID, call.Name, call.CallID, service, operation, status, responseSize, time.Since(started).Milliseconds())
 		}()
 	}
 	var arguments map[string]any
@@ -155,8 +151,7 @@ func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call respon
 			return "", false, wrapAgentNonRetryable(err)
 		}
 		service, operation = params.Service, params.Operation
-		policyDecision = "delegated_to_iam"
-		script, err := buildReadOnlyRunScript(params)
+		script, err := buildRunScript(params)
 		if err != nil {
 			status = "invalid_arguments"
 			return "", false, wrapAgentNonRetryable(err)
@@ -224,23 +219,12 @@ func decodeRunScriptArguments(raw string) (runScriptArguments, error) {
 	return params, nil
 }
 
-func normalizeAWSService(service string) string {
-	service = strings.ToLower(service)
-	if service == "s3" {
-		return "s3api"
-	}
-	return service
-}
-
-func buildReadOnlyRunScript(params runScriptArguments) (string, error) {
+func buildRunScript(params runScriptArguments) (string, error) {
 	value, err := marshalPythonLiteral(params.Params)
 	if err != nil {
 		return "", err
 	}
 	service := strings.ToLower(params.Service)
-	if normalizeAWSService(service) == "s3api" {
-		service = "s3"
-	}
 	region := ""
 	if params.Region != "" {
 		region = ", region_name=" + strconv.Quote(params.Region)
@@ -294,91 +278,15 @@ func marshalPythonLiteral(value any) (string, error) {
 	}
 }
 
-func validateAWSCommand(command string) error {
-	if _, _, err := parseAWSCLICommand(command); err != nil {
-		return err
-	}
-	return nil
-}
-
-func parseAWSCLICommand(command string) (string, string, error) {
-	trimmed := strings.TrimSpace(command)
-	if trimmed == "" {
-		return "", "", errors.New("AWS CLI command is required")
-	}
-	for _, token := range []string{"|", ";", "&&", "||", "&", ">", "<", "`", "$(", "${", "\n", "\r"} {
-		if strings.Contains(trimmed, token) {
-			return "", "", fmt.Errorf("AWS CLI command contains forbidden shell token: %q", token)
-		}
-	}
-	parts, err := shellquote.Split(trimmed)
-	if err != nil {
-		return "", "", fmt.Errorf("invalid AWS CLI quoting: %w", err)
-	}
-	if len(parts) < 3 || parts[0] != "aws" {
-		return "", "", errors.New("AWS CLI command must start with aws and include a service operation")
-	}
-	blockedGlobalOptions := map[string]bool{
-		"--endpoint-url": true, "--no-verify-ssl": true,
-		"--no-sign-request": true, "--profile": true, "--ca-bundle": true,
-	}
-	for _, part := range parts[1:] {
-		name := part
-		if separator := strings.IndexByte(part, '='); separator >= 0 {
-			name = part[:separator]
-		}
-		if blockedGlobalOptions[name] {
-			return "", "", fmt.Errorf("AWS global option is not allowed: %s", name)
-		}
-	}
-	globalOptionsWithValue := map[string]bool{
-		"--color": true, "--max-items": true, "--output": true,
-		"--page-size": true, "--query": true, "--region": true,
-		"--starting-token": true,
-	}
-	globalOptionsWithoutValue := map[string]bool{
-		"--no-cli-pager": true, "--no-paginate": true,
-	}
-	index := 1
-	for index < len(parts) && strings.HasPrefix(parts[index], "--") {
-		option := parts[index]
-		name := option
-		if separator := strings.IndexByte(option, '='); separator >= 0 {
-			name = option[:separator]
-		}
-		if globalOptionsWithValue[name] {
-			if !strings.Contains(option, "=") {
-				if index+1 >= len(parts) {
-					return "", "", fmt.Errorf("AWS global option requires a value: %s", name)
-				}
-				index++
-			}
-			index++
-			continue
-		}
-		if globalOptionsWithoutValue[name] && !strings.Contains(option, "=") {
-			index++
-			continue
-		}
-		return "", "", fmt.Errorf("AWS global option is not allowed: %s", name)
-	}
-	if len(parts) <= index+1 {
-		return "", "", errors.New("AWS CLI command must include a service operation")
-	}
-	return strings.ToLower(parts[index]), strings.ToLower(parts[index+1]), nil
-}
-
 func marshalRunScriptResult(result *mcp.CallToolResult) (string, error) {
 	status := "success"
 	if result.IsError {
 		status = "error"
 	}
 	encoded, err := json.Marshal(runScriptResult{
-		ToolName:       awsRunScriptToolName,
-		ReadOnly:       true,
-		PolicyDecision: "delegated_to_iam",
-		ResultStatus:   status,
-		Result:         result,
+		ToolName:     awsRunScriptToolName,
+		ResultStatus: status,
+		Result:       result,
 	})
 	if err != nil {
 		return "", err
