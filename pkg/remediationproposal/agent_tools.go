@@ -136,83 +136,80 @@ func handleFunctionCalls(ctx context.Context, proxy MCPProxyProcess, calls []res
 }
 
 func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call responses.ResponseFunctionToolCall, logger logging.Logger, auditFields map[string]interface{}) (string, bool, error) {
-	fields := make(map[string]interface{}, len(auditFields)+3)
-	for key, value := range auditFields {
-		fields[key] = value
-	}
-	fields["event"] = "mcp_tool_call"
-	fields["tool_name"] = call.Name
-	fields["call_id"] = call.CallID
+	findingID, _ := auditFields["finding_id"].(uint64)
+	projectID, _ := auditFields["project_id"].(uint32)
+	accountID, _ := auditFields["aws_account_id"].(string)
+	service, operation := "", ""
+	policyDecision := "not_applicable"
+	status := "error"
+	responseSize := -1
 	started := time.Now()
-	logFinished := func(status string, resultSize int) {
-		if logger == nil {
-			return
-		}
-		fields["result_status"] = status
-		fields["duration_ms"] = time.Since(started).Milliseconds()
-		if resultSize >= 0 {
-			fields["response_size"] = resultSize
-		}
-		logger.WithItems(ctx, logging.InfoLevel, fields, "MCP tool call finished")
-	}
 	if logger != nil {
-		logger.WithItems(ctx, logging.InfoLevel, fields, "MCP tool call started")
+		logger.Infof(ctx, "MCP tool call started: finding_id=%d, project_id=%d, account_id=%s, tool=%s, call_id=%s", findingID, projectID, accountID, call.Name, call.CallID)
+		defer func() {
+			logger.Infof(ctx, "MCP tool call finished: finding_id=%d, project_id=%d, account_id=%s, tool=%s, call_id=%s, service=%s, operation=%s, policy=%s, status=%s, response_size=%d, duration_ms=%d", findingID, projectID, accountID, call.Name, call.CallID, service, operation, policyDecision, status, responseSize, time.Since(started).Milliseconds())
+		}()
 	}
 	var arguments map[string]any
 	if err := json.Unmarshal([]byte(call.Arguments), &arguments); err != nil || arguments == nil {
-		logFinished("invalid_arguments", -1)
 		return "", false, wrapAgentNonRetryable(errors.New("invalid MCP tool arguments"))
 	}
 	if call.Name == "call_aws" {
 		params, err := decodeCallAWSArguments(call.Arguments)
 		if err != nil {
-			logFinished("invalid_arguments", -1)
+			status = "invalid_arguments"
 			return "", false, wrapAgentNonRetryable(err)
 		}
-		if service, operation, parseErr := parseAWSCLICommand(params.CLICommand); parseErr == nil {
-			fields["aws_service"] = service
-			fields["aws_operation"] = operation
-		}
+		service, operation, _ = parseAWSCLICommand(params.CLICommand)
 		if err := validateReadOnlyAWSCommand(params.CLICommand); err != nil {
-			fields["policy_decision"] = "denied"
-			logFinished("policy_denied", -1)
+			policyDecision = "denied"
+			status = "policy_denied"
 			return "", false, wrapAgentNonRetryable(err)
 		}
-		fields["policy_decision"] = "allowed"
+		policyDecision = "allowed"
 	}
 	result, err := proxy.CallTool(ctx, call.Name, arguments)
 	if err != nil {
-		logFinished("transport_error", -1)
+		status = "transport_error"
 		return "", false, fmt.Errorf("failed to call MCP tool: %w", err)
 	}
 	if result == nil {
-		logFinished("empty_result", -1)
+		status = "empty_result"
 		return "", false, wrapAgentNonRetryable(errors.New("MCP tool returned an empty result"))
 	}
 	encoded, err := json.Marshal(result)
 	if err != nil {
-		logFinished("marshal_error", -1)
+		status = "marshal_error"
 		return "", false, err
 	}
+	responseSize = len(encoded)
 	if len(encoded) > 256*1024 {
-		logFinished("response_too_large", len(encoded))
+		status = "response_too_large"
 		return "", false, wrapAgentNonRetryable(errors.New("MCP tool result exceeds size limit"))
 	}
 	if call.Name != "call_aws" {
-		logFinished(map[bool]string{true: "error", false: "success"}[result.IsError], len(encoded))
+		if result.IsError {
+			status = "error"
+		} else {
+			status = "success"
+		}
 		return string(encoded), false, nil
 	}
 	params, err := decodeCallAWSArguments(call.Arguments)
 	if err != nil {
-		logFinished("invalid_arguments", len(encoded))
+		status = "invalid_arguments"
 		return "", false, wrapAgentNonRetryable(err)
 	}
 	output, err := marshalCallAWSResult(params.CLICommand, result)
 	if err != nil {
-		logFinished("marshal_error", len(encoded))
+		status = "marshal_error"
 		return output, false, err
 	}
-	logFinished(map[bool]string{true: "error", false: "success"}[result.IsError], len(encoded))
+	if result.IsError {
+		status = "error"
+	} else {
+		status = "success"
+	}
 	return output, !result.IsError && err == nil, err
 }
 
