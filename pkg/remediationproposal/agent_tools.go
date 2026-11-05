@@ -112,11 +112,11 @@ func appendResponseOutput(input responses.ResponseInputParam, output []responses
 	return input, nil
 }
 
-func handleFunctionCalls(ctx context.Context, proxy MCPProxyProcess, calls []responses.ResponseFunctionToolCall, logger logging.Logger, auditFields map[string]interface{}) (responses.ResponseInputParam, bool, error) {
+func handleFunctionCalls(ctx context.Context, proxy MCPProxyProcess, calls []responses.ResponseFunctionToolCall, logger logging.Logger, findingID uint64, projectID uint32, accountID string) (responses.ResponseInputParam, bool, error) {
 	var outputs responses.ResponseInputParam
 	verified := false
 	for _, call := range calls {
-		result, callVerified, err := executeFunctionCall(ctx, proxy, call, logger, auditFields)
+		result, callVerified, err := executeFunctionCall(ctx, proxy, call, logger, findingID, projectID, accountID)
 		if err != nil {
 			return nil, false, err
 		}
@@ -126,10 +126,7 @@ func handleFunctionCalls(ctx context.Context, proxy MCPProxyProcess, calls []res
 	return outputs, verified, nil
 }
 
-func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call responses.ResponseFunctionToolCall, logger logging.Logger, auditFields map[string]interface{}) (string, bool, error) {
-	findingID, _ := auditFields["finding_id"].(uint64)
-	projectID, _ := auditFields["project_id"].(uint32)
-	accountID, _ := auditFields["aws_account_id"].(string)
+func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call responses.ResponseFunctionToolCall, logger logging.Logger, findingID uint64, projectID uint32, accountID string) (string, bool, error) {
 	service, operation := "", ""
 	status := "error"
 	responseSize := -1
@@ -156,7 +153,7 @@ func executeFunctionCall(ctx context.Context, proxy MCPProxyProcess, call respon
 			status = "invalid_arguments"
 			return "", false, wrapAgentNonRetryable(err)
 		}
-		arguments = map[string]any{"script": script}
+		arguments = map[string]any{"code": script}
 	}
 	result, err := proxy.CallTool(ctx, call.Name, arguments)
 	if err != nil {

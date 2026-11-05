@@ -145,7 +145,8 @@ func TestOpenAIAgentGenerate(t *testing.T) {
 				require.Equal(t, "test-model", plan.Plan.Metadata.Model)
 				require.Positive(t, plan.Plan.Metadata.GeneratedAt)
 				require.Equal(t, awsRunScriptToolName, proxy.toolName)
-				require.Contains(t, proxy.arguments["script"], "GetBucketAcl")
+				require.Contains(t, proxy.arguments["code"], "GetBucketAcl")
+				require.NotContains(t, proxy.arguments, "script")
 			}
 			require.LessOrEqual(t, proxy.callCount, maxAgentToolCalls)
 			if tt.firstTool == "read_documentation" || tt.unapprovedSecond {
@@ -225,7 +226,7 @@ func TestHandleFunctionCalls(t *testing.T) {
 					calls[i].Arguments = `{"service":"s3api","operation":"GetBucketAcl","region":"","params_json":"{\"Bucket\":\"example\"}"}`
 				}
 			}
-			outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, nil, nil)
+			outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, nil, 123, 456, "123456789012")
 			require.NoError(t, err)
 			require.Equal(t, tt.verified, verified)
 			require.Equal(t, len(calls), proxy.callCount)
@@ -249,7 +250,7 @@ func TestHandleFunctionCallsReturnsMCPErrorToModel(t *testing.T) {
 		CallID:    awsRunScriptToolName,
 		Arguments: `{"service":"s3api","operation":"GetBucketAcl","region":"","params_json":"{\"Bucket\":\"example\"}"}`,
 	}}
-	outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, nil, nil)
+	outputs, verified, err := handleFunctionCalls(context.Background(), proxy, calls, nil, 123, 456, "123456789012")
 	require.NoError(t, err)
 	require.False(t, verified)
 	require.Len(t, outputs, 1)

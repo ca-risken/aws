@@ -113,12 +113,7 @@ func (a *OpenAIAgent) Generate(ctx context.Context, finding *corefinding.Finding
 				return nil, wrapAgentNonRetryable(errors.New("unapproved MCP tool requested"))
 			}
 		}
-		toolFields := map[string]interface{}{
-			"finding_id":     finding.FindingId,
-			"project_id":     finding.ProjectId,
-			"aws_account_id": finding.ProviderTarget,
-		}
-		outputs, awsChecked, err := handleFunctionCalls(ctx, proxy, pending, a.logger, toolFields)
+		outputs, awsChecked, err := handleFunctionCalls(ctx, proxy, pending, a.logger, finding.FindingId, finding.ProjectId, finding.ProviderTarget)
 		if err != nil {
 			return nil, err
 		}
