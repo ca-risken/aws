@@ -14,7 +14,7 @@ jobs:
   build-pr-aws:
     uses: ca-risken/.github/.github/workflows/build-pr.yml@main
     with:
-      runs_on: codebuild-mimosa-aws-pr-runner-${{ github.run_id }}-${{ github.run_attempt }}
+      runs_on: codebuild-mimosa-aws-pr-runner-${{ github.run_id }}-${{ github.run_attempt }}-arm-3.0-large
       install_go_version: "1.27.3"
       golangci_lint_version: "v2.15.0"
       image_prefix: "risken-aws"
