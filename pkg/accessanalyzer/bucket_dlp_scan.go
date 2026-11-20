@@ -1,6 +1,7 @@
 package accessanalyzer
 
 import (
+	"cmp"
 	"context"
 	"io"
 	"path"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ca-risken/common/pkg/dlp"
+	"golang.org/x/sync/semaphore"
 )
 
 const (
@@ -17,6 +19,9 @@ const (
 	dlpScanTimeout  = 2 * time.Minute
 )
 
+// Bound file-body memory across concurrent bucket scans in this worker.
+var dlpFileSlot = semaphore.NewWeighted(1)
+
 type dlpObject struct {
 	Name    string
 	Size    int64
@@ -24,53 +29,138 @@ type dlpObject struct {
 	Open    func(context.Context) (io.ReadCloser, error)
 }
 
-func scanDLPFiles(ctx context.Context, scanner *dlp.Scanner, bucket string, objects []dlpObject, previous *bucketDLPScan, started time.Time) *bucketDLPScan {
+type dlpObjectLister func(context.Context, func(dlpObject)) error
+
+type dlpScanCursor struct {
+	Updated time.Time `json:"updated"`
+	Object  string    `json:"object"`
+}
+
+func (c dlpScanCursor) compareObject(object dlpObject) int {
+	if order := c.Updated.Compare(object.Updated); order != 0 {
+		return order
+	}
+	return cmp.Compare(c.Object, object.Name)
+}
+
+type dlpObjectSelection struct {
+	targets     []dlpObject
+	seen        map[string]struct{}
+	legacyPaths map[string]string
+	pending     *dlpScanCursor
+}
+
+func scanDLPFiles(ctx context.Context, scanner *dlp.Scanner, bucket string, listObjects dlpObjectLister, previous *bucketDLPScan, started time.Time) (*bucketDLPScan, error) {
 	ctx, cancel := context.WithTimeout(ctx, dlpScanTimeout)
 	defer cancel()
 
-	result := &bucketDLPScan{ResourceName: bucket}
 	previousTime, cached := previous.scanCache()
-	targets := dlpCandidates(scanner, objects, previousTime)
-	checkpoint := started.Unix() - 1 // Keep writes in the same second eligible.
-	processed := make(map[string]struct{}, min(len(targets), maxDLPScanFiles))
+	selection, err := selectDLPObjects(ctx, scanner, bucket, listObjects, previous, cached)
+	if err != nil {
+		return previous, err
+	}
+
+	result := &bucketDLPScan{ResourceName: bucket}
+	processed := make(map[string]struct{}, len(selection.targets))
 	var totalSize int64
-	for i, object := range targets {
-		if ctx.Err() != nil || i >= maxDLPScanFiles || object.Size > maxDLPScanBytes-totalSize {
-			checkpoint = checkpointBefore(checkpoint, object.Updated)
+	for _, object := range selection.targets {
+		if ctx.Err() != nil || object.Size > maxDLPScanBytes-totalSize {
+			selection.postpone(object)
 			break
 		}
-		if file := scanDLPFile(ctx, scanner, object, cached[object.Name]); file != nil {
+		file := scanDLPFile(ctx, scanner, object, cached[object.Name])
+		if ctx.Err() != nil {
+			selection.postpone(object)
+			break
+		}
+		if file != nil {
 			result.addFile(*file)
 		}
 		processed[object.Name] = struct{}{}
 		totalSize += object.Size
-		if ctx.Err() != nil {
-			checkpoint = checkpointBefore(checkpoint, object.Updated)
-			break
-		}
 	}
 
+	checkpoint := started.Unix() - 1 // Keep writes in the same second eligible.
+	if pending := selection.pending; pending != nil {
+		checkpoint = checkpointBefore(checkpoint, pending.Updated)
+		if !pending.Updated.IsZero() && pending.Updated.Unix() < started.Unix() {
+			// The object name lets a batch resume amid objects with the same timestamp.
+			result.ScanCursor = pending
+		}
+	}
 	result.ScanTime = max(previousTime, checkpoint)
 	result.ScanDuration = time.Since(started).String()
-	result.retainPrevious(previous, objects, processed)
-	return result
+	result.retainPrevious(previous, selection, processed)
+	return result, nil
 }
 
-func dlpCandidates(scanner *dlp.Scanner, objects []dlpObject, previousTime int64) []dlpObject {
-	cutoff := time.Unix(previousTime, 0)
-	var candidates []dlpObject
-	for _, object := range objects {
-		if previousTime > 0 && !object.Updated.After(cutoff) {
-			continue
+func selectDLPObjects(ctx context.Context, scanner *dlp.Scanner, bucket string, listObjects dlpObjectLister, previous *bucketDLPScan, cached map[string]bucketFileScan) (dlpObjectSelection, error) {
+	selection := dlpObjectSelection{
+		seen:        make(map[string]struct{}),
+		legacyPaths: make(map[string]string),
+	}
+	var cutoff time.Time
+	var cursor *dlpScanCursor
+	if previous != nil {
+		cursor = previous.ScanCursor
+		if previous.ScanTime > 0 {
+			cutoff = time.Unix(previous.ScanTime, 0)
 		}
-		if object.Size <= maxDLPScanBytes && scanner.CanScanFile(object.Name, object.Size) {
-			candidates = append(candidates, object)
+		for _, finding := range previous.previousFindings {
+			selection.legacyPaths[finding.FilePath] = ""
 		}
 	}
-	slices.SortStableFunc(candidates, func(a, b dlpObject) int {
-		return a.Updated.Compare(b.Updated)
+
+	err := listObjects(ctx, func(object dlpObject) {
+		if _, ok := cached[object.Name]; ok {
+			selection.seen[object.Name] = struct{}{}
+		}
+		if len(selection.legacyPaths) > 0 {
+			key := path.Join(bucket, legacyDLPPath(object.Name))
+			if _, ok := selection.legacyPaths[key]; ok {
+				selection.legacyPaths[key] = object.Name
+			}
+		}
+		if !cutoff.IsZero() && !object.Updated.After(cutoff) {
+			return
+		}
+		if cursor != nil && cursor.compareObject(object) > 0 {
+			return
+		}
+		if object.Size > maxDLPScanBytes || !scanner.CanScanFile(object.Name, object.Size) {
+			return
+		}
+		selection.targets = append(selection.targets, object)
+		if len(selection.targets) == 2*maxDLPScanFiles {
+			selection.keepOldestTargets()
+		}
 	})
-	return candidates
+	if err != nil {
+		return dlpObjectSelection{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return dlpObjectSelection{}, err
+	}
+	selection.keepOldestTargets()
+	return selection, nil
+}
+
+func (s *dlpObjectSelection) keepOldestTargets() {
+	slices.SortFunc(s.targets, func(a, b dlpObject) int {
+		return (dlpScanCursor{Updated: a.Updated, Object: a.Name}).compareObject(b)
+	})
+	if len(s.targets) <= maxDLPScanFiles {
+		return
+	}
+	s.postpone(s.targets[maxDLPScanFiles])
+	clear(s.targets[maxDLPScanFiles:])
+	s.targets = s.targets[:maxDLPScanFiles]
+}
+
+func (s *dlpObjectSelection) postpone(object dlpObject) {
+	if s.pending == nil || s.pending.compareObject(object) > 0 {
+		s.pending = &dlpScanCursor{Updated: object.Updated, Object: object.Name}
+	}
 }
 
 func checkpointBefore(checkpoint int64, updated time.Time) int64 {
@@ -81,6 +171,14 @@ func checkpointBefore(checkpoint int64, updated time.Time) int64 {
 }
 
 func scanDLPFile(ctx context.Context, scanner *dlp.Scanner, object dlpObject, cached bucketFileScan) *bucketFileScan {
+	if cached.Complete && !object.Updated.IsZero() && object.Updated.Equal(cached.Updated) {
+		return &cached
+	}
+	if err := dlpFileSlot.Acquire(ctx, 1); err != nil {
+		return nil
+	}
+	defer dlpFileSlot.Release(1)
+
 	result := &bucketFileScan{Object: object.Name, Updated: object.Updated}
 	reader, err := object.Open(ctx)
 	if err != nil {
@@ -88,10 +186,6 @@ func scanDLPFile(ctx context.Context, scanner *dlp.Scanner, object dlpObject, ca
 		return result
 	}
 	defer reader.Close()
-
-	if cached.Complete && !object.Updated.IsZero() && object.Updated.Equal(cached.Updated) {
-		return &cached
-	}
 
 	response, err := scanner.Scan(ctx, dlp.ScanRequest{FileName: object.Name, Reader: reader})
 	if response != nil {
@@ -119,28 +213,20 @@ func (r *bucketDLPScan) scanCache() (int64, map[string]bucketFileScan) {
 	return r.ScanTime, cache
 }
 
-func (r *bucketDLPScan) retainPrevious(previous *bucketDLPScan, objects []dlpObject, processed map[string]struct{}) {
+func (r *bucketDLPScan) retainPrevious(previous *bucketDLPScan, selection dlpObjectSelection, processed map[string]struct{}) {
 	if previous == nil {
 		return
 	}
-	retained := make(map[string]struct{})
-	legacyPaths := make(map[string]string)
-	for _, object := range objects {
-		if _, scanned := processed[object.Name]; scanned {
-			continue
-		}
-		retained[object.Name] = struct{}{}
-		if len(previous.previousFindings) > 0 {
-			legacyPaths[path.Join(r.ResourceName, legacyDLPPath(object.Name))] = object.Name
-		}
+	for name := range processed {
+		delete(selection.seen, name)
 	}
 	for _, file := range previous.SensitiveObjects {
-		if _, keep := retained[file.Object]; keep {
+		if _, keep := selection.seen[file.Object]; keep {
 			r.SensitiveObjects = append(r.SensitiveObjects, file)
 		}
 	}
 	for _, file := range previous.unreportedFiles {
-		if _, keep := retained[file.Object]; keep {
+		if _, keep := selection.seen[file.Object]; keep {
 			r.unreportedFiles = append(r.unreportedFiles, file)
 		}
 	}
@@ -151,8 +237,9 @@ func (r *bucketDLPScan) retainPrevious(previous *bucketDLPScan, objects []dlpObj
 		r.ContentType = previous.ContentType
 	}
 	r.mergeLegacyFindings(previous.previousFindings, func(filePath string) (string, bool) {
-		name, ok := legacyPaths[filePath]
-		return name, ok
+		name := selection.legacyPaths[filePath]
+		_, scanned := processed[name]
+		return name, name != "" && !scanned
 	})
 }
 

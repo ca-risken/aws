@@ -3,6 +3,7 @@ package accessanalyzer
 import (
 	"context"
 	json "encoding/json/v2"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -53,7 +54,7 @@ func TestBucketDLPScanRetainsPreviousFileResponses(t *testing.T) {
 	scanner := dlp.NewScanner(nil, &dlp.Config{})
 	started := cutoff.Add(time.Hour)
 	const objectHost = "s3.ap-northeast-1.amazonaws.com"
-	got := scanDLPFiles(t.Context(), scanner, "example.test", objects, previous, started).withSummary(objectHost)
+	got := scanDLPTestFiles(t, scanner, "example.test", objects, previous, started).withSummary(objectHost)
 	if got.ScanTime != started.Unix()-1 || opens != 1 {
 		t.Fatalf("scan time = %d, opened files = %d", got.ScanTime, opens)
 	}
@@ -112,7 +113,7 @@ func TestBucketDLPScanRetainsPreviousFileResponses(t *testing.T) {
 		t.Errorf("stored dlp_scan mismatch (-want +got):\n%s", diff)
 	}
 
-	next := scanDLPFiles(t.Context(), scanner, "example.test", objects, decoded, started.Add(time.Hour)).withSummary(objectHost)
+	next := scanDLPTestFiles(t, scanner, "example.test", objects, decoded, started.Add(time.Hour)).withSummary(objectHost)
 	if opens != 1 {
 		t.Errorf("opened %d files after unchanged scan, want 1", opens)
 	}
@@ -153,7 +154,7 @@ func TestBucketDLPScanStoresOnlySensitiveFiles(t *testing.T) {
 			scanner := dlp.NewScanner(bucketDLPTestClassifier{decision: test.decision}, &dlp.Config{})
 			started := updated.Add(time.Hour)
 			const objectHost = "s3.us-east-1.amazonaws.com"
-			result := scanDLPFiles(t.Context(), scanner, "example", objects, nil, started).withSummary(objectHost)
+			result := scanDLPTestFiles(t, scanner, "example", objects, nil, started).withSummary(objectHost)
 			if opens != 1 || result.TotalFiles != test.wantObjects || len(result.SensitiveObjects) != test.wantObjects {
 				t.Fatalf("opened %d files, total_files = %d, sensitive_objects length = %d, want 1 opened and %d stored",
 					opens, result.TotalFiles, len(result.SensitiveObjects), test.wantObjects)
@@ -170,7 +171,7 @@ func TestBucketDLPScanStoresOnlySensitiveFiles(t *testing.T) {
 			if err := json.Unmarshal(data, &saved); err != nil {
 				t.Fatal(err)
 			}
-			next := scanDLPFiles(t.Context(), scanner, "example", objects, &saved, started.Add(time.Hour)).withSummary(objectHost)
+			next := scanDLPTestFiles(t, scanner, "example", objects, &saved, started.Add(time.Hour)).withSummary(objectHost)
 			if opens != 1 || next.TotalFiles != test.wantObjects || len(next.SensitiveObjects) != test.wantObjects {
 				t.Errorf("after unchanged scan, opened %d files, total_files = %d, sensitive_objects length = %d",
 					opens, next.TotalFiles, len(next.SensitiveObjects))
@@ -188,4 +189,66 @@ type bucketDLPTestClassifier struct {
 
 func (c bucketDLPTestClassifier) ClassifySensitiveContent(context.Context, *ai.ClassifySensitiveContentRequest, ...grpc.CallOption) (*ai.ClassifySensitiveContentResponse, error) {
 	return &ai.ClassifySensitiveContentResponse{Sensitivity: c.decision}, nil
+}
+
+func TestBucketDLPScanResumesAmongObjectsWithTheSameUpdateTime(t *testing.T) {
+	t.Parallel()
+
+	scanner := dlp.NewScanner(nil, &dlp.Config{})
+	updated := time.Unix(1700000000, 0).UTC()
+	const objectCount = 2*maxDLPScanFiles + 100
+	var opened []int
+	list := func(_ context.Context, visit func(dlpObject)) error {
+		// Emit objects in reverse order to exercise the bounded selection.
+		for i := objectCount - 1; i >= 0; i-- {
+			visit(dlpObject{
+				Name:    fmt.Sprintf("%05d.bin", i),
+				Updated: updated,
+				Open: func(context.Context) (io.ReadCloser, error) {
+					opened = append(opened, i)
+					return io.NopCloser(strings.NewReader("\x00\x01\x02")), nil
+				},
+			})
+		}
+		return nil
+	}
+
+	var previous *bucketDLPScan
+	for batch := range 3 {
+		result, err := scanDLPFiles(t.Context(), scanner, "example", list, previous, updated.Add(time.Duration(batch+1)*time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := min((batch+1)*maxDLPScanFiles, objectCount); len(opened) != want {
+			t.Fatalf("batch %d: opened %d objects, want %d", batch, len(opened), want)
+		}
+		data, err := json.Marshal(result)
+		if err != nil {
+			t.Fatal(err)
+		}
+		previous = &bucketDLPScan{}
+		if err := json.Unmarshal(data, previous); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i, got := range opened {
+		if i != got {
+			t.Fatalf("opened[%d] = %d, want %d", i, got, i)
+		}
+	}
+}
+
+func scanDLPTestFiles(t *testing.T, scanner *dlp.Scanner, bucket string, objects []dlpObject, previous *bucketDLPScan, started time.Time) *bucketDLPScan {
+	t.Helper()
+	list := func(_ context.Context, visit func(dlpObject)) error {
+		for _, object := range objects {
+			visit(object)
+		}
+		return nil
+	}
+	result, err := scanDLPFiles(t.Context(), scanner, bucket, list, previous, started)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return result
 }

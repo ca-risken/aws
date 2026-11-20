@@ -21,6 +21,7 @@ type bucketDLPScan struct {
 	TotalFiles       int              `json:"total_files"`
 	ScanDuration     string           `json:"scan_duration"`
 	ScanTime         int64            `json:"scan_time"`
+	ScanCursor       *dlpScanCursor   `json:"scan_cursor,omitzero"`
 	Sensitive        *bool            `json:"sensitive"`
 	ContentType      []string         `json:"content_type"`
 	SensitiveObjects []bucketFileScan `json:"sensitive_objects"`
