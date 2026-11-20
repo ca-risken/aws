@@ -311,11 +311,7 @@ func scoreAdminUser(user *iamUser) float32 {
 	if len(user.ActiveAccessKey) == 0 && user.ConsoleLoginProfile.PasswordCreatedAt == nil {
 		return 0.1 // no active access key and no password
 	}
-	isAdmin := false
-	if user.IsUserAdmin || user.IsGroupAdmin {
-		isAdmin = true
-	}
-	if !isAdmin {
+	if !user.IsUserAdmin && !user.IsGroupAdmin {
 		return 0.3
 	}
 	enabledMFA := user.EnabledPhysicalMFA || user.EnabledVirtualMFA

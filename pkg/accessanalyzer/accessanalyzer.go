@@ -41,18 +41,14 @@ type accessAnalyzerClient struct {
 	SNS           *sns.Client
 	SQS           *sqs.Client
 	S3            *s3.Client
+	publicS3      *s3.Client
 	FindingClient finding.FindingServiceClient
-	dlpConfig     *dlp.Config
+	dlpScanner    *dlp.Scanner
 	logger        logging.Logger
 }
 
-func newAccessAnalyzerClient(ctx context.Context, region string, msg *message.AWSQueueMessage, ds []*riskenaws.DataSource, retry int, fc finding.FindingServiceClient, l logging.Logger) (accessAnalyzerAPI, error) {
-	// Load DLP configuration
-	dlpConfig, err := dlp.LoadConfig("") // use default config
-	if err != nil {
-		return nil, fmt.Errorf("failed to load DLP config: %w", err)
-	}
-	a := accessAnalyzerClient{logger: l, dlpConfig: dlpConfig, FindingClient: fc}
+func newAccessAnalyzerClient(ctx context.Context, region string, msg *message.AWSQueueMessage, ds []*riskenaws.DataSource, retry int, fc finding.FindingServiceClient, dlpScanner *dlp.Scanner, l logging.Logger) (accessAnalyzerAPI, error) {
+	a := accessAnalyzerClient{logger: l, FindingClient: fc, dlpScanner: dlpScanner}
 	cfg, err := a.newAWSSession(ctx, msg.AssumeRoleArn, msg.ExternalID)
 	if err != nil {
 		return nil, err
@@ -60,6 +56,7 @@ func newAccessAnalyzerClient(ctx context.Context, region string, msg *message.AW
 	a.Svc = accessanalyzer.New(accessanalyzer.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	a.EC2 = ec2.New(ec2.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
 	a.S3 = s3.New(s3.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
+	a.publicS3 = s3.New(s3.Options{Credentials: aws.AnonymousCredentials{}, Region: region, RetryMaxAttempts: retry})
 
 	if strings.Contains(msg.AssumeRoleArn, msg.AccountID) {
 		a.SNS = sns.New(sns.Options{Credentials: cfg.Credentials, Region: region, RetryMaxAttempts: retry})
@@ -111,7 +108,7 @@ func (a *accessAnalyzerClient) newAWSSession(ctx context.Context, assumeRole, ex
 
 type AccessAnalyzerFinding struct {
 	types.FindingSummary
-	DlpScan *dlp.ScanResult `json:"dlp_scan,omitempty"`
+	DlpScan *bucketDLPScan `json:"dlp_scan,omitempty"`
 }
 
 func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *message.AWSQueueMessage) ([]*finding.FindingForUpsert, *[]string, error) {
@@ -159,7 +156,10 @@ func (a *accessAnalyzerClient) getAccessAnalyzer(ctx context.Context, msg *messa
 				if err != nil {
 					a.logger.Warnf(ctx, "DLP scan failed for bucket %s: %v", *data.Resource, err)
 				}
-				aaFinding.DlpScan = dlpFindings
+				if dlpFindings != nil {
+					objectHost := "s3." + a.S3.Options().Region + ".amazonaws.com"
+					aaFinding.DlpScan = dlpFindings.withSummary(objectHost)
+				}
 			}
 			// Findnig data (JSON)
 			buf, err := json.Marshal(aaFinding)
