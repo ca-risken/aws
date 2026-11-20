@@ -124,10 +124,10 @@ func (g *guardDutyClient) getGuardDuty(ctx context.Context, message *message.AWS
 				return nil, detecterIDs, err
 			}
 			var score float32
-			if data.Service.Archived {
+			if data.Service != nil && aws.ToBool(data.Service.Archived) {
 				score = 1.0
 			} else {
-				score = float32(data.Severity)
+				score = float32(aws.ToFloat64(data.Severity))
 			}
 			putData = append(putData, &guardDutyFinding{
 				Description:      *data.Title,
@@ -162,7 +162,7 @@ func (g *guardDutyClient) listDetectors(ctx context.Context) (*[]string, error) 
 	var detectorIDs []string
 	for {
 		out, err := g.Svc.ListDetectors(ctx, &guardduty.ListDetectorsInput{
-			MaxResults: int32(50),
+			MaxResults: new(int32(50)),
 			NextToken:  &nextToken,
 		})
 		if err != nil {
@@ -194,7 +194,7 @@ func (g *guardDutyClient) listFindings(ctx context.Context, accountID, detectorI
 					"accountId": cond,
 				},
 			},
-			MaxResults: int32(50),
+			MaxResults: new(int32(50)),
 			NextToken:  &nextToken,
 		})
 		if err != nil {

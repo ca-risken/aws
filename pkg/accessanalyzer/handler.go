@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/accessanalyzer/types"
 	sqsTypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/ca-risken/aws/pkg/common"
+	"github.com/ca-risken/common/pkg/dlp"
 	"github.com/ca-risken/common/pkg/logging"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
 	"github.com/ca-risken/core/proto/alert"
@@ -25,6 +26,7 @@ type SqsHandler struct {
 	awsClient        awsClient.AWSServiceClient
 	awsRegion        string
 	retryMaxAttempts int
+	dlpScanner       *dlp.Scanner
 	logger           logging.Logger
 }
 
@@ -34,6 +36,7 @@ func NewSqsHandler(
 	awsc awsClient.AWSServiceClient,
 	region string,
 	retry int,
+	dlpScanner *dlp.Scanner,
 	l logging.Logger,
 ) *SqsHandler {
 	return &SqsHandler{
@@ -42,6 +45,7 @@ func NewSqsHandler(
 		awsClient:        awsc,
 		awsRegion:        region,
 		retryMaxAttempts: retry,
+		dlpScanner:       dlpScanner,
 		logger:           l,
 	}
 }
@@ -73,7 +77,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqsTypes.Message
 		s.updateStatusToError(ctx, &status, err)
 		return mimosasqs.WrapNonRetryable(err)
 	}
-	accessAnalyzer, err := newAccessAnalyzerClient(ctx, s.awsRegion, msg, ds.DataSource, s.retryMaxAttempts, s.findingClient, s.logger)
+	accessAnalyzer, err := newAccessAnalyzerClient(ctx, s.awsRegion, msg, ds.DataSource, s.retryMaxAttempts, s.findingClient, s.dlpScanner, s.logger)
 	if err != nil {
 		s.logger.Errorf(ctx, "Failed to create AccessAnalyzer session: err=%+v", err)
 		s.updateStatusToError(ctx, &status, err)
@@ -98,7 +102,7 @@ func (s *SqsHandler) HandleMessage(ctx context.Context, sqsMsg *sqsTypes.Message
 		}
 		s.logger.Infof(ctx, "Start %s region search...", *region.RegionName)
 		// AccessAnalyzer
-		accessAnalyzer, err = newAccessAnalyzerClient(ctx, *region.RegionName, msg, ds.DataSource, s.retryMaxAttempts, s.findingClient, s.logger)
+		accessAnalyzer, err = newAccessAnalyzerClient(ctx, *region.RegionName, msg, ds.DataSource, s.retryMaxAttempts, s.findingClient, s.dlpScanner, s.logger)
 		if err != nil {
 			s.logger.Errorf(ctx, "Failed to create AccessAnalyzer session: Region=%s, AccountID=%s, err=%+v", *region.RegionName, msg.AccountID, err)
 			s.updateStatusToError(ctx, &status, err)

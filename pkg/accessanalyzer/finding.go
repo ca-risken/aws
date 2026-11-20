@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ca-risken/common/pkg/dlp"
 	"github.com/ca-risken/core/proto/finding"
 	"github.com/ca-risken/datasource-api/pkg/message"
 )
 
-
 // getPreviousDLPFindings retrieves previous DLP scan results for the specified bucket
-func (a *accessAnalyzerClient) getPreviousDLPFindings(ctx context.Context, bucketName string, projectID uint32) (*dlp.ScanResult, error) {
+func (a *accessAnalyzerClient) getPreviousDLPFindings(ctx context.Context, bucketName string, projectID uint32) (*bucketDLPScan, error) {
 	bucketArn := fmt.Sprintf("arn:aws:s3:::%s", bucketName)
 	a.logger.Debugf(ctx, "Retrieving previous DLP findings for bucket: %s", bucketArn)
 
@@ -57,7 +55,7 @@ func (a *accessAnalyzerClient) getPreviousDLPFindings(ctx context.Context, bucke
 
 	// ScanTime is now used for previous scan time comparison
 	a.logger.Debugf(ctx, "Loaded previous DLP scan result: bucket=%s, lastScan=%v, files=%d",
-		bucketName, time.Unix(scanResult.ScanTime, 0), len(scanResult.Findings))
+		bucketName, time.Unix(scanResult.ScanTime, 0), len(scanResult.SensitiveObjects))
 
 	return scanResult, nil
 }
@@ -75,7 +73,7 @@ func (a *accessAnalyzerClient) isDLPFinding(f *finding.Finding) bool {
 }
 
 // parseDLPFindingData parses DLP scan result data from Finding.Data
-func (a *accessAnalyzerClient) parseDLPFindingData(data string) (*dlp.ScanResult, error) {
+func (a *accessAnalyzerClient) parseDLPFindingData(data string) (*bucketDLPScan, error) {
 	var parsedData map[string]any
 	if err := json.Unmarshal([]byte(data), &parsedData); err != nil {
 		return nil, fmt.Errorf("failed to parse finding data as JSON: %w", err)
@@ -93,51 +91,10 @@ func (a *accessAnalyzerClient) parseDLPFindingData(data string) (*dlp.ScanResult
 		return nil, fmt.Errorf("failed to marshal dlp_scan data: %w", err)
 	}
 
-	var dlpResult dlp.ScanResult
+	var dlpResult bucketDLPScan
 	if err := json.Unmarshal(dlpBytes, &dlpResult); err != nil {
 		return nil, fmt.Errorf("failed to parse DLP scan result: %w", err)
 	}
 
 	return &dlpResult, nil
-}
-
-// filterCandidatesWithCache filters file candidates based on previous scan results and object modification time
-func (a *accessAnalyzerClient) filterCandidatesWithCache(ctx context.Context, candidates []FileCandidate, previousResult *dlp.ScanResult, bucketName string) ([]FileCandidate, []dlp.Finding) {
-	if previousResult == nil {
-		a.logger.Debugf(ctx, "No previous findings available, scanning all %d candidates", len(candidates))
-		return candidates, nil
-	}
-
-	var toScan []FileCandidate
-	var cachedFindings []dlp.Finding
-	skippedCount := 0
-
-	a.logger.Debugf(ctx, "Filtering candidates based on previous scan time: %v", time.Unix(previousResult.ScanTime, 0))
-
-	// Create map from findings for easier lookup
-	fileResults := make(map[string]dlp.Finding)
-	for _, finding := range previousResult.Findings {
-		fileResults[finding.FilePath] = finding
-	}
-
-	for _, candidate := range candidates {
-		filePath := fmt.Sprintf("%s/%s", bucketName, candidate.Key)
-
-		// Skip files that haven't been modified since last scan
-		if candidate.LastModified != nil && candidate.LastModified.Unix() < previousResult.ScanTime {
-			if previousFinding, found := fileResults[filePath]; found {
-				cachedFindings = append(cachedFindings, previousFinding)
-				a.logger.Debugf(ctx, "Reusing cached finding for file %s: last modified %v < last scan %v",
-					candidate.Key, candidate.LastModified, time.Unix(previousResult.ScanTime, 0))
-			}
-			skippedCount++
-			continue
-		}
-		toScan = append(toScan, candidate) // File is new or has been modified since last scan
-	}
-
-	a.logger.Infof(ctx, "DLP scan optimization: %d files to scan, %d files skipped (cached), %d cached findings reused",
-		len(toScan), skippedCount, len(cachedFindings))
-
-	return toScan, cachedFindings
 }

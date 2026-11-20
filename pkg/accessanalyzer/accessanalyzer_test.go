@@ -1,10 +1,47 @@
 package accessanalyzer
 
 import (
+	"io"
+	"net/http"
+	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/accessanalyzer/types"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 )
+
+func TestListAvailableRegionResolvesEC2Endpoint(t *testing.T) {
+	t.Parallel()
+
+	client := &accessAnalyzerClient{
+		EC2: ec2.New(ec2.Options{
+			Region:      "us-east-1",
+			Credentials: credentials.NewStaticCredentialsProvider("test", "test", ""),
+			HTTPClient: &http.Client{Transport: awsTestTransport(func(req *http.Request) (*http.Response, error) {
+				if req.URL.Host != "ec2.us-east-1.amazonaws.com" {
+					t.Errorf("unexpected EC2 endpoint %q", req.URL.Host)
+				}
+				const body = `<DescribeRegionsResponse>
+					<regionInfo><item><regionName>us-east-1</regionName></item></regionInfo>
+				</DescribeRegionsResponse>`
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(body)),
+				}, nil
+			})},
+		}),
+	}
+
+	regions, err := client.listAvailableRegion(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if regions == nil || len(*regions) != 1 || aws.ToString((*regions)[0].RegionName) != "us-east-1" {
+		t.Fatalf("listAvailableRegion() = %+v, want us-east-1", regions)
+	}
+}
 
 func TestGetQueueURLFromArn(t *testing.T) {
 	tests := []struct {

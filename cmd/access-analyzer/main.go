@@ -7,6 +7,7 @@ import (
 	"github.com/ca-risken/aws/pkg/accessanalyzer"
 	"github.com/ca-risken/aws/pkg/grpc"
 	"github.com/ca-risken/aws/pkg/sqs"
+	"github.com/ca-risken/common/pkg/dlp"
 	"github.com/ca-risken/common/pkg/logging"
 	"github.com/ca-risken/common/pkg/profiler"
 	mimosasqs "github.com/ca-risken/common/pkg/sqs"
@@ -103,7 +104,15 @@ func main() {
 	if err != nil {
 		appLogger.Fatalf(ctx, "failed to create aws client, err=%+v", err)
 	}
-	handler := accessanalyzer.NewSqsHandler(fc, ac, awsc, conf.AWSRegion, conf.RetryMaxAttempts, appLogger)
+	classifier, err := grpc.NewSensitiveContentClient(ctx, conf.CoreSvcAddr)
+	if err != nil {
+		appLogger.Fatalf(ctx, "failed to create sensitive content client: %v", err)
+	}
+	dlpConfig, err := dlp.LoadConfig("")
+	if err != nil {
+		appLogger.Fatalf(ctx, "failed to load DLP config: %v", err)
+	}
+	handler := accessanalyzer.NewSqsHandler(fc, ac, awsc, conf.AWSRegion, conf.RetryMaxAttempts, dlp.NewScanner(classifier, dlpConfig), appLogger)
 	sqsConf := &sqs.SQSConfig{
 		Debug:              conf.Debug,
 		AWSRegion:          conf.AWSRegion,

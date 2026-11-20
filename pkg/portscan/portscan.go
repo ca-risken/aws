@@ -353,7 +353,7 @@ func (p *portscanClient) listRDS(ctx context.Context) error {
 		return err
 	}
 	for _, i := range result.DBInstances {
-		if !i.PubliclyAccessible {
+		if !aws.ToBool(i.PubliclyAccessible) {
 			continue
 		}
 		var groupIDs []string
@@ -363,7 +363,7 @@ func (p *portscanClient) listRDS(ctx context.Context) error {
 		if !zero.IsZeroVal(groupIDs) {
 			listRDS = append(listRDS, &infoRDS{
 				DBInstanceArn:      *i.DBInstanceArn,
-				PubliclyAccessible: i.PubliclyAccessible,
+				PubliclyAccessible: true,
 				Endpoint:           *i.Endpoint.Address,
 				GroupID:            &groupIDs,
 			})

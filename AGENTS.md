@@ -17,7 +17,7 @@ This guide explains how to work effectively inside the RISKEN AWS codebase. Foll
 - Local SQS smoke tests use the sample commands (`make enqueue-*`); point AWS CLI at `http://localhost:9324`.
 
 ## Coding Style & Naming Conventions
-- Target Go 1.21; format with `gofmt`/`goimports` (tabs, concise camelCase names). CI fails unformatted code.
+- Target Go 1.27.3; format with `gofmt`/`goimports` (tabs, concise camelCase names). CI fails unformatted code.
 - Package names stay singular and lowercase; binaries keep hyphenated service names to match Docker images.
 - Reuse `pkg/common/logging` for structured logs and `envconfig` structs for configuration parsing.
 
