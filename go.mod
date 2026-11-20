@@ -22,7 +22,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6
 	github.com/aws/smithy-go v1.20.2
 	github.com/ca-risken/common/pkg/cloudsploit v0.0.0-20240913022110-d46627f38918
-	github.com/ca-risken/common/pkg/dlp v0.0.0-20261120111016-f2301f553b6d
+	github.com/ca-risken/common/pkg/dlp v0.0.0-20261120163920-cc4108da70d5
 	github.com/ca-risken/common/pkg/logging v0.0.0-20220601065422-5b97bd6efc9b
 	github.com/ca-risken/common/pkg/portscan v0.0.0-20261006055254-bc917fb62bcc
 	github.com/ca-risken/common/pkg/profiler v0.0.0-20221119073224-9db027bda6f8
