@@ -25,6 +25,7 @@ func TestBucketDLPScanRetainsPreviousFileResponses(t *testing.T) {
 		"total_severity":"HIGH",
 		"severity_reason":"previous severity",
 		"test_data":null,
+		"sensitive_objects":[{"object":"old.wav","complete":false,"content_kind":"UNSPECIFIED","content_type":["PII"]}],
 		"findings":[{"file_path":"example.test/retained/契約 #+%.txt","type":"PII","matches":["legacy@example.test"]},{"file_path":"example.test/retained/契約 #+%.txt","type":"Credential"}],
 		"object_scans":[{"object":"old.csv","input":"text","complete":true,"sensitivity":2}],
 		"pdf_scans":[{"object":"old.pdf","complete":true,"total_pages":1,"pages":[
@@ -39,6 +40,7 @@ func TestBucketDLPScanRetainsPreviousFileResponses(t *testing.T) {
 	cutoff := time.Unix(previous.ScanTime, 0)
 	opens := 0
 	objects := []dlpObject{
+		{Name: "old.wav", Updated: cutoff},
 		{Name: "retained/契約 #+%.txt", Updated: cutoff},
 		{Name: "old.csv", Updated: cutoff},
 		{Name: "old.pdf", Updated: cutoff},
@@ -59,6 +61,13 @@ func TestBucketDLPScanRetainsPreviousFileResponses(t *testing.T) {
 		t.Fatalf("scan time = %d, opened files = %d", got.ScanTime, opens)
 	}
 	wantFiles := []bucketFileScan{
+		{
+			Object: "old.wav",
+			URL:    "https://s3.ap-northeast-1.amazonaws.com/example.test/old.wav",
+			FindingFile: dlp.FindingFile{
+				Sensitivity: new(true), ContentType: []string{"PII"}, ContentKind: "UNSPECIFIED",
+			},
+		},
 		{
 			Object: "old.pdf",
 			URL:    "https://s3.ap-northeast-1.amazonaws.com/example.test/old.pdf",
