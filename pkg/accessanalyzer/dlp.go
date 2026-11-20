@@ -27,15 +27,23 @@ func (a *accessAnalyzerClient) dlpScan(ctx context.Context, bucketArn string, pr
 
 	var previous *bucketDLPScan
 	if !fullScan {
-		var err error
-		previous, err = a.getPreviousDLPFindings(ctx, bucketName, projectID)
-		if err != nil {
-			a.logger.Warnf(ctx, "Failed to get previous DLP findings: %v", err)
-		}
+		previous = a.loadPreviousDLPScan(ctx, bucketName, projectID)
 	}
-	return scanDLPFiles(ctx, a.dlpScanner, bucketName, func(ctx context.Context, visit func(dlpObject)) error {
+	result, err := scanDLPFiles(ctx, a.dlpScanner, bucketName, func(ctx context.Context, visit func(dlpObject)) error {
 		return a.listDLPObjects(ctx, bucketName, visit)
 	}, previous, time.Now())
+	if err != nil && fullScan {
+		return a.loadPreviousDLPScan(ctx, bucketName, projectID), err
+	}
+	return result, err
+}
+
+func (a *accessAnalyzerClient) loadPreviousDLPScan(ctx context.Context, bucketName string, projectID uint32) *bucketDLPScan {
+	previous, err := a.getPreviousDLPFindings(ctx, bucketName, projectID)
+	if err != nil {
+		a.logger.Warnf(ctx, "Failed to get previous DLP findings: %v", err)
+	}
+	return previous
 }
 
 func (a *accessAnalyzerClient) listDLPObjects(ctx context.Context, bucket string, visit func(dlpObject)) error {
